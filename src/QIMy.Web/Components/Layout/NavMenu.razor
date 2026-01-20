@@ -1,0 +1,101 @@
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <i class="bi bi-building"></i> QIMy
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Главная
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <!-- AR Module: Ausgangsrechnungen (Sales) -->
+                <div class="nav-item px-3 mt-3">
+                    <div class="text-muted small px-3">
+                        <strong>AR - AUSGANGSRECHNUNGEN</strong>
+                    </div>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="ar/clients">
+                        <span class="bi bi-people-fill" aria-hidden="true"></span> Клиенты
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="ar/invoices">
+                        <span class="bi bi-file-text-fill" aria-hidden="true"></span> Счета (Rechnungen)
+                    </NavLink>
+                </div>
+
+                <!-- ER Module: Eingangsrechnungen (Purchases) - Coming Soon -->
+                <div class="nav-item px-3 mt-3">
+                    <div class="text-muted small px-3">
+                        <strong>ER - EINGANGSRECHNUNGEN</strong>
+                    </div>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="er/suppliers" disabled>
+                        <span class="bi bi-truck" aria-hidden="true"></span> Поставщики
+                        <span class="badge bg-secondary ms-2">Soon</span>
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="er/purchase-invoices" disabled>
+                        <span class="bi bi-receipt" aria-hidden="true"></span> Входящие счета
+                        <span class="badge bg-secondary ms-2">Soon</span>
+                    </NavLink>
+                </div>
+
+                <!-- KA Module: Kassa - Coming Soon -->
+                <div class="nav-item px-3 mt-3">
+                    <div class="text-muted small px-3">
+                        <strong>KA - KASSA</strong>
+                    </div>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="ka/cash-register" disabled>
+                        <span class="bi bi-cash-coin" aria-hidden="true"></span> Registrierkasse
+                        <span class="badge bg-secondary ms-2">Soon</span>
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="ka/cash-book" disabled>
+                        <span class="bi bi-journal-text" aria-hidden="true"></span> Kassabuch
+                        <span class="badge bg-secondary ms-2">Soon</span>
+                    </NavLink>
+                </div>
+
+                <hr class="my-2" />
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Logout">
+                        <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Выйти
+                    </NavLink>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Войти
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</div>

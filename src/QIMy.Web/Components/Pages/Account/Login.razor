@@ -1,0 +1,125 @@
+@page "/Account/Login"
+@using Microsoft.AspNetCore.Identity
+@using QIMy.Core.Entities
+@inject SignInManager<AppUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Вход - QIMy</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Вход в QIMy</h3>
+                    
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @ErrorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="Model" OnValidSubmit="HandleLogin" FormName="login">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" @bind-Value="Model.Email" class="form-control" placeholder="user@example.com" />
+                            <ValidationMessage For="() => Model.Email" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Пароль</label>
+                            <InputText id="password" type="password" @bind-Value="Model.Password" class="form-control" />
+                            <ValidationMessage For="() => Model.Password" />
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="rememberMe" @bind-Value="Model.RememberMe" class="form-check-input" />
+                            <label for="rememberMe" class="form-check-label">
+                                Запомнить меня
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@IsLoading">
+                            @if (IsLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <text>Вход...</text>
+                            }
+                            else
+                            {
+                                <text>Войти</text>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="mt-3 text-center">
+                        <p class="mb-0">
+                            Нет аккаунта? <a href="/Account/Register">Зарегистрироваться</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel Model { get; set; } = new();
+
+    private string? ErrorMessage { get; set; }
+    private bool IsLoading { get; set; }
+
+    private async Task HandleLogin()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var result = await SignInManager.PasswordSignInAsync(
+                Model.Email,
+                Model.Password,
+                Model.RememberMe,
+                lockoutOnFailure: true);
+
+            if (result.Succeeded)
+            {
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+            else if (result.IsLockedOut)
+            {
+                ErrorMessage = "Аккаунт заблокирован. Попробуйте позже.";
+            }
+            else
+            {
+                ErrorMessage = "Неверный email или пароль.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Ошибка входа: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Email обязателен")]
+        [EmailAddress(ErrorMessage = "Неверный формат email")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Пароль обязателен")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

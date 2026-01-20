@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{08E205FC-B61C-440D-815A-80F6B4FF0940}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QIMy.Web", "src\QIMy.Web\QIMy.Web.csproj", "{293B67C6-B3CE-4E0F-AB1F-60547AC89418}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QIMy.API", "src\QIMy.API\QIMy.API.csproj", "{9CAA992C-E16E-4D06-8D77-39DE634DFA13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QIMy.Core", "src\QIMy.Core\QIMy.Core.csproj", "{94592B9D-B3B6-446A-8049-59D07BBA0908}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QIMy.Infrastructure", "src\QIMy.Infrastructure\QIMy.Infrastructure.csproj", "{CC1AC491-5FBB-49B0-A68F-3FFC1130B821}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QIMy.Shared", "src\QIMy.Shared\QIMy.Shared.csproj", "{084D6C25-CF26-4854-96E5-E3AA5721A155}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{293B67C6-B3CE-4E0F-AB1F-60547AC89418}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{293B67C6-B3CE-4E0F-AB1F-60547AC89418}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{293B67C6-B3CE-4E0F-AB1F-60547AC89418}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{293B67C6-B3CE-4E0F-AB1F-60547AC89418}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CAA992C-E16E-4D06-8D77-39DE634DFA13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CAA992C-E16E-4D06-8D77-39DE634DFA13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CAA992C-E16E-4D06-8D77-39DE634DFA13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CAA992C-E16E-4D06-8D77-39DE634DFA13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94592B9D-B3B6-446A-8049-59D07BBA0908}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94592B9D-B3B6-446A-8049-59D07BBA0908}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94592B9D-B3B6-446A-8049-59D07BBA0908}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94592B9D-B3B6-446A-8049-59D07BBA0908}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC1AC491-5FBB-49B0-A68F-3FFC1130B821}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC1AC491-5FBB-49B0-A68F-3FFC1130B821}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC1AC491-5FBB-49B0-A68F-3FFC1130B821}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC1AC491-5FBB-49B0-A68F-3FFC1130B821}.Release|Any CPU.Build.0 = Release|Any CPU
+		{084D6C25-CF26-4854-96E5-E3AA5721A155}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{084D6C25-CF26-4854-96E5-E3AA5721A155}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{084D6C25-CF26-4854-96E5-E3AA5721A155}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{084D6C25-CF26-4854-96E5-E3AA5721A155}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{293B67C6-B3CE-4E0F-AB1F-60547AC89418} = {08E205FC-B61C-440D-815A-80F6B4FF0940}
+		{9CAA992C-E16E-4D06-8D77-39DE634DFA13} = {08E205FC-B61C-440D-815A-80F6B4FF0940}
+		{94592B9D-B3B6-446A-8049-59D07BBA0908} = {08E205FC-B61C-440D-815A-80F6B4FF0940}
+		{CC1AC491-5FBB-49B0-A68F-3FFC1130B821} = {08E205FC-B61C-440D-815A-80F6B4FF0940}
+		{084D6C25-CF26-4854-96E5-E3AA5721A155} = {08E205FC-B61C-440D-815A-80F6B4FF0940}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,228 @@
+@page "/clients"
+@using QIMy.Core.Interfaces
+@inject IClientService ClientService
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<PageTitle>Клиенты - QIMy</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>Клиенты</h2>
+        </div>
+        <div class="col-auto">
+            <a href="/clients/create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Добавить клиента
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Поиск по названию, email или контактному лицу..." 
+                       @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleSearch" />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                        <i class="bi bi-x"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (clients == null || !clients.Any())
+    {
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> 
+            @if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                <text>Клиенты пока не добавлены. Нажмите "Добавить клиента" для создания первого клиента.</text>
+            }
+            else
+            {
+                <text>По запросу "@searchTerm" ничего не найдено.</text>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Код</th>
+                        <th>Название компании</th>
+                        <th>Тип / Область</th>
+                        <th>Контактное лицо</th>
+                        <th>Email</th>
+                        <th>Телефон</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var client in clients)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@client.CompanyName</strong>
+                                @if (!string.IsNullOrEmpty(client.VatNumber))
+                                {
+                                    <br /><small class="text-muted">UID: @client.VatNumber</small>
+                                }
+                            </td>
+                            <td>@(client.ContactPerson ?? "-")</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(client.Email))
+                                {
+                                    <a href="mailto:@client.Email">@client.Email</a>
+                                }
+                                else
+                                {
+                                    <text>-</text>
+                                }
+                            </td>
+                            <td>@(client.Phone ?? "-")</td>
+                            <td>@(client.City ?? "-")</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="/clients/edit/@client.Id" class="btn btn-outline-primary" title="Редактировать">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" title="Удалить" 
+                                            @onclick="() => ShowDeleteConfirmation(client)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-muted">
+            Всего клиентов: <strong>@clients.Count()</strong>
+        </div>
+    }
+</div>
+
+@if (showDeleteModal && clientToDelete != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Подтверждение удаления</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите удалить клиента <strong>@clientToDelete.CompanyName</strong>?</p>
+                    <p class="text-muted">Это действие нельзя отменить.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Отмена</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <text>Удаление...</text>
+                        }
+                        else
+                        {
+                            <text>Удалить</text>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<QIMy.Core.Entities.Client> clients = new List<QIMy.Core.Entities.Client>();
+    private string searchTerm = string.Empty;
+    private bool isLoading = true;
+    private bool showDeleteModal = false;
+    private bool isDeleting = false;
+    private QIMy.Core.Entities.Client? clientToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClients();
+    }
+
+    private async Task LoadClients()
+    {
+        isLoading = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                clients = await ClientService.GetAllClientsAsync();
+            }
+            else
+            {
+                clients = await ClientService.SearchClientsAsync(searchTerm);
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearch()
+    {
+        await LoadClients();
+    }
+
+    private async Task ClearSearch()
+    {
+        searchTerm = string.Empty;
+        await LoadClients();
+    }
+
+    private void ShowDeleteConfirmation(QIMy.Core.Entities.Client client)
+    {
+        clientToDelete = client;
+        showDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        clientToDelete = null;
+        showDeleteModal = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (clientToDelete == null) return;
+
+        isDeleting = true;
+        try
+        {
+            await ClientService.DeleteClientAsync(clientToDelete.Id);
+            await LoadClients();
+            showDeleteModal = false;
+            clientToDelete = null;
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}
+

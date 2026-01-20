@@ -1,0 +1,257 @@
+using Microsoft.EntityFrameworkCore;
+using QIMy.Core.Entities;
+using QIMy.Core.Enums;
+using QIMy.Core.Interfaces;
+using QIMy.Infrastructure.Data;
+
+namespace QIMy.Infrastructure.Services;
+
+public class ClientService : IClientService
+{
+    private readonly ApplicationDbContext _context;
+
+    public ClientService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    /// <summary>
+    /// Генерирует следующий ClientCode на основе ClientArea
+    /// Inland: 200000-229999, EU: 230000-259999, ThirdCountry: 260000-299999
+    /// </summary>
+    public async Task<int> GenerateNextClientCodeAsync(ClientArea clientArea)
+    {
+        int baseCode = clientArea switch
+        {
+            ClientArea.Inland => 200000,
+            ClientArea.EU => 230000,
+            ClientArea.ThirdCountry => 260000,
+            _ => 200000
+        };
+
+        int maxRange = baseCode + 29999;
+
+        var maxCode = await _context.Clients
+            .Where(c => c.ClientCode >= baseCode && c.ClientCode <= maxRange)
+            .MaxAsync(c => (int?)c.ClientCode);
+
+        return maxCode.HasValue ? maxCode.Value + 1 : baseCode;
+    }
+
+    public async Task<IEnumerable<Client>> GetAllClientsAsync()
+    {
+        return await _context.Clients
+            .Where(c => !c.IsDeleted)
+            .OrderBy(c => c.CompanyName)
+            .ToListAsync();
+    }
+
+    public async Task<Client?> GetClientByIdAsync(int id)
+    {
+        return await _context.Clients
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+    }
+
+    public async Task<Client> CreateClientAsync(Client client)
+    {
+        // Автогенерация ClientCode
+        if (!client.ClientCode.HasValue)
+        {
+            client.ClientCode = await GenerateNextClientCodeAsync(client.ClientArea);
+        }
+
+        {
+            var existingClient = await _context.Clients
+                .FirstOrDefaultAsync(c => !c.IsDeleted && c.VatNumber == client.VatNumber);
+            
+            if (existingClient != null)
+            {
+                throw new InvalidOperationException($"Клиент с VAT номером {client.VatNumber} уже существует: {existingClient.CompanyName}");
+            }
+        }
+
+        client.CreatedAt = DateTime.UtcNow;
+        client.IsDeleted = false;
+
+        _context.Clients.Add(client);
+        await _context.SaveChangesAsync();
+
+        return client;
+    }
+
+    public async Task<Client> UpdateClientAsync(Client client)
+    {
+        // Проверка уникальности VAT номера (кроме самого себя)
+        if (!string.IsNullOrWhiteSpace(client.VatNumber))
+        {
+            var existingClient = await _context.Clients
+                .FirstOrDefaultAsync(c => !c.IsDeleted && c.VatNumber == client.VatNumber && c.Id != client.Id);
+            
+            if (existingClient != null)
+            {
+                throw new InvalidOperationException($"Клиент с VAT номером {client.VatNumber} уже существует: {existingClient.CompanyName}");
+            }
+        }
+
+        client.UpdatedAt = DateTime.UtcNow;
+
+        _context.Clients.Update(client);
+        await _context.SaveChangesAsync();
+
+        return client;
+    }
+
+    public async Task DeleteClientAsync(int id)
+    {
+        var client = await GetClientByIdAsync(id);
+        if (client != null)
+        {
+            client.IsDeleted = true;
+            client.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<IEnumerable<Client>> SearchClientsAsync(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return await GetAllClientsAsync();
+
+        searchTerm = searchTerm.ToLower();
+
+        return await _context.Clients
+            .Where(c => !c.IsDeleted &&
+                (c.CompanyName.ToLower().Contains(searchTerm) ||
+                 (c.Email != null && c.Email.ToLower().Contains(searchTerm)) ||
+                 (c.ContactPerson != null && c.ContactPerson.ToLower().Contains(searchTerm)) ||
+                 (c.VatNumber != null && c.VatNumber.ToLower().Contains(searchTerm)) ||
+                 (c.TaxNumber != null && c.TaxNumber.ToLower().Contains(searchTerm))))
+            .OrderBy(c => c.CompanyName)
+            .ToListAsync();
+    }
+
+    public async Task<Client?> GetClientByVatNumberAsync(string vatNumber)
+    {
+        if (string.IsNullOrWhiteSpace(vatNumber))
+            return null;
+
+        return await _context.Clients
+            .FirstOrDefaultAsync(c => !c.IsDeleted && c.VatNumber == vatNumber);
+    }
+}
+    public async Task<byte[]> ExportToCsvAsync()
+    {
+        var clients = await _context.Clients
+            .Where(c => !c.IsDeleted)
+            .OrderBy(c => c.CompanyName)
+            .ToListAsync();
+
+        var exportData = clients.Select(c => new QIMy.Core.Models.ExportImport.ClientExportModel
+        {
+            Freifeld_01 = string.Empty,
+            Kto_Nr = c.ClientCode ?? 0,
+            Nachname = c.CompanyName ?? string.Empty,
+            Freifeld_06 = c.Address ?? string.Empty,
+            Strasse = string.Empty,
+            Plz = c.PostalCode ?? string.Empty,
+            Ort = c.City ?? string.Empty,
+            WAE = string.Empty,
+            ZZiel = "30",
+            SktoProz1 = string.Empty,
+            SktoTage1 = string.Empty,
+            UID_Nummer = c.VatNumber ?? string.Empty,
+            Freifeld_11 = string.Empty,
+            Lief_Vorschlag_Gegenkonto = string.Empty,
+            Freifeld_04 = string.Empty,
+            Freifeld_05 = string.Empty,
+            Kunden_Vorschlag_Gegenkonto = string.Empty,
+            Freifeld_02 = c.ClientType.ToString(),
+            Freifeld_03 = c.ClientArea.ToString(),
+            Filiale = string.Empty,
+            Land_Nr = c.Country ?? string.Empty,
+            Warenbeschreibung = string.Empty
+        }).ToList();
+
+        using var memoryStream = new MemoryStream();
+        using var writer = new StreamWriter(memoryStream, System.Text.Encoding.UTF8);
+        using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
+        
+        csv.WriteRecords(exportData);
+        writer.Flush();
+        
+        return memoryStream.ToArray();
+    }
+
+    public async Task<(bool Success, string Message, int ImportedCount)> ImportFromCsvAsync(Stream csvStream, bool updateExisting = false)
+    {
+        try
+        {
+            using var reader = new StreamReader(csvStream);
+            using var csv = new CsvHelper.CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture);
+            
+            var records = csv.GetRecords<QIMy.Core.Models.ExportImport.ClientExportModel>().ToList();
+            
+            int importedCount = 0;
+            
+            foreach (var record in records)
+            {
+                if (string.IsNullOrWhiteSpace(record.Nachname))
+                    continue;
+
+                var existingClient = await _context.Clients
+                    .FirstOrDefaultAsync(c => c.ClientCode == record.Kto_Nr && !c.IsDeleted);
+
+                if (existingClient != null)
+                {
+                    if (updateExisting)
+                    {
+                        existingClient.CompanyName = record.Nachname;
+                        existingClient.Address = record.Freifeld_06;
+                        existingClient.PostalCode = record.Plz;
+                        existingClient.City = record.Ort;
+                        existingClient.VatNumber = record.UID_Nummer;
+                        existingClient.Country = record.Land_Nr;
+                        existingClient.UpdatedAt = DateTime.UtcNow;
+                        
+                        if (Enum.TryParse<ClientType>(record.Freifeld_02, out var clientType))
+                            existingClient.ClientType = clientType;
+                        
+                        if (Enum.TryParse<ClientArea>(record.Freifeld_03, out var clientArea))
+                            existingClient.ClientArea = clientArea;
+                        
+                        importedCount++;
+                    }
+                }
+                else
+                {
+                    var newClient = new Client
+                    {
+                        ClientCode = record.Kto_Nr,
+                        CompanyName = record.Nachname,
+                        Address = record.Freifeld_06,
+                        PostalCode = record.Plz,
+                        City = record.Ort,
+                        VatNumber = record.UID_Nummer,
+                        Country = record.Land_Nr,
+                        ClientType = Enum.TryParse<ClientType>(record.Freifeld_02, out var ct) ? ct : ClientType.B2B,
+                        ClientArea = Enum.TryParse<ClientArea>(record.Freifeld_03, out var ca) ? ca : ClientArea.Inland,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        IsDeleted = false
+                    };
+                    
+                    _context.Clients.Add(newClient);
+                    importedCount++;
+                }
+            }
+            
+            await _context.SaveChangesAsync();
+            
+            return (true, $"Успешно импортировано: {importedCount} клиентов", importedCount);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Ошибка импорта: {ex.Message}", 0);
+        }
+    }
+}

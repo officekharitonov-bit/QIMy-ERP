@@ -1,0 +1,170 @@
+@page "/ar/clients"
+@using QIMy.Core.Entities
+@using QIMy.Core.Interfaces
+@using QIMy.Infrastructure.Services
+@inject IClientService ClientService
+@inject ClientExportService ExportService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Клиенты - AR Module</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>
+                <i class="bi bi-people-fill"></i> Клиенты
+                <span class="badge bg-secondary">@clients.Count</span>
+            </h3>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group me-2">
+                <a href="/AR/Clients/Import" class="btn btn-success">
+                    <i class="bi bi-upload me-1"></i> Import CSV
+                </a>
+                <button type="button" class="btn btn-info" @onclick="ExportToCSV">
+                    <i class="bi bi-download me-1"></i> Export CSV
+                </button>
+            </div><a href="/ar/clients/create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Новый клиент
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (!clients.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Клиенты не найдены. Создайте первого клиента!
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Код</th>
+                        <th>Название</th>
+                        <th>Тип</th>
+                        <th>Регион</th>
+                        <th>VAT</th>
+                        <th>Город</th>
+                        <th>Email</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var client in clients)
+                    {
+                        <tr>
+                            <td><code>@client.ClientCode</code></td>
+                            <td>
+                                <strong>@client.CompanyName</strong>
+                                @if (!string.IsNullOrWhiteSpace(client.ContactPerson))
+                                {
+                                    <br /><small class="text-muted">@client.ContactPerson</small>
+                                }
+                            </td>
+                            <td>
+                                @if (client.ClientType != null)
+                                {
+                                    <span class="badge bg-info">@client.ClientType.Name</span>
+                                }
+                            </td>
+                            <td>
+                                @if (client.ClientArea != null)
+                                {
+                                    <span class="badge bg-secondary">@client.ClientArea.Name</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(client.VatNumber))
+                                {
+                                    <code>@client.VatNumber</code>
+                                }
+                            </td>
+                            <td>@client.City</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(client.Email))
+                                {
+                                    <a href="mailto:@client.Email">@client.Email</a>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/ar/clients/edit/@client.Id" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger" @onclick="async () => await DeleteClient(client)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Client> clients = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClients();
+    }
+
+    private async Task LoadClients()
+    {
+        isLoading = true;
+        try
+        {
+            clients = (await ClientService.GetAllClientsAsync()).ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteClient(Client client)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Удалить клиента '{client.CompanyName}'?"))
+        {
+            await ClientService.DeleteClientAsync(client.Id);
+            await LoadClients();
+        }
+    }
+
+    private async Task ExportToCSV()
+    {
+        try
+        {
+            var csvData = await ExportService.ExportToCSVAsync();
+            var fileName = $"Clients_Export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            
+            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(csvData));
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error exporting: {ex.Message}");
+        }
+    }
+}
+
+
+
+
+

@@ -1,0 +1,417 @@
+@page "/AR/Clients/Import"
+@using QIMy.Core.DTOs
+@using QIMy.Infrastructure.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@inject ClientImportService ImportService
+@inject NavigationManager NavigationManager
+@inject ILogger<Import> Logger
+
+<h2>Import Clients</h2>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-upload me-2"></i>Import Clients from CSV</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item"><a href="/AR/Clients">Clients</a></li>
+                    <li class="breadcrumb-item active">Import</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    @if (!isImporting && !isComplete)
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 1: Select CSV File</h5>
+                        <p class="text-muted">Upload a CSV file with client data. The file should be semicolon-separated with the following columns:</p>
+
+                        <div class="alert alert-info">
+                            <strong>Expected format:</strong><br/>
+                            <code>CountryCode;ClientCode;CompanyName;Country;Address;PostalCode;City;Currency;...</code>
+                        </div>
+
+                        <InputFile OnChange="HandleFileSelection" class="form-control mb-3" accept=".csv" />
+
+                        @if (selectedFileName != null)
+                        {
+                            <div class="alert alert-success">
+                                <i class="bi bi-file-earmark-check me-2"></i>Selected file: <strong>@selectedFileName</strong>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                            </div>
+                        }
+
+                        <div class="mt-3">
+                            <button class="btn btn-primary btn-lg" @onclick="LoadPreview" disabled="@(selectedFile == null || isLoadingPreview)">
+                                @if (isLoadingPreview)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-eye me-2"></i>
+                                }
+                                Preview Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm bg-light">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Import Instructions</h5>
+                        <ul class="small">
+                            <li>File must be in CSV format (semicolon-separated)</li>
+                            <li>Encoding: Windows-1252</li>
+                            <li>Duplicate client codes will be skipped</li>
+                            <li>Invalid rows will be reported</li>
+                            <li>All changes are done in a transaction</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isLoadingPreview)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading preview...</span>
+            </div>
+            <p class="mt-3">Analyzing file...</p>
+        </div>
+    }
+
+    @if (previewData != null && !isImporting && !isComplete)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 2: Review Import Preview</h5>
+
+                        <div class="alert alert-warning">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Total Rows:</strong> @previewData.Count
+                                </div>
+                                <div class="col-md-3">
+                                    <strong class="text-success">Valid:</strong> @previewData.Count(d => d.IsValid)
+                                </div>
+                                <div class="col-md-3">
+                                    <strong class="text-danger">Invalid:</strong> @previewData.Count(d => !d.IsValid)
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="skipErrors" id="skipErrors">
+                                        <label class="form-check-label" for="skipErrors">
+                                            Skip errors
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Status</th>
+                                        <th>Client Code</th>
+                                        <th>Company Name</th>
+                                        <th>Country</th>
+                                        <th>City</th>
+                                        <th>VAT Number</th>
+                                        <th>Errors</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in previewData.Take(100))
+                                    {
+                                        <tr class="@(item.IsValid ? "" : "table-danger")">
+                                            <td>@item.RowNumber</td>
+                                            <td>
+                                                @if (item.IsValid)
+                                                {
+                                                    <i class="bi bi-check-circle text-success"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-x-circle text-danger"></i>
+                                                }
+                                            </td>
+                                            <td>@item.ClientCode</td>
+                                            <td>@item.CompanyName</td>
+                                            <td>@item.Country</td>
+                                            <td>@item.City</td>
+                                            <td>@item.VatNumber</td>
+                                            <td>
+                                                @if (!item.IsValid)
+                                                {
+                                                    <small class="text-danger">
+                                                        @string.Join("; ", item.ValidationErrors)
+                                                    </small>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (previewData.Count > 100)
+                        {
+                            <div class="alert alert-info mt-2">
+                                Showing first 100 rows of @previewData.Count total rows.
+                            </div>
+                        }
+
+                        <div class="mt-3">
+                            <button class="btn btn-success btn-lg" @onclick="ExecuteImport"
+                                    disabled="@(previewData.All(d => !d.IsValid) || isImporting)">
+                                <i class="bi bi-database-fill-add me-2"></i>Execute Import
+                            </button>
+                            <button class="btn btn-secondary btn-lg ms-2" @onclick="CancelImport">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isImporting)
+    {
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Importing...</h5>
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar"
+                         style="width: 100%">
+                        Please wait...
+                    </div>
+                </div>
+                <p class="text-center mt-3">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    Processing @(previewData?.Count ?? 0) records...
+                </p>
+            </div>
+        </div>
+    }
+
+    @if (isComplete && importResult != null)
+    {
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-check-circle text-success me-2"></i>Import Complete
+                </h5>
+
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-success text-white">
+                            <div class="card-body">
+                                <h2>@importResult.SuccessCount</h2>
+                                <p class="mb-0">Imported</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-danger text-white">
+                            <div class="card-body">
+                                <h2>@importResult.ErrorCount</h2>
+                                <p class="mb-0">Errors</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning text-dark">
+                            <div class="card-body">
+                                <h2>@importResult.SkippedCount</h2>
+                                <p class="mb-0">Skipped</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-info text-white">
+                            <div class="card-body">
+                                <h2>@importResult.TotalRows</h2>
+                                <p class="mb-0">Total</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-clock me-1"></i>Duration: @importResult.Duration.TotalSeconds.ToString("F2")s
+                    </small>
+                </div>
+
+                @if (importResult.Errors.Any())
+                {
+                    <div class="mt-4">
+                        <h6>Error Details:</h6>
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Client Code</th>
+                                        <th>Company Name</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var error in importResult.Errors)
+                                    {
+                                        <tr>
+                                            <td>@error.RowNumber</td>
+                                            <td>@error.ClientCode</td>
+                                            <td>@error.CompanyName</td>
+                                            <td>
+                                                <small class="text-danger">
+                                                    @error.ErrorMessage
+                                                    @if (error.Details.Any())
+                                                    {
+                                                        <br/>@string.Join(", ", error.Details)
+                                                    }
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <div class="mt-4">
+                    <a href="/AR/Clients" class="btn btn-primary">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Clients
+                    </a>
+                    <button class="btn btn-secondary ms-2" @onclick="ResetImport">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Import Another File
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private string? errorMessage;
+    private bool isLoadingPreview;
+    private bool isImporting;
+    private bool isComplete;
+    private bool skipErrors = true;
+    private List<ClientImportDto>? previewData;
+    private ImportResult? importResult;
+
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        errorMessage = null;
+        previewData = null;
+
+        if (e.File.Size > MaxFileSize)
+        {
+            errorMessage = $"File is too large. Maximum size is {MaxFileSize / 1024 / 1024}MB";
+            selectedFile = null;
+            selectedFileName = null;
+        }
+    }
+
+    private async Task LoadPreview()
+    {
+        if (selectedFile == null) return;
+
+        isLoadingPreview = true;
+        errorMessage = null;
+
+        try
+        {
+            using var stream = selectedFile.OpenReadStream(MaxFileSize);
+            previewData = await ImportService.PreviewImportAsync(stream);
+
+            Logger.LogInformation($"Preview loaded: {previewData.Count} rows, {previewData.Count(d => d.IsValid)} valid");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading preview: {ex.Message}";
+            Logger.LogError(ex, "Failed to load import preview");
+        }
+        finally
+        {
+            isLoadingPreview = false;
+        }
+    }
+
+    private async Task ExecuteImport()
+    {
+        if (selectedFile == null || previewData == null) return;
+
+        isImporting = true;
+        errorMessage = null;
+
+        try
+        {
+            using var stream = selectedFile.OpenReadStream(MaxFileSize);
+            importResult = await ImportService.ImportClientsAsync(stream, skipErrors);
+
+            isComplete = true;
+            Logger.LogInformation($"Import completed: {importResult.SuccessCount} imported, {importResult.ErrorCount} errors");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Import failed: {ex.Message}";
+            Logger.LogError(ex, "Import execution failed");
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    private void CancelImport()
+    {
+        selectedFile = null;
+        selectedFileName = null;
+        previewData = null;
+        errorMessage = null;
+    }
+
+    private void ResetImport()
+    {
+        selectedFile = null;
+        selectedFileName = null;
+        previewData = null;
+        importResult = null;
+        errorMessage = null;
+        isComplete = false;
+        isImporting = false;
+    }
+}

@@ -1,0 +1,289 @@
+@page "/ar/clients/create"
+@page "/ar/clients/edit/{Id:int}"
+@using QIMy.Core.Entities
+@using QIMy.Core.Interfaces
+@using System.ComponentModel.DataAnnotations
+@inject IClientService ClientService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id.HasValue ? "Редактировать" : "Создать") клиента - AR Module</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>
+                <i class="bi bi-person-badge"></i> 
+                @(Id.HasValue ? "Редактировать клиента" : "Новый клиент")
+            </h3>
+        </div>
+        <div class="col-auto">
+            <a href="/ar/clients" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+        </div>
+    </div>
+
+    <EditForm Model="@formModel" OnValidSubmit="HandleValidSubmit" FormName="clientForm">
+        <DataAnnotationsValidator />
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Основная информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Тип клиента *</label>
+                                <InputSelect class="form-select" @bind-Value="formModel.ClientTypeId">
+                                    <option value="">Выберите...</option>
+                                    <option value="1">B2B (Geschäftskunde)</option>
+                                    <option value="2">B2C (Privatkunde)</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => formModel.ClientTypeId)" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Регион *</label>
+                                <InputSelect class="form-select" @bind-Value="formModel.ClientAreaId">
+                                    <option value="">Выберите...</option>
+                                    <option value="1">Inländisch (Inland)</option>
+                                    <option value="2">EU</option>
+                                    <option value="3">Ausländisch (Export)</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => formModel.ClientAreaId)" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Код клиента</label>
+                                <InputNumber class="form-control" @bind-Value="formModel.ClientCode" />
+                                <small class="text-muted">Оставьте пустым для автогенерации</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Название компании *</label>
+                            <InputText class="form-control" @bind-Value="formModel.CompanyName" />
+                            <ValidationMessage For="@(() => formModel.CompanyName)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Контактное лицо</label>
+                            <InputText class="form-control" @bind-Value="formModel.ContactPerson" />
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <InputText type="email" class="form-control" @bind-Value="formModel.Email" />
+                                <ValidationMessage For="@(() => formModel.Email)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Телефон</label>
+                                <InputText class="form-control" @bind-Value="formModel.Phone" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Адрес</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Улица и номер дома</label>
+                            <InputText class="form-control" @bind-Value="formModel.Address" />
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Почтовый индекс</label>
+                                <InputText class="form-control" @bind-Value="formModel.PostalCode" />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Город</label>
+                                <InputText class="form-control" @bind-Value="formModel.City" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Страна</label>
+                            <InputText class="form-control" @bind-Value="formModel.Country" placeholder="Austria" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Налоговая информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">VAT номер (UID)</label>
+                            <InputText class="form-control" @bind-Value="formModel.VatNumber" placeholder="ATU12345678" />
+                            <ValidationMessage For="@(() => formModel.VatNumber)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Налоговый номер</label>
+                            <InputText class="form-control" @bind-Value="formModel.TaxNumber" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+            </div>
+        }
+
+        <div class="row mt-3">
+            <div class="col">
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-save"></i> Сохранить
+                </button>
+                <a href="/ar/clients" class="btn btn-outline-secondary ms-2">Отмена</a>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private ClientFormModel formModel = new();
+    private string errorMessage = string.Empty;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            var client = await ClientService.GetClientByIdAsync(Id.Value);
+            if (client != null)
+            {
+                formModel = new ClientFormModel
+                {
+                    ClientTypeId = client.ClientTypeId,
+                    ClientAreaId = client.ClientAreaId,
+                    ClientCode = client.ClientCode,
+                    CompanyName = client.CompanyName,
+                    ContactPerson = client.ContactPerson,
+                    Email = client.Email,
+                    Phone = client.Phone,
+                    Address = client.Address,
+                    PostalCode = client.PostalCode,
+                    City = client.City,
+                    Country = client.Country,
+                    VatNumber = client.VatNumber,
+                    TaxNumber = client.TaxNumber
+                };
+            }
+            else
+            {
+                Navigation.NavigateTo("/ar/clients");
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var client = new Client
+            {
+                Id = Id ?? 0,
+                ClientTypeId = formModel.ClientTypeId,
+                ClientAreaId = formModel.ClientAreaId,
+                ClientCode = formModel.ClientCode,
+                CompanyName = formModel.CompanyName,
+                ContactPerson = formModel.ContactPerson,
+                Email = formModel.Email,
+                Phone = formModel.Phone,
+                Address = formModel.Address ?? string.Empty,
+                PostalCode = formModel.PostalCode,
+                City = formModel.City,
+                Country = formModel.Country ?? string.Empty,
+                VatNumber = formModel.VatNumber,
+                TaxNumber = formModel.TaxNumber
+            };
+
+            if (Id.HasValue)
+            {
+                await ClientService.UpdateClientAsync(client);
+            }
+            else
+            {
+                await ClientService.CreateClientAsync(client);
+            }
+
+            Navigation.NavigateTo("/ar/clients");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private class ClientFormModel
+    {
+        [Required(ErrorMessage = "Выберите тип клиента")]
+        public int? ClientTypeId { get; set; }
+
+        [Required(ErrorMessage = "Выберите регион")]
+        public int? ClientAreaId { get; set; }
+
+        public int? ClientCode { get; set; }
+
+        [Required(ErrorMessage = "Название компании обязательно")]
+        [StringLength(200)]
+        public string CompanyName { get; set; } = string.Empty;
+
+        [StringLength(100)]
+        public string? ContactPerson { get; set; }
+
+        [EmailAddress(ErrorMessage = "Неверный формат email")]
+        [StringLength(100)]
+        public string? Email { get; set; }
+
+        [StringLength(50)]
+        public string? Phone { get; set; }
+
+        [StringLength(200)]
+        public string? Address { get; set; }
+
+        [StringLength(20)]
+        public string? PostalCode { get; set; }
+
+        [StringLength(100)]
+        public string? City { get; set; }
+
+        [StringLength(100)]
+        public string? Country { get; set; }
+
+        [StringLength(50)]
+        public string? VatNumber { get; set; }
+
+        [StringLength(50)]
+        public string? TaxNumber { get; set; }
+    }
+}

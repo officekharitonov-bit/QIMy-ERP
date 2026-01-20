@@ -1,0 +1,65 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>QIMy - Система учета</PageTitle>
+
+<div class="container mt-5">
+    <div class="jumbotron">
+        <h1 class="display-4">Добро пожаловать в QIMy!</h1>
+        <p class="lead">Современная система управления счетами и бухгалтерией</p>
+        <hr class="my-4">
+        
+        <AuthorizeView>
+            <Authorized>
+                <div class="alert alert-success" role="alert">
+                    <h4 class="alert-heading">Вы вошли в систему!</h4>
+                    <p>Здравствуйте, <strong>@context.User.Identity?.Name</strong></p>
+                    <hr>
+                    <p class="mb-0">
+                        <a href="/AR/Invoices" class="btn btn-primary me-2">Счета</a>
+                        <a href="/AR/Clients" class="btn btn-secondary me-2">Клиенты</a>
+                        <a href="/Account/Logout" class="btn btn-outline-danger">Выйти</a>
+                    </p>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="alert alert-info" role="alert">
+                    <h4 class="alert-heading">Начните работу с QIMy</h4>
+                    <p>Войдите в систему или зарегистрируйтесь для начала работы.</p>
+                    <hr>
+                    <p class="mb-0">
+                        <a href="/Account/Login" class="btn btn-primary me-2">Войти</a>
+                        <a href="/Account/Register" class="btn btn-success">Регистрация</a>
+                    </p>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">📝 Счета</h5>
+                        <p class="card-text">Создавайте и управляйте исходящими счетами (AR)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">📥 Входящие счета</h5>
+                        <p class="card-text">Учет расходов и входящих счетов (ER)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">👥 Клиенты</h5>
+                        <p class="card-text">База клиентов и контрагентов</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,326 @@
+@page "/ar/invoices/create"
+@page "/ar/invoices/edit/{Id:int}"
+@using QIMy.Core.Entities
+@using QIMy.Core.Enums
+@using QIMy.Core.Interfaces
+@inject IInvoiceService InvoiceService
+@inject IClientService ClientService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id.HasValue ? "Редактировать" : "Создать") счёт - AR Module</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>
+                <i class="bi bi-file-text"></i> 
+                @(Id.HasValue ? "Редактировать счёт" : "Новый счёт")
+            </h3>
+        </div>
+        <div class="col-auto">
+            <a href="/ar/invoices" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о счёте</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Клиент *</label>
+                            <select class="form-select" @bind="selectedClientId" disabled="@(Id.HasValue)">
+                                <option value="0">Выберите клиента...</option>
+                                @foreach (var client in clients)
+                                {
+                                    <option value="@client.Id">
+                                        @client.CompanyName (@client.ClientCode)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Дата счёта *</label>
+                            <input type="date" class="form-control" @bind="invoiceDate" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Статус</label>
+                            <select class="form-select" @bind="invoiceStatus">
+                                <option value="@((int)InvoiceStatus.Draft)">Черновик</option>
+                                <option value="@((int)InvoiceStatus.Sent)">Отправлен</option>
+                                <option value="@((int)InvoiceStatus.Paid)">Оплачен</option>
+                                <option value="@((int)InvoiceStatus.Cancelled)">Отменён</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Номер счёта</label>
+                            <input type="text" class="form-control" @bind="invoiceNumber" 
+                                   placeholder="Оставьте пустым для автогенерации" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Срок оплаты</label>
+                            <input type="date" class="form-control" @bind="dueDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Позиции счёта</h5>
+                    <button class="btn btn-sm btn-primary" @onclick="AddItem">
+                        <i class="bi bi-plus"></i> Добавить позицию
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (!items.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Добавьте позиции в счёт
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40%">Описание</th>
+                                        <th style="width: 10%" class="text-end">Кол-во</th>
+                                        <th style="width: 15%" class="text-end">Цена (Netto)</th>
+                                        <th style="width: 10%" class="text-end">НДС %</th>
+                                        <th style="width: 15%" class="text-end">Итого</th>
+                                        <th style="width: 10%"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm" 
+                                                       @bind="item.Description" placeholder="Описание" />
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                       @bind="item.Quantity" step="0.01" />
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                       @bind="item.UnitPrice" step="0.01" />
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                       @bind="item.TaxRatePercent" step="0.01" />
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>@CalculateItemTotal(item).ToString("N2") €</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveItem(item)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Итоговая сумма</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Сумма (Netto):</span>
+                        <strong>@subTotal.ToString("N2") €</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>НДС:</span>
+                        <strong>@totalTax.ToString("N2") €</strong>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <span class="h5">Итого (Brutto):</span>
+                        <span class="h5 text-primary">@totalAmount.ToString("N2") €</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary btn-lg" @onclick="HandleSubmit" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-save"></i> Сохранить счёт
+                </button>
+                <a href="/ar/invoices" class="btn btn-outline-secondary">Отмена</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private List<Client> clients = new();
+    private int selectedClientId = 0;
+    private string invoiceNumber = string.Empty;
+    private DateTime invoiceDate = DateTime.Today;
+    private DateTime? dueDate = DateTime.Today.AddDays(30);
+    private int invoiceStatus = (int)InvoiceStatus.Draft;
+    private List<InvoiceItemModel> items = new();
+    private string errorMessage = string.Empty;
+    private bool isSaving = false;
+
+    private decimal subTotal => items.Sum(i => i.Quantity * i.UnitPrice);
+    private decimal totalTax => items.Sum(i => CalculateItemTax(i));
+    private decimal totalAmount => subTotal + totalTax;
+
+    protected override async Task OnInitializedAsync()
+    {
+        clients = (await ClientService.GetAllClientsAsync()).ToList();
+
+        if (Id.HasValue)
+        {
+            var invoice = await InvoiceService.GetInvoiceByIdAsync(Id.Value);
+            if (invoice != null)
+            {
+                selectedClientId = invoice.ClientId;
+                invoiceNumber = invoice.InvoiceNumber;
+                invoiceDate = invoice.InvoiceDate;
+                dueDate = invoice.DueDate;
+                invoiceStatus = (int)invoice.Status;
+
+                items = invoice.Items.Select(i => new InvoiceItemModel
+                {
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TaxRatePercent = 20
+                }).ToList();
+            }
+        }
+    }
+
+    private void AddItem()
+    {
+        items.Add(new InvoiceItemModel
+        {
+            Description = string.Empty,
+            Quantity = 1,
+            UnitPrice = 0,
+            TaxRatePercent = 20
+        });
+    }
+
+    private void RemoveItem(InvoiceItemModel item)
+    {
+        items.Remove(item);
+    }
+
+    private decimal CalculateItemTotal(InvoiceItemModel item)
+    {
+        var netto = item.Quantity * item.UnitPrice;
+        var tax = netto * (item.TaxRatePercent / 100m);
+        return netto + tax;
+    }
+
+    private decimal CalculateItemTax(InvoiceItemModel item)
+    {
+        return item.Quantity * item.UnitPrice * (item.TaxRatePercent / 100m);
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (selectedClientId == 0)
+        {
+            errorMessage = "Выберите клиента";
+            return;
+        }
+
+        if (!items.Any())
+        {
+            errorMessage = "Добавьте хотя бы одну позицию";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var invoice = new Invoice
+            {
+                Id = Id ?? 0,
+                ClientId = selectedClientId,
+                InvoiceNumber = invoiceNumber,
+                InvoiceDate = invoiceDate,
+                DueDate = dueDate ?? invoiceDate.AddDays(30),
+                Status = (InvoiceStatus)invoiceStatus,
+                SubTotal = subTotal,
+                TotalAmount = totalAmount,
+                Items = items.Select(i => new InvoiceItem
+                {
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TaxAmount = CalculateItemTax(i),
+                    TotalAmount = CalculateItemTotal(i)
+                }).ToList()
+            };
+
+            if (Id.HasValue)
+            {
+                await InvoiceService.UpdateInvoiceAsync(invoice);
+            }
+            else
+            {
+                await InvoiceService.CreateInvoiceAsync(invoice);
+            }
+
+            Navigation.NavigateTo("/ar/invoices");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private class InvoiceItemModel
+    {
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TaxRatePercent { get; set; }
+    }
+}

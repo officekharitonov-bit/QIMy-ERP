@@ -1,0 +1,21 @@
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <p>Для доступа к этой странице необходимо войти в систему.</p>
+                <a href="/Account/Login">Войти</a>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Страница не найдена</PageTitle>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <div class="container mt-5">
+                <h1>404 - Страница не найдена</h1>
+                <p>Запрошенная страница не существует.</p>
+                <a href="/" class="btn btn-primary">На главную</a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
