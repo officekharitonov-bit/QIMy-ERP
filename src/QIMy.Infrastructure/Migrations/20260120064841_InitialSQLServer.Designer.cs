@@ -11,8 +11,8 @@ using QIMy.Infrastructure.Data;
 namespace QIMy.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260119153851_InitialSQLite")]
-    partial class InitialSQLite
+    [Migration("20260120064841_InitialSQLServer")]
+    partial class InitialSQLServer
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
