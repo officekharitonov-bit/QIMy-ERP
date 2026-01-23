@@ -1,0 +1,266 @@
+@page "/admin/businesses/edit/{Id:int}"
+@using MediatR
+@using QIMy.Application.Businesses.Commands.CreateBusiness
+@using QIMy.Application.Businesses.Commands.UpdateBusiness
+@using QIMy.Application.Businesses.DTOs
+@using QIMy.Application.Businesses.Queries.GetBusinessById
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id == 0 ? "Новое предприятие" : "Редактирование предприятия")</PageTitle>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">@(Id == 0 ? "Новое предприятие" : "Редактирование предприятия")</h3>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                        </div>
+                    }
+
+                    <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Название *</label>
+                                    <InputText @bind-Value="model.Name" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Юридическое название</label>
+                                    <InputText @bind-Value="model.LegalName" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Адрес</label>
+                            <InputText @bind-Value="model.Address" class="form-control" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Город</label>
+                                    <InputText @bind-Value="model.City" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Индекс</label>
+                                    <InputText @bind-Value="model.PostalCode" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Страна</label>
+                                    <InputText @bind-Value="model.Country" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">ИНН (Tax Number)</label>
+                                    <InputText @bind-Value="model.TaxNumber" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">НДС номер (VAT Number)</label>
+                                    <InputText @bind-Value="model.VatNumber" class="form-control"
+                                        placeholder="ATU..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <InputText @bind-Value="model.Email" class="form-control" type="email" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Телефон</label>
+                                    <InputText @bind-Value="model.Phone" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Веб-сайт</label>
+                                    <InputText @bind-Value="model.Website" class="form-control"
+                                        placeholder="https://..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Логотип (URL)</label>
+                            <InputText @bind-Value="model.Logo" class="form-control" placeholder="https://..." />
+                            @if (!string.IsNullOrEmpty(model.Logo))
+                            {
+                                <div class="mt-2">
+                                    <img src="@model.Logo" alt="Logo" style="max-width: 200px; max-height: 100px;" />
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                                <i class="bi bi-x-circle"></i> Отмена
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Сохранить
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private BusinessModel model = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id > 0)
+        {
+            var query = new GetBusinessByIdQuery(Id);
+            var business = await Mediator.Send(query);
+
+            if (business != null)
+            {
+                model = new BusinessModel
+                {
+                    Name = business.Name,
+                    LegalName = business.LegalName,
+                    Address = business.Address,
+                    City = business.City,
+                    PostalCode = business.PostalCode,
+                    Country = business.Country,
+                    TaxNumber = business.TaxNumber,
+                    VatNumber = business.VatNumber,
+                    Email = business.Email,
+                    Phone = business.Phone,
+                    Website = business.Website,
+                    Logo = business.Logo
+                };
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        errorMessage = null;
+
+        try
+        {
+            if (Id == 0)
+            {
+                var command = new CreateBusinessCommand
+                {
+                    Name = model.Name,
+                    LegalName = model.LegalName,
+                    Address = model.Address,
+                    City = model.City,
+                    PostalCode = model.PostalCode,
+                    Country = model.Country,
+                    TaxNumber = model.TaxNumber,
+                    VatNumber = model.VatNumber,
+                    Email = model.Email,
+                    Phone = model.Phone,
+                    Website = model.Website,
+                    Logo = model.Logo
+                };
+
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/businesses");
+                }
+                else
+                {
+                    errorMessage = string.Join(", ", result.Errors);
+                }
+            }
+            else
+            {
+                var command = new UpdateBusinessCommand
+                {
+                    Id = Id,
+                    Name = model.Name,
+                    LegalName = model.LegalName,
+                    Address = model.Address,
+                    City = model.City,
+                    PostalCode = model.PostalCode,
+                    Country = model.Country,
+                    TaxNumber = model.TaxNumber,
+                    VatNumber = model.VatNumber,
+                    Email = model.Email,
+                    Phone = model.Phone,
+                    Website = model.Website,
+                    Logo = model.Logo
+                };
+
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/businesses");
+                }
+                else
+                {
+                    errorMessage = string.Join(", ", result.Errors);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving business: {ex.Message}";
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/businesses");
+    }
+
+    // Model class for form binding
+    private class BusinessModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? LegalName { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? PostalCode { get; set; }
+        public string? Country { get; set; }
+        public string? TaxNumber { get; set; }
+        public string? VatNumber { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Website { get; set; }
+        public string? Logo { get; set; }
+    }
+}

@@ -1,9 +1,11 @@
+@rendermode InteractiveServer
 @page "/AR/Clients/Import"
 @using QIMy.Core.DTOs
-@using QIMy.Infrastructure.Services
+@using QIMy.Application.Clients.Commands.ImportClients
+@using MediatR
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
-@inject ClientImportService ImportService
+@inject IMediator Mediator
 @inject NavigationManager NavigationManager
 @inject ILogger<Import> Logger
 
@@ -30,10 +32,11 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">Step 1: Select CSV File</h5>
-                        <p class="text-muted">Upload a CSV file with client data. The file should be semicolon-separated with the following columns:</p>
+                        <p class="text-muted">Upload a CSV file with client data. The file should be semicolon-separated
+                            with the following columns:</p>
 
                         <div class="alert alert-info">
-                            <strong>Expected format:</strong><br/>
+                            <strong>Expected format:</strong><br />
                             <code>CountryCode;ClientCode;CompanyName;Country;Address;PostalCode;City;Currency;...</code>
                         </div>
 
@@ -54,7 +57,8 @@
                         }
 
                         <div class="mt-3">
-                            <button class="btn btn-primary btn-lg" @onclick="LoadPreview" disabled="@(selectedFile == null || isLoadingPreview)">
+                            <button class="btn btn-primary btn-lg" @onclick="LoadPreview"
+                                disabled="@(selectedFile == null || isLoadingPreview)">
                                 @if (isLoadingPreview)
                                 {
                                     <span class="spinner-border spinner-border-sm me-2"></span>
@@ -184,7 +188,7 @@
 
                         <div class="mt-3">
                             <button class="btn btn-success btn-lg" @onclick="ExecuteImport"
-                                    disabled="@(previewData.All(d => !d.IsValid) || isImporting)">
+                                disabled="@(previewData.All(d => !d.IsValid) || isImporting)">
                                 <i class="bi bi-database-fill-add me-2"></i>Execute Import
                             </button>
                             <button class="btn btn-secondary btn-lg ms-2" @onclick="CancelImport">
@@ -203,9 +207,8 @@
             <div class="card-body">
                 <h5 class="card-title">Importing...</h5>
                 <div class="progress" style="height: 30px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated"
-                         role="progressbar"
-                         style="width: 100%">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                        style="width: 100%">
                         Please wait...
                     </div>
                 </div>
@@ -292,7 +295,8 @@
                                                     @error.ErrorMessage
                                                     @if (error.Details.Any())
                                                     {
-                                                        <br/>@string.Join(", ", error.Details)
+                                                        <br />
+                                                        @string.Join(", ", error.Details)
                                                     }
                                                 </small>
                                             </td>
@@ -343,6 +347,8 @@
             selectedFile = null;
             selectedFileName = null;
         }
+
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadPreview()
@@ -355,7 +361,55 @@
         try
         {
             using var stream = selectedFile.OpenReadStream(MaxFileSize);
-            previewData = await ImportService.PreviewImportAsync(stream);
+
+            // Create a MemoryStream to allow multiple reads
+            var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            // For preview, we'll just parse the file without saving
+            using var reader = new StreamReader(memoryStream, System.Text.Encoding.GetEncoding("windows-1252"));
+            await reader.ReadLineAsync(); // Skip header
+
+            previewData = new List<ClientImportDto>();
+            int rowNumber = 2;
+
+            while (!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                var parts = line.Split(';');
+                if (parts.Length < 3) continue;
+
+                var dto = new ClientImportDto
+                {
+                    RowNumber = rowNumber,
+                    CountryCode = parts[0].Trim(),
+                    ClientCode = parts[1].Trim(),
+                    CompanyName = parts[2].Trim(),
+                    Country = parts.Length > 3 ? parts[3].Trim() : "Österreich",
+                    Address = parts.Length > 4 ? parts[4].Trim() : null,
+                    PostalCode = parts.Length > 5 ? parts[5].Trim() : null,
+                    City = parts.Length > 6 ? parts[6].Trim() : null,
+                    VatNumber = parts.Length > 7 ? parts[7].Trim() : null,
+                    Email = parts.Length > 8 ? parts[8].Trim() : null,
+                    Phone = parts.Length > 9 ? parts[9].Trim() : null,
+                    ContactPerson = parts.Length > 10 ? parts[10].Trim() : null,
+                    TaxNumber = parts.Length > 11 ? parts[11].Trim() : null
+                };
+
+                // Validate
+                if (string.IsNullOrWhiteSpace(dto.CompanyName))
+                    dto.ValidationErrors.Add("CompanyName is required");
+                if (string.IsNullOrWhiteSpace(dto.ClientCode))
+                    dto.ValidationErrors.Add("ClientCode is required");
+                else if (!int.TryParse(dto.ClientCode, out _))
+                    dto.ValidationErrors.Add("ClientCode must be a valid number");
+
+                previewData.Add(dto);
+                rowNumber++;
+            }
 
             Logger.LogInformation($"Preview loaded: {previewData.Count} rows, {previewData.Count(d => d.IsValid)} valid");
         }
@@ -380,7 +434,14 @@
         try
         {
             using var stream = selectedFile.OpenReadStream(MaxFileSize);
-            importResult = await ImportService.ImportClientsAsync(stream, skipErrors);
+
+            var command = new ImportClientsCommand
+            {
+                FileStream = stream,
+                SkipErrors = skipErrors
+            };
+
+            importResult = await Mediator.Send(command);
 
             isComplete = true;
             Logger.LogInformation($"Import completed: {importResult.SuccessCount} imported, {importResult.ErrorCount} errors");

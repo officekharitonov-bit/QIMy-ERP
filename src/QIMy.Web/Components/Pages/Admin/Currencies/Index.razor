@@ -1,0 +1,109 @@
+@page "/admin/currencies"
+@using QIMy.Application.Currencies.DTOs
+@using QIMy.Application.Currencies.Commands.DeleteCurrency
+@using QIMy.Application.Currencies.Queries.GetAllCurrencies
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Currencies</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>💱 Currencies (Валюты)</h3>
+    <a href="/admin/currencies/create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Добавить Currency
+    </a>
+</div>
+
+@if (currencies == null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (!currencies.Any())
+{
+    <div class="alert alert-info">
+        Валюты не найдены. Добавьте первую!
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Symbol</th>
+                    <th>Exchange Rate</th>
+                    <th>Default</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var currency in currencies)
+                {
+                    <tr>
+                        <td><strong>@currency.Code</strong></td>
+                        <td>@currency.Name</td>
+                        <td>@currency.Symbol</td>
+                        <td>@currency.ExchangeRate.ToString("F4")</td>
+                        <td>
+                            @if (currency.IsDefault)
+                            {
+                                <span class="badge bg-success">✓ Default</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">-</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="/admin/currencies/edit/@currency.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i> Редактировать
+                            </a>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteCurrency(currency.Id)">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<CurrencyDto>? currencies;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = new GetAllCurrenciesQuery();
+        var result = await Mediator.Send(query);
+        currencies = result.OrderByDescending(x => x.IsDefault).ThenBy(x => x.Code).ToList();
+    }
+
+    private async Task DeleteCurrency(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить эту валюту?"))
+        {
+            var command = new DeleteCurrencyCommand(id);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Error}");
+            }
+        }
+    }
+}

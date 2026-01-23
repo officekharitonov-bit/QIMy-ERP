@@ -1,0 +1,165 @@
+@page "/admin/currencies/create"
+@page "/admin/currencies/edit/{Id:int}"
+@using QIMy.Application.Currencies.DTOs
+@using QIMy.Application.Currencies.Commands.CreateCurrency
+@using QIMy.Application.Currencies.Commands.UpdateCurrency
+@using QIMy.Application.Currencies.Queries.GetCurrencyById
+@using MediatR
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Currency" : "Create Currency")</PageTitle>
+
+<h3>@(IsEditMode ? "✏️ Редактировать Currency" : "➕ Создать Currency")</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@model" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Code (EUR, USD, RUB, etc):</label>
+                <InputText @bind-Value="model.Code" class="form-control" placeholder="EUR" maxlength="3" />
+                <ValidationMessage For="@(() => model.Code)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Name:</label>
+                <InputText @bind-Value="model.Name" class="form-control" placeholder="Euro" />
+                <ValidationMessage For="@(() => model.Name)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Symbol (€, $, ₽, etc):</label>
+                <InputText @bind-Value="model.Symbol" class="form-control" placeholder="€" maxlength="3" />
+                <ValidationMessage For="@(() => model.Symbol)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Exchange Rate (to EUR):</label>
+                <InputNumber @bind-Value="model.ExchangeRate" class="form-control" step="0.0001" />
+                <ValidationMessage For="@(() => model.ExchangeRate)" />
+                <small class="form-text text-muted">EUR = 1.0, USD ≈ 1.1, RUB ≈ 0.011, etc.</small>
+            </div>
+
+            <div class="mb-3 form-check">
+                <InputCheckbox @bind-Value="model.IsDefault" class="form-check-input" id="isDefault" />
+                <label class="form-check-label" for="isDefault">
+                    Default Currency
+                </label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> @(IsEditMode ? "Сохранить" : "Создать")
+                </button>
+                <a href="/admin/currencies" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private CurrencyModel model = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            var query = new GetCurrencyByIdQuery(Id.Value);
+            var currency = await Mediator.Send(query);
+            if (currency != null)
+            {
+                model.Code = currency.Code;
+                model.Name = currency.Name;
+                model.Symbol = currency.Symbol;
+                model.ExchangeRate = currency.ExchangeRate;
+                model.IsDefault = currency.IsDefault;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        try
+        {
+            if (IsEditMode && Id.HasValue)
+            {
+                var command = new UpdateCurrencyCommand
+                {
+                    Id = Id.Value,
+                    Code = model.Code,
+                    Name = model.Name,
+                    Symbol = model.Symbol,
+                    ExchangeRate = model.ExchangeRate,
+                    IsDefault = model.IsDefault
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/currencies");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+            else
+            {
+                var command = new CreateCurrencyCommand
+                {
+                    Code = model.Code,
+                    Name = model.Name,
+                    Symbol = model.Symbol,
+                    ExchangeRate = model.ExchangeRate,
+                    IsDefault = model.IsDefault
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/currencies");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private class CurrencyModel
+    {
+        [Required(ErrorMessage = "Code is required")]
+        [StringLength(3, MinimumLength = 3, ErrorMessage = "Code must be exactly 3 characters")]
+        public string Code { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Symbol is required")]
+        public string Symbol { get; set; } = string.Empty;
+
+        [Range(0.0001, 999999, ErrorMessage = "Exchange rate must be greater than 0")]
+        public decimal ExchangeRate { get; set; } = 1m;
+
+        public bool IsDefault { get; set; } = false;
+    }
+}

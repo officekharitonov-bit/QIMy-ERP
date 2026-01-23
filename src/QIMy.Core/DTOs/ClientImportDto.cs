@@ -15,6 +15,10 @@ public class ClientImportDto
     public string? DiscountDays { get; set; }
     public string? VatNumber { get; set; }
     public string? AccountNumber { get; set; } // Erlöskonto
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? ContactPerson { get; set; }
+    public string? TaxNumber { get; set; }
     public int RowNumber { get; set; }
     public List<string> ValidationErrors { get; set; } = new();
     public bool IsValid => !ValidationErrors.Any();

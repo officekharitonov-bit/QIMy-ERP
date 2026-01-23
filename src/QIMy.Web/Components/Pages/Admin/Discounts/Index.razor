@@ -1,0 +1,108 @@
+@page "/admin/discounts"
+@using QIMy.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Скидки</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Скидки</h2>
+        <div>
+            <a href="/admin/discounts/edit/0" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Добавить скидку
+            </a>
+            <a href="/admin/reference-data" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Процент</th>
+                                <th>По умолчанию</th>
+                                <th style="width: 150px;">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var discount in discounts)
+                            {
+                                <tr>
+                                    <td>@discount.Name</td>
+                                    <td>@discount.Percentage.ToString("0.##")%</td>
+                                    <td>
+                                        @if (discount.IsDefault)
+                                        {
+                                            <span class="badge bg-success">Да</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="/admin/discounts/edit/@discount.Id" class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" @onclick="() => DeleteDiscount(discount.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Discount> discounts = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        discounts = await DbContext.Discounts
+        .Where(d => !d.IsDeleted)
+        .OrderByDescending(d => d.IsDefault)
+        .ThenBy(d => d.Name)
+        .ToListAsync();
+        isLoading = false;
+    }
+
+    private async Task DeleteDiscount(int id)
+    {
+        var discount = await DbContext.Discounts.FindAsync(id);
+        if (discount != null)
+        {
+            discount.IsDeleted = true;
+            discount.UpdatedAt = DateTime.UtcNow;
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
+    }
+}

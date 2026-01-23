@@ -1,0 +1,241 @@
+@page "/admin/products/create"
+@page "/admin/products/edit/{Id:int}"
+@using QIMy.Application.Products.DTOs
+@using QIMy.Application.Products.Commands.CreateProduct
+@using QIMy.Application.Products.Commands.UpdateProduct
+@using QIMy.Application.Products.Queries.GetProductById
+@using QIMy.Application.Units.DTOs
+@using QIMy.Application.Units.Queries.GetAllUnits
+@using QIMy.Application.TaxRates.DTOs
+@using QIMy.Application.TaxRates.Queries.GetAllTaxRates
+@using MediatR
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Product" : "Create Product")</PageTitle>
+
+<h3>@(IsEditMode ? "✏️ Редактировать Product" : "➕ Создать Product")</h3>
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm Model="@model" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Name:</label>
+                        <InputText @bind-Value="model.Name" class="form-control" placeholder="Product name" />
+                        <ValidationMessage For="@(() => model.Name)" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">SKU:</label>
+                        <InputText @bind-Value="model.SKU" class="form-control" placeholder="PROD-001" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Description:</label>
+                <InputText @bind-Value="model.Description" class="form-control" placeholder="Product description" />
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Price (€):</label>
+                        <InputNumber @bind-Value="model.Price" class="form-control" step="0.01" />
+                        <ValidationMessage For="@(() => model.Price)" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Unit:</label>
+                        <InputSelect @bind-Value="model.UnitId" class="form-select">
+                            <option value="">-- Select unit --</option>
+                            @if (units != null)
+                            {
+                                @foreach (var unit in units)
+                                {
+                                    <option value="@unit.Id">@unit.ShortName - @unit.Name</option>
+                                }
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Tax Rate:</label>
+                        <InputSelect @bind-Value="model.TaxRateId" class="form-select">
+                            <option value="">-- Select tax --</option>
+                            @if (taxRates != null)
+                            {
+                                @foreach (var tax in taxRates)
+                                {
+                                    <option value="@tax.Id">@tax.Name (@tax.Rate%)</option>
+                                }
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 form-check">
+                        <InputCheckbox @bind-Value="model.IsService" class="form-check-input" id="isService" />
+                        <label class="form-check-label" for="isService">
+                            This is a Service (not a product)
+                        </label>
+                    </div>
+                </div>
+                @if (!model.IsService)
+                {
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Stock Quantity:</label>
+                            <InputNumber @bind-Value="model.StockQuantity" class="form-control" />
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> @(IsEditMode ? "Сохранить" : "Создать")
+                </button>
+                <a href="/admin/products" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private ProductModel model = new();
+    private List<UnitDto>? units;
+    private List<TaxRateDto>? taxRates;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var unitsQuery = new GetAllUnitsQuery();
+        var unitsResult = await Mediator.Send(unitsQuery);
+        units = unitsResult.OrderBy(x => x.Name).ToList();
+
+        var taxesQuery = new GetAllTaxRatesQuery();
+        var taxesResult = await Mediator.Send(taxesQuery);
+        taxRates = taxesResult.OrderByDescending(x => x.Rate).ToList();
+
+        if (IsEditMode && Id.HasValue)
+        {
+            var query = new GetProductByIdQuery(Id.Value);
+            var product = await Mediator.Send(query);
+            if (product != null)
+            {
+                model.Name = product.Name;
+                model.Description = product.Description;
+                model.SKU = product.SKU;
+                model.Price = product.Price;
+                model.UnitId = product.UnitId;
+                model.TaxRateId = product.TaxRateId;
+                model.IsService = product.IsService;
+                model.StockQuantity = product.StockQuantity;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        try
+        {
+            if (IsEditMode && Id.HasValue)
+            {
+                var command = new UpdateProductCommand
+                {
+                    Id = Id.Value,
+                    Name = model.Name,
+                    Description = model.Description,
+                    SKU = model.SKU,
+                    Price = model.Price,
+                    UnitId = model.UnitId,
+                    TaxRateId = model.TaxRateId,
+                    IsService = model.IsService,
+                    StockQuantity = model.IsService ? 0 : model.StockQuantity
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/products");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+            else
+            {
+                var command = new CreateProductCommand
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    SKU = model.SKU,
+                    Price = model.Price,
+                    UnitId = model.UnitId,
+                    TaxRateId = model.TaxRateId,
+                    IsService = model.IsService,
+                    StockQuantity = model.IsService ? 0 : model.StockQuantity
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/products");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private class ProductModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        public string? SKU { get; set; }
+
+        [Range(0.01, 999999, ErrorMessage = "Price must be greater than 0")]
+        public decimal Price { get; set; }
+
+        public int? UnitId { get; set; }
+
+        public int? TaxRateId { get; set; }
+
+        public bool IsService { get; set; }
+
+        [Range(0, 999999, ErrorMessage = "Stock must be 0 or positive")]
+        public int StockQuantity { get; set; }
+    }
+}

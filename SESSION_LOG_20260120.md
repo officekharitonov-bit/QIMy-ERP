@@ -125,6 +125,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 4. **Пароль админа:** Admin123! (НЕ ЗАБЫТЬ!)
 
 ---
-**Session Start:** 20.01.2026 08:00 CET  
-**Current Time:** 20.01.2026 08:30 CET  
+**Session Start:** 20.01.2026 08:00 CET
+**Current Time:** 20.01.2026 08:30 CET
 **Status:** Деплой в процессе, ожидание завершения

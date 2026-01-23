@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\QIMy.Infrastructure\QIMy.Infrastructure.csproj" />
+    <ProjectReference Include="..\QIMy.Application\QIMy.Application.csproj" />
   </ItemGroup>
 
 </Project>

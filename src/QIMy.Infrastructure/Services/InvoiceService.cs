@@ -35,10 +35,54 @@ public class InvoiceService : IInvoiceService
 
     public async Task<Invoice> CreateInvoiceAsync(Invoice invoice)
     {
+        // Ensure required fields
         invoice.CreatedAt = DateTime.UtcNow;
         invoice.UpdatedAt = DateTime.UtcNow;
         invoice.IsDeleted = false;
-        
+
+        // Auto-generate invoice number if not provided
+        if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+        {
+            // Use timestamp-based unique number to satisfy unique index and required constraint
+            // Example: INV-20260123-153045-123
+            var baseNumber = $"INV-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}";
+
+            // In the unlikely event of collision, append a short guid suffix
+            var exists = await _context.Invoices.AnyAsync(i => i.InvoiceNumber == baseNumber);
+            invoice.InvoiceNumber = exists ? $"{baseNumber}-{Guid.NewGuid().ToString()[..4]}" : baseNumber;
+        }
+
+        // Assign default currency if missing
+        if (invoice.CurrencyId == 0)
+        {
+            var defaultCurrencyId = await _context.Currencies
+                .Where(c => c.IsDefault)
+                .Select(c => c.Id)
+                .FirstOrDefaultAsync();
+
+            if (defaultCurrencyId == 0)
+            {
+                // Fallback to the first available currency
+                defaultCurrencyId = await _context.Currencies
+                    .Select(c => c.Id)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (defaultCurrencyId == 0)
+            {
+                // No currencies exist — throw a clear error
+                throw new InvalidOperationException("No currencies found. Please seed currencies and set a default currency.");
+            }
+
+            invoice.CurrencyId = defaultCurrencyId;
+        }
+
+        // Derive TaxAmount if not explicitly set
+        if (invoice.Items != null && invoice.Items.Count > 0)
+        {
+            invoice.TaxAmount = invoice.Items.Sum(ii => ii.TaxAmount);
+        }
+
         _context.Invoices.Add(invoice);
         await _context.SaveChangesAsync();
         return invoice;

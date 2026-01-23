@@ -1,0 +1,145 @@
+@page "/admin/businesses"
+@using MediatR
+@using Microsoft.JSInterop
+@using QIMy.Application.Businesses.Commands.DeleteBusiness
+@using QIMy.Application.Businesses.DTOs
+@using QIMy.Application.Businesses.Queries.GetAllBusinesses
+@inject IMediator Mediator
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Предприятия</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Предприятия</h2>
+        <div>
+            <a href="/admin/businesses/edit/0" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Добавить предприятие
+            </a>
+            <a href="/admin/reference-data" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Юридическое название</th>
+                                <th>ИНН</th>
+                                <th>НДС номер</th>
+                                <th>Город</th>
+                                <th>Email</th>
+                                <th style="width: 150px;">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var business in businesses)
+                            {
+                                <tr>
+                                    <td>@business.Name</td>
+                                    <td>@business.LegalName</td>
+                                    <td>@business.TaxNumber</td>
+                                    <td>@business.VatNumber</td>
+                                    <td>@business.City</td>
+                                    <td>@business.Email</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="/admin/businesses/edit/@business.Id" class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" @onclick="() => DeleteBusiness(business.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<BusinessDto> businesses = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var query = new GetAllBusinessesQuery();
+            var result = await Mediator.Send(query);
+            businesses = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading businesses: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteBusiness(int id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this business?"))
+            return;
+
+        try
+        {
+            var command = new DeleteBusinessCommand(id);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                await LoadData();
+            }
+            else
+            {
+                errorMessage = string.Join(", ", result.Errors);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting business: {ex.Message}";
+        }
+    }
+}

@@ -12,6 +12,7 @@ public class Account : BaseEntity
     public int? ClientAreaId { get; set; }
     public bool IsForServices { get; set; } = false;
     public int? DefaultTaxRateId { get; set; }
+    public string? Comment { get; set; } // Custom invoice comment
 
     // Navigation properties
     public ClientArea? ClientArea { get; set; }

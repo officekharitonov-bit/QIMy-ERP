@@ -1,0 +1,139 @@
+@page "/admin/tax-rates/create"
+@page "/admin/tax-rates/edit/{Id:int}"
+@using QIMy.Application.TaxRates.DTOs
+@using QIMy.Application.TaxRates.Commands.CreateTaxRate
+@using QIMy.Application.TaxRates.Commands.UpdateTaxRate
+@using QIMy.Application.TaxRates.Queries.GetTaxRateById
+@using MediatR
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Tax Rate" : "Create Tax Rate")</PageTitle>
+
+<h3>@(IsEditMode ? "✏️ Редактировать Tax Rate" : "➕ Создать Tax Rate")</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@model" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Rate (%):</label>
+                <InputNumber @bind-Value="model.Rate" class="form-control" step="0.01" />
+                <ValidationMessage For="@(() => model.Rate)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Name:</label>
+                <InputText @bind-Value="model.Name" class="form-control" placeholder="Standard VAT" />
+                <ValidationMessage For="@(() => model.Name)" />
+            </div>
+
+            <div class="mb-3 form-check">
+                <InputCheckbox @bind-Value="model.IsActive" class="form-check-input" id="isActive" />
+                <label class="form-check-label" for="isActive">
+                    Active
+                </label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> @(IsEditMode ? "Сохранить" : "Создать")
+                </button>
+                <a href="/admin/tax-rates" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private TaxRateModel model = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            var query = new GetTaxRateByIdQuery(Id.Value);
+            var taxRate = await Mediator.Send(query);
+            if (taxRate != null)
+            {
+                model.Rate = taxRate.Rate;
+                model.Name = taxRate.Name;
+                model.IsActive = taxRate.IsActive;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        try
+        {
+            if (IsEditMode && Id.HasValue)
+            {
+                var command = new UpdateTaxRateCommand
+                {
+                    Id = Id.Value,
+                    Name = model.Name,
+                    Rate = model.Rate,
+                    IsActive = model.IsActive
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/tax-rates");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+            else
+            {
+                var command = new CreateTaxRateCommand
+                {
+                    Name = model.Name,
+                    Rate = model.Rate,
+                    IsActive = model.IsActive
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/tax-rates");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private class TaxRateModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        [Range(0, 100, ErrorMessage = "Rate must be between 0 and 100")]
+        public decimal Rate { get; set; } = 20m;
+
+        public bool IsActive { get; set; } = true;
+    }
+}

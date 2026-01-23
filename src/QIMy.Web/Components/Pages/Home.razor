@@ -1,4 +1,5 @@
 @page "/"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 
 <PageTitle>QIMy - Система учета</PageTitle>
@@ -8,7 +9,7 @@
         <h1 class="display-4">Добро пожаловать в QIMy!</h1>
         <p class="lead">Современная система управления счетами и бухгалтерией</p>
         <hr class="my-4">
-        
+
         <AuthorizeView>
             <Authorized>
                 <div class="alert alert-success" role="alert">
@@ -18,6 +19,7 @@
                     <p class="mb-0">
                         <a href="/AR/Invoices" class="btn btn-primary me-2">Счета</a>
                         <a href="/AR/Clients" class="btn btn-secondary me-2">Клиенты</a>
+                        <a href="/admin/reference-data" class="btn btn-info me-2">Справочники</a>
                         <a href="/Account/Logout" class="btn btn-outline-danger">Выйти</a>
                     </p>
                 </div>

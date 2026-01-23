@@ -1,8 +1,10 @@
 @page "/ar/clients"
-@using QIMy.Core.Entities
-@using QIMy.Core.Interfaces
+@using QIMy.Application.Clients.DTOs
+@using QIMy.Application.Clients.Commands.DeleteClient
+@using QIMy.Application.Clients.Queries.GetAllClients
+@using MediatR
 @using QIMy.Infrastructure.Services
-@inject IClientService ClientService
+@inject IMediator Mediator
 @inject ClientExportService ExportService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -71,19 +73,21 @@
                                 <strong>@client.CompanyName</strong>
                                 @if (!string.IsNullOrWhiteSpace(client.ContactPerson))
                                 {
-                                    <br /><small class="text-muted">@client.ContactPerson</small>
+                                    <br />
+                        
+                                    <small class="text-muted">@client.ContactPerson</small>
                                 }
                             </td>
                             <td>
-                                @if (client.ClientType != null)
+                                @if (!string.IsNullOrEmpty(client.ClientTypeName))
                                 {
-                                    <span class="badge bg-info">@client.ClientType.Name</span>
+                                    <span class="badge bg-info">@client.ClientTypeName</span>
                                 }
                             </td>
                             <td>
-                                @if (client.ClientArea != null)
+                                @if (!string.IsNullOrEmpty(client.ClientAreaName))
                                 {
-                                    <span class="badge bg-secondary">@client.ClientArea.Name</span>
+                                    <span class="badge bg-secondary">@client.ClientAreaName</span>
                                 }
                             </td>
                             <td>
@@ -118,8 +122,9 @@
 </div>
 
 @code {
-    private List<Client> clients = new();
+    private List<ClientDto> clients = new();
     private bool isLoading = true;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -129,9 +134,17 @@
     private async Task LoadClients()
     {
         isLoading = true;
+        errorMessage = null;
         try
         {
-            clients = (await ClientService.GetAllClientsAsync()).ToList();
+            var query = new GetAllClientsQuery();
+            var result = await Mediator.Send(query);
+
+            clients = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка загрузки: {ex.Message}";
         }
         finally
         {
@@ -139,12 +152,21 @@
         }
     }
 
-    private async Task DeleteClient(Client client)
+    private async Task DeleteClient(ClientDto client)
     {
         if (await JS.InvokeAsync<bool>("confirm", $"Удалить клиента '{client.CompanyName}'?"))
         {
-            await ClientService.DeleteClientAsync(client.Id);
-            await LoadClients();
+            var command = new DeleteClientCommand(client.Id);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                await LoadClients();
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка удаления: {result.Error}");
+            }
         }
     }
 
@@ -154,7 +176,7 @@
         {
             var csvData = await ExportService.ExportToCSVAsync();
             var fileName = $"Clients_Export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            
+
             await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(csvData));
         }
         catch (Exception ex)
@@ -163,8 +185,3 @@
         }
     }
 }
-
-
-
-
-

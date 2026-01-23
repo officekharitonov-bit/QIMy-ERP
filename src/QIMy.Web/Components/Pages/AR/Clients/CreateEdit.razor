@@ -1,9 +1,12 @@
 @page "/ar/clients/create"
 @page "/ar/clients/edit/{Id:int}"
-@using QIMy.Core.Entities
-@using QIMy.Core.Interfaces
+@using QIMy.Application.Clients.DTOs
+@using QIMy.Application.Clients.Commands.CreateClient
+@using QIMy.Application.Clients.Commands.UpdateClient
+@using QIMy.Application.Clients.Queries.GetClientById
+@using MediatR
 @using System.ComponentModel.DataAnnotations
-@inject IClientService ClientService
+@inject IMediator Mediator
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -13,7 +16,7 @@
     <div class="row mb-3">
         <div class="col">
             <h3>
-                <i class="bi bi-person-badge"></i> 
+                <i class="bi bi-person-badge"></i>
                 @(Id.HasValue ? "Редактировать клиента" : "Новый клиент")
             </h3>
         </div>
@@ -26,7 +29,7 @@
 
     <EditForm Model="@formModel" OnValidSubmit="HandleValidSubmit" FormName="clientForm">
         <DataAnnotationsValidator />
-        
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card mb-3">
@@ -35,7 +38,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Тип клиента *</label>
                                 <InputSelect class="form-select" @bind-Value="formModel.ClientTypeId">
                                     <option value="">Выберите...</option>
@@ -44,7 +47,7 @@
                                 </InputSelect>
                                 <ValidationMessage For="@(() => formModel.ClientTypeId)" />
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Регион *</label>
                                 <InputSelect class="form-select" @bind-Value="formModel.ClientAreaId">
                                     <option value="">Выберите...</option>
@@ -53,11 +56,6 @@
                                     <option value="3">Ausländisch (Export)</option>
                                 </InputSelect>
                                 <ValidationMessage For="@(() => formModel.ClientAreaId)" />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Код клиента</label>
-                                <InputNumber class="form-control" @bind-Value="formModel.ClientCode" />
-                                <small class="text-muted">Оставьте пустым для автогенерации</small>
                             </div>
                         </div>
 
@@ -123,7 +121,8 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label class="form-label">VAT номер (UID)</label>
-                            <InputText class="form-control" @bind-Value="formModel.VatNumber" placeholder="ATU12345678" />
+                            <InputText class="form-control" @bind-Value="formModel.VatNumber"
+                                placeholder="ATU12345678" />
                             <ValidationMessage For="@(() => formModel.VatNumber)" />
                         </div>
 
@@ -171,24 +170,25 @@
     {
         if (Id.HasValue)
         {
-            var client = await ClientService.GetClientByIdAsync(Id.Value);
-            if (client != null)
+            var query = new GetClientByIdQuery(Id.Value);
+            var clientDto = await Mediator.Send(query);
+
+            if (clientDto != null)
             {
                 formModel = new ClientFormModel
                 {
-                    ClientTypeId = client.ClientTypeId,
-                    ClientAreaId = client.ClientAreaId,
-                    ClientCode = client.ClientCode,
-                    CompanyName = client.CompanyName,
-                    ContactPerson = client.ContactPerson,
-                    Email = client.Email,
-                    Phone = client.Phone,
-                    Address = client.Address,
-                    PostalCode = client.PostalCode,
-                    City = client.City,
-                    Country = client.Country,
-                    VatNumber = client.VatNumber,
-                    TaxNumber = client.TaxNumber
+                    ClientTypeId = clientDto.ClientTypeId,
+                    ClientAreaId = clientDto.ClientAreaId,
+                    CompanyName = clientDto.CompanyName,
+                    ContactPerson = clientDto.ContactPerson,
+                    Email = clientDto.Email,
+                    Phone = clientDto.Phone,
+                    Address = clientDto.Address,
+                    PostalCode = clientDto.PostalCode,
+                    City = clientDto.City,
+                    Country = clientDto.Country,
+                    VatNumber = clientDto.VatNumber,
+                    TaxNumber = clientDto.TaxNumber
                 };
             }
             else
@@ -205,38 +205,69 @@
 
         try
         {
-            var client = new Client
-            {
-                Id = Id ?? 0,
-                ClientTypeId = formModel.ClientTypeId,
-                ClientAreaId = formModel.ClientAreaId,
-                ClientCode = formModel.ClientCode,
-                CompanyName = formModel.CompanyName,
-                ContactPerson = formModel.ContactPerson,
-                Email = formModel.Email,
-                Phone = formModel.Phone,
-                Address = formModel.Address ?? string.Empty,
-                PostalCode = formModel.PostalCode,
-                City = formModel.City,
-                Country = formModel.Country ?? string.Empty,
-                VatNumber = formModel.VatNumber,
-                TaxNumber = formModel.TaxNumber
-            };
-
             if (Id.HasValue)
             {
-                await ClientService.UpdateClientAsync(client);
+                // Update
+                var command = new UpdateClientCommand
+                {
+                    Id = Id.Value,
+                    CompanyName = formModel.CompanyName,
+                    ContactPerson = formModel.ContactPerson,
+                    Email = formModel.Email,
+                    Phone = formModel.Phone,
+                    VatNumber = formModel.VatNumber,
+                    Address = formModel.Address,
+                    City = formModel.City,
+                    PostalCode = formModel.PostalCode,
+                    Country = formModel.Country,
+                    ClientTypeId = formModel.ClientTypeId,
+                    ClientAreaId = formModel.ClientAreaId
+                };
+
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/ar/clients");
+                }
+                else
+                {
+                    errorMessage = result.Error ?? "Ошибка обновления клиента";
+                }
             }
             else
             {
-                await ClientService.CreateClientAsync(client);
-            }
+                // Create
+                var command = new CreateClientCommand
+                {
+                    CompanyName = formModel.CompanyName,
+                    ContactPerson = formModel.ContactPerson,
+                    Email = formModel.Email,
+                    Phone = formModel.Phone,
+                    VatNumber = formModel.VatNumber,
+                    Address = formModel.Address,
+                    City = formModel.City,
+                    PostalCode = formModel.PostalCode,
+                    Country = formModel.Country,
+                    ClientTypeId = formModel.ClientTypeId,
+                    ClientAreaId = formModel.ClientAreaId
+                };
 
-            Navigation.NavigateTo("/ar/clients");
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/ar/clients");
+                }
+                else
+                {
+                    errorMessage = result.Error ?? "Ошибка создания клиента";
+                }
+            }
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            errorMessage = $"Ошибка: {ex.Message}";
         }
         finally
         {
@@ -251,8 +282,6 @@
 
         [Required(ErrorMessage = "Выберите регион")]
         public int? ClientAreaId { get; set; }
-
-        public int? ClientCode { get; set; }
 
         [Required(ErrorMessage = "Название компании обязательно")]
         [StringLength(200)]

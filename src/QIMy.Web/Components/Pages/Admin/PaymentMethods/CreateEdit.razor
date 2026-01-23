@@ -1,0 +1,120 @@
+@page "/admin/payment-methods/create"
+@page "/admin/payment-methods/edit/{Id:int}"
+@using QIMy.Infrastructure.Data
+@using QIMy.Core.Entities
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@inject ApplicationDbContext Context
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Payment Method" : "Create Payment Method")</PageTitle>
+
+<h3>@(IsEditMode ? "✏️ Редактировать Payment Method" : "➕ Создать Payment Method")</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@model" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Name:</label>
+                <InputText @bind-Value="model.Name" class="form-control" placeholder="Überweisung" />
+                <ValidationMessage For="@(() => model.Name)" />
+            </div>
+
+            <div class="mb-3 form-check">
+                <InputCheckbox @bind-Value="model.IsDefault" class="form-check-input" id="isDefault" />
+                <label class="form-check-label" for="isDefault">
+                    Default Payment Method
+                </label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> @(IsEditMode ? "Сохранить" : "Создать")
+                </button>
+                <a href="/admin/payment-methods" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private PaymentMethodModel model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            var paymentMethod = await Context.PaymentMethods.FindAsync(Id.Value);
+            if (paymentMethod != null)
+            {
+                model.Name = paymentMethod.Name;
+                model.IsDefault = paymentMethod.IsDefault;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            var paymentMethod = await Context.PaymentMethods.FindAsync(Id.Value);
+            if (paymentMethod != null)
+            {
+                paymentMethod.Name = model.Name;
+                paymentMethod.IsDefault = model.IsDefault;
+                paymentMethod.UpdatedAt = DateTime.UtcNow;
+
+                if (model.IsDefault)
+                {
+                    var others = await Context.PaymentMethods
+                    .Where(p => p.Id != Id.Value && p.IsDefault)
+                    .ToListAsync();
+                    foreach (var other in others)
+                    {
+                        other.IsDefault = false;
+                    }
+                }
+            }
+        }
+        else
+        {
+            var paymentMethod = new PaymentMethod
+            {
+                Name = model.Name,
+                IsDefault = model.IsDefault
+            };
+
+            if (model.IsDefault)
+            {
+                var others = await Context.PaymentMethods
+                .Where(p => p.IsDefault)
+                .ToListAsync();
+                foreach (var other in others)
+                {
+                    other.IsDefault = false;
+                }
+            }
+
+            Context.PaymentMethods.Add(paymentMethod);
+        }
+
+        await Context.SaveChangesAsync();
+        Navigation.NavigateTo("/admin/payment-methods");
+    }
+
+    private class PaymentMethodModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool IsDefault { get; set; }
+    }
+}

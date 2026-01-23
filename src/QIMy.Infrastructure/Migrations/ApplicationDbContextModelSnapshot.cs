@@ -162,6 +162,9 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<int?>("ClientAreaId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Comment")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 

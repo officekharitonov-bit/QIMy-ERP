@@ -1,0 +1,115 @@
+@page "/admin/products"
+@using QIMy.Application.Products.DTOs
+@using QIMy.Application.Products.Commands.DeleteProduct
+@using QIMy.Application.Products.Queries.GetAllProducts
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Products</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📦 Products & Services (Товары и услуги)</h3>
+    <a href="/admin/products/create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Добавить Product
+    </a>
+</div>
+
+@if (products == null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (!products.Any())
+{
+    <div class="alert alert-info">
+        Товары и услуги не найдены. Добавьте первый товар!
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Price (€)</th>
+                    <th>Unit</th>
+                    <th>Tax Rate</th>
+                    <th>Type</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    <tr>
+                        <td><strong>@product.SKU</strong></td>
+                        <td>@product.Name</td>
+                        <td>@product.Description</td>
+                        <td>@product.Price.ToString("F2")</td>
+                        <td>@(product.UnitName ?? "-")</td>
+                        <td>@(product.TaxRateName ?? "-")</td>
+                        <td>
+                            @if (product.IsService)
+                            {
+                                <span class="badge bg-info">🔧 Service</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">📦 Product</span>
+                            }
+                        </td>
+                        <td>@(product.IsService ? "-" : product.StockQuantity.ToString())</td>
+                        <td>
+                            <a href="/admin/products/edit/@product.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i> Редактировать
+                            </a>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteProduct(product.Id)">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<ProductDto>? products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = new GetAllProductsQuery();
+        var result = await Mediator.Send(query);
+        products = result.OrderBy(x => x.Name).ToList();
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить этот товар?"))
+        {
+            var command = new DeleteProductCommand(id);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Error}");
+            }
+        }
+    }
+}

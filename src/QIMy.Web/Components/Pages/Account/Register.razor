@@ -13,7 +13,7 @@
             <div class="card shadow">
                 <div class="card-body">
                     <h3 class="card-title text-center mb-4">Регистрация в QIMy</h3>
-                    
+
                     @if (!string.IsNullOrEmpty(ErrorMessage))
                     {
                         <div class="alert alert-danger" role="alert">
@@ -112,12 +112,17 @@
             if (result.Succeeded)
             {
                 await SignInManager.SignInAsync(user, isPersistent: false);
-                NavigationManager.NavigateTo("/");
+                NavigationManager.NavigateTo("/", forceLoad: true);
             }
             else
             {
                 ErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
             }
+        }
+        catch (NavigationException)
+        {
+            // NavigationManager.NavigateTo throws NavigationException to short-circuit rendering.
+            // Swallow it so it doesn't surface as an error alert.
         }
         catch (Exception ex)
         {

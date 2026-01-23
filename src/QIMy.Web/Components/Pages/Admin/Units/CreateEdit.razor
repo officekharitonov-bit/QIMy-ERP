@@ -1,0 +1,142 @@
+@page "/admin/units/create"
+@page "/admin/units/edit/{Id:int}"
+@using QIMy.Application.Units.DTOs
+@using QIMy.Application.Units.Commands.CreateUnit
+@using QIMy.Application.Units.Commands.UpdateUnit
+@using QIMy.Application.Units.Queries.GetUnitById
+@using MediatR
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Unit" : "Create Unit")</PageTitle>
+
+<h3>@(IsEditMode ? "✏️ Редактировать Unit" : "➕ Создать Unit")</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@model" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Short Name (Stk, kg, Std, etc):</label>
+                <InputText @bind-Value="model.ShortName" class="form-control" placeholder="Stk" maxlength="10" />
+                <ValidationMessage For="@(() => model.ShortName)" />
+                <small class="form-text text-muted">Краткое обозначение (например: Stk, kg, Std, m²)</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Name (Full name):</label>
+                <InputText @bind-Value="model.Name" class="form-control" placeholder="Stück" />
+                <ValidationMessage For="@(() => model.Name)" />
+                <small class="form-text text-muted">Полное название (например: Stück, Kilogram, Stunde)</small>
+            </div>
+
+            <div class="mb-3 form-check">
+                <InputCheckbox @bind-Value="model.IsDefault" class="form-check-input" id="isDefault" />
+                <label class="form-check-label" for="isDefault">
+                    Default Unit
+                </label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> @(IsEditMode ? "Сохранить" : "Создать")
+                </button>
+                <a href="/admin/units" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private UnitModel model = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            var query = new GetUnitByIdQuery(Id.Value);
+            var unit = await Mediator.Send(query);
+            if (unit != null)
+            {
+                model.ShortName = unit.ShortName;
+                model.Name = unit.Name;
+                model.IsDefault = unit.IsDefault;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        try
+        {
+            if (IsEditMode && Id.HasValue)
+            {
+                var command = new UpdateUnitCommand
+                {
+                    Id = Id.Value,
+                    ShortName = model.ShortName,
+                    Name = model.Name,
+                    IsDefault = model.IsDefault
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/units");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+            else
+            {
+                var command = new CreateUnitCommand
+                {
+                    ShortName = model.ShortName,
+                    Name = model.Name,
+                    IsDefault = model.IsDefault
+                };
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/admin/units");
+                }
+                else
+                {
+                    errorMessage = result.Error;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private class UnitModel
+    {
+        [Required(ErrorMessage = "Short Name is required")]
+        [StringLength(10, ErrorMessage = "Short Name must not exceed 10 characters")]
+        public string ShortName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        public bool IsDefault { get; set; } = false;
+    }
+}

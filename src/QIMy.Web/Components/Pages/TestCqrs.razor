@@ -1,0 +1,189 @@
+@page "/test-cqrs"
+@using Microsoft.AspNetCore.Components.Forms
+@using MediatR
+@using QIMy.Application.Clients.Commands.CreateClient
+@using QIMy.Application.Clients.Queries.GetAllClients
+@using QIMy.Application.Clients.DTOs
+@inject IMediator Mediator
+
+<PageTitle>CQRS Architecture Test</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">🧪 Test CQRS + MediatR Architecture</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>✅ New Architecture Status:</strong>
+                        <ul class="mb-0">
+                            <li>✅ Application Layer - Active</li>
+                            <li>✅ MediatR - Registered</li>
+                            <li>✅ FluentValidation - Active</li>
+                            <li>✅ AutoMapper - Active</li>
+                            <li>✅ Repository Pattern - Implemented</li>
+                            <li>✅ Unit of Work - Active</li>
+                        </ul>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> @errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success">
+                            <strong>Success:</strong> @successMessage
+                        </div>
+                    }
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>📝 Create Client (Command)</h4>
+                            <EditForm Model="command" OnValidSubmit="HandleCreateClient">
+                                <DataAnnotationsValidator />
+
+                                <div class="mb-3">
+                                    <label class="form-label">Company Name *</label>
+                                    <InputText @bind-Value="command.CompanyName" class="form-control" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">VAT Number</label>
+                                    <InputText @bind-Value="command.VatNumber" class="form-control"
+                                        placeholder="ATU12345678" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <InputText @bind-Value="command.Email" class="form-control" type="email" />
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Create via CQRS
+                                </button>
+                            </EditForm>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h4>📋 All Clients (Query)</h4>
+                            <button class="btn btn-info mb-3" @onclick="LoadClients" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Load via CQRS
+                            </button>
+
+                            @if (clients != null && clients.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Code</th>
+                                                <th>Company</th>
+                                                <th>VAT</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var client in clients.Take(10))
+                                            {
+                                                <tr>
+                                                    <td>@client.ClientCode</td>
+                                                    <td>@client.CompanyName</td>
+                                                    <td>@client.VatNumber</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                    <small class="text-muted">Showing @clients.Take(10).Count() of @clients.Count()
+                                        clients</small>
+                                </div>
+                            }
+                            else if (clients != null)
+                            {
+                                <div class="alert alert-warning">No clients found</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateClientCommand command = new() { Country = "Österreich" };
+    private IEnumerable<ClientDto>? clients;
+    private bool isLoading = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private async Task HandleCreateClient()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                successMessage = $"✅ Client created successfully: {result.Value?.CompanyName} (Code: {result.Value?.ClientCode})";
+                command = new() { Country = "Österreich" }; // Reset form
+                await LoadClients(); // Reload list
+            }
+            else
+            {
+                errorMessage = string.Join(", ", result.Errors);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Exception: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadClients()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var query = new GetAllClientsQuery();
+            clients = await Mediator.Send(query);
+            successMessage = $"✅ Loaded {clients.Count()} clients via CQRS";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Exception: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClients();
+    }
+}

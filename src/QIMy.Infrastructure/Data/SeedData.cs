@@ -57,56 +57,56 @@ public static class SeedData
         {
             var accounts = new[]
             {
-                new Account 
-                { 
-                    AccountNumber = "4000", 
-                    Name = "Erlöse 20% USt", 
-                    AccountCode = "1", 
+                new Account
+                {
+                    AccountNumber = "4000",
+                    Name = "Erlöse 20% USt",
+                    AccountCode = "1",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = standardTaxRate?.Id,
                     IsForServices = false
                 },
-                new Account 
-                { 
-                    AccountNumber = "4010", 
-                    Name = "Barverkauf 20% USt", 
-                    AccountCode = "1", 
+                new Account
+                {
+                    AccountNumber = "4010",
+                    Name = "Barverkauf 20% USt",
+                    AccountCode = "1",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = standardTaxRate?.Id,
                     IsForServices = false
                 },
-                new Account 
-                { 
-                    AccountNumber = "4030", 
-                    Name = "Erlöse 20% USt (Inland)", 
-                    AccountCode = "1", 
+                new Account
+                {
+                    AccountNumber = "4030",
+                    Name = "Erlöse 20% USt (Inland)",
+                    AccountCode = "1",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = standardTaxRate?.Id,
                     IsForServices = false
                 },
-                new Account 
-                { 
-                    AccountNumber = "4062", 
-                    Name = "Erlöse 10% USt", 
-                    AccountCode = "2", 
+                new Account
+                {
+                    AccountNumber = "4062",
+                    Name = "Erlöse 10% USt",
+                    AccountCode = "2",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = reducedTaxRate10?.Id,
                     IsForServices = false
                 },
-                new Account 
-                { 
-                    AccountNumber = "4100", 
-                    Name = "Erlöse steuerfrei (Export)", 
-                    AccountCode = "0", 
+                new Account
+                {
+                    AccountNumber = "4100",
+                    Name = "Erlöse steuerfrei (Export)",
+                    AccountCode = "0",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = zeroTaxRate?.Id,
                     IsForServices = false
                 },
-                new Account 
-                { 
-                    AccountNumber = "4112", 
-                    Name = "Erlöse 13% USt", 
-                    AccountCode = "3", 
+                new Account
+                {
+                    AccountNumber = "4112",
+                    Name = "Erlöse 13% USt",
+                    AccountCode = "3",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = reducedTaxRate13?.Id,
                     IsForServices = false
@@ -156,6 +156,72 @@ public static class SeedData
                 new Unit { Name = "Pauschalbetrag", ShortName = "Pauschal" }
             };
             await context.Units.AddRangeAsync(units);
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Currencies
+        if (!await context.Currencies.AnyAsync())
+        {
+            var currencies = new[]
+            {
+                new Currency
+                {
+                    Code = "EUR",
+                    Name = "Euro",
+                    Symbol = "€",
+                    ExchangeRate = 1.0m,
+                    IsDefault = true
+                },
+                new Currency
+                {
+                    Code = "USD",
+                    Name = "US Dollar",
+                    Symbol = "$",
+                    ExchangeRate = 1.1m,
+                    IsDefault = false
+                },
+                new Currency
+                {
+                    Code = "RUB",
+                    Name = "Russian Ruble",
+                    Symbol = "₽",
+                    ExchangeRate = 0.01m,
+                    IsDefault = false
+                },
+                new Currency
+                {
+                    Code = "CHF",
+                    Name = "Swiss Franc",
+                    Symbol = "CHF",
+                    ExchangeRate = 1.05m,
+                    IsDefault = false
+                },
+                new Currency
+                {
+                    Code = "GBP",
+                    Name = "British Pound",
+                    Symbol = "£",
+                    ExchangeRate = 1.17m,
+                    IsDefault = false
+                }
+            };
+            await context.Currencies.AddRangeAsync(currencies);
+            await context.SaveChangesAsync();
+        }
+
+        // Seed PaymentMethods
+        if (!await context.PaymentMethods.AnyAsync())
+        {
+            var paymentMethods = new[]
+            {
+                new PaymentMethod { Name = "Überweisung", IsDefault = true },
+                new PaymentMethod { Name = "Barzahlung", IsDefault = false },
+                new PaymentMethod { Name = "Kreditkarte", IsDefault = false },
+                new PaymentMethod { Name = "PayPal", IsDefault = false },
+                new PaymentMethod { Name = "Lastschrift", IsDefault = false },
+                new PaymentMethod { Name = "Scheck", IsDefault = false }
+            };
+            await context.PaymentMethods.AddRangeAsync(paymentMethods);
             await context.SaveChangesAsync();
         }
     }

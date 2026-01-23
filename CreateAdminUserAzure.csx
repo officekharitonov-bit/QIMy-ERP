@@ -19,13 +19,13 @@ using (var connection = new SqlConnection(connectionString))
 {
     connection.Open();
     Console.WriteLine("Connected to Azure SQL!");
-    
+
     var sql = @"
         INSERT INTO AspNetUsers (
-            Id, UserName, NormalizedUserName, Email, NormalizedEmail, 
-            EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, 
-            PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnd, 
-            LockoutEnabled, AccessFailedCount, FirstName, LastName, BusinessId, 
+            Id, UserName, NormalizedUserName, Email, NormalizedEmail,
+            EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
+            PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnd,
+            LockoutEnabled, AccessFailedCount, FirstName, LastName, BusinessId,
             Role, IsActive, CreatedAt, UpdatedAt
         ) VALUES (
             @Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail,
@@ -34,7 +34,7 @@ using (var connection = new SqlConnection(connectionString))
             @LockoutEnabled, @AccessFailedCount, @FirstName, @LastName, @BusinessId,
             @Role, @IsActive, @CreatedAt, @UpdatedAt
         )";
-    
+
     using (var command = new SqlCommand(sql, connection))
     {
         var userId = Guid.NewGuid().ToString();
@@ -60,7 +60,7 @@ using (var connection = new SqlConnection(connectionString))
         command.Parameters.AddWithValue("@IsActive", 1);
         command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
         command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-        
+
         var rowsAffected = command.ExecuteNonQuery();
         Console.WriteLine($"User created successfully! ID: {userId}");
         Console.WriteLine($"Email: office@kharitonov.at");

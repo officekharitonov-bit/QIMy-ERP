@@ -1,0 +1,318 @@
+@page "/admin/reference-data"
+@using QIMy.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@rendermode InteractiveServer
+
+<PageTitle>Reference Data</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📊 Справочные данные</h3>
+    <div>
+        <a href="/admin/tax-rates" class="btn btn-primary btn-sm me-2">Tax Rates</a>
+        <a href="/admin/accounts" class="btn btn-primary btn-sm me-2">Accounts</a>
+        <a href="/admin/currencies" class="btn btn-primary btn-sm me-2">Currencies</a>
+        <a href="/admin/payment-methods" class="btn btn-primary btn-sm me-2">Payments</a>
+        <a href="/admin/units" class="btn btn-primary btn-sm me-2">Units</a>
+        <a href="/admin/products" class="btn btn-primary btn-sm me-2">Products</a>
+        <a href="/admin/bank-accounts" class="btn btn-primary btn-sm me-2">Bank Accounts</a>
+        <a href="/admin/businesses" class="btn btn-primary btn-sm me-2">Businesses</a>
+        <a href="/admin/discounts" class="btn btn-primary btn-sm">Discounts</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Client Areas</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in clientAreas)
+                        {
+                            <tr>
+                                <td>@item.Code</td>
+                                <td>@item.Name</td>
+                                <td>@item.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Client Types</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in clientTypes)
+                        {
+                            <tr>
+                                <td>@item.Code</td>
+                                <td>@item.Name</td>
+                                <td>@item.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Tax Rates</strong>
+                <a href="/admin/tax-rates/create" class="btn btn-sm btn-success">➕ Добавить</a>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Rate</th>
+                            <th>Name</th>
+                            <th>Default</th>
+                            <th style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in taxRates)
+                        {
+                            <tr>
+                                <td>@item.Rate%</td>
+                                <td>@item.Name</td>
+                                <td>@(item.IsDefault ? "✓" : "")</td>
+                                <td>
+                                    <a href="/admin/tax-rates/edit/@item.Id" class="btn btn-xs btn-warning">✏️</a>
+                                    <button class="btn btn-xs btn-danger"
+                                        @onclick="() => DeleteTaxRate(item.Id)">🗑️</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Accounts (Erlöskonten)</strong>
+                <a href="/admin/accounts/create" class="btn btn-sm btn-success">➕ Добавить</a>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Name</th>
+                            <th style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in accounts)
+                        {
+                            <tr>
+                                <td>@item.AccountNumber</td>
+                                <td>@item.Name</td>
+                                <td>
+                                    <a href="/admin/accounts/edit/@item.Id" class="btn btn-xs btn-warning">✏️</a>
+                                    <button class="btn btn-xs btn-danger"
+                                        @onclick="() => DeleteAccount(item.Id)">🗑️</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Units</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Short</th>
+                            <th>Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in units)
+                        {
+                            <tr>
+                                <td>@item.ShortName</td>
+                                <td>@item.Name</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Currencies</strong>
+                <a href="/admin/currencies/create" class="btn btn-sm btn-success">➕ Добавить</a>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Symbol</th>
+                            <th>Rate</th>
+                            <th>Default</th>
+                            <th style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in currencies)
+                        {
+                            <tr>
+                                <td>@item.Code</td>
+                                <td>@item.Name</td>
+                                <td>@item.Symbol</td>
+                                <td>@item.ExchangeRate</td>
+                                <td>@(item.IsDefault ? "✓" : "")</td>
+                                <td>
+                                    <a href="/admin/currencies/edit/@item.Id" class="btn btn-xs btn-warning">✏️</a>
+                                    <button class="btn btn-xs btn-danger"
+                                        @onclick="() => DeleteCurrency(item.Id)">🗑️</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Payment Methods</strong>
+                <a href="/admin/payment-methods/create" class="btn btn-sm btn-success">➕ Добавить</a>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Default</th>
+                            <th style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in paymentMethods)
+                        {
+                            <tr>
+                                <td>@item.Name</td>
+                                <td>@(item.IsDefault ? "✓" : "")</td>
+                                <td>
+                                    <a href="/admin/payment-methods/edit/@item.Id" class="btn btn-xs btn-warning">✏️</a>
+                                    <button class="btn btn-xs btn-danger"
+                                        @onclick="() => DeletePaymentMethod(item.Id)">🗑️</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<QIMy.Core.Entities.ClientArea> clientAreas = new();
+    private List<QIMy.Core.Entities.ClientType> clientTypes = new();
+    private List<QIMy.Core.Entities.TaxRate> taxRates = new();
+    private List<QIMy.Core.Entities.Account> accounts = new();
+    private List<QIMy.Core.Entities.Unit> units = new();
+    private List<QIMy.Core.Entities.Currency> currencies = new();
+    private List<QIMy.Core.Entities.PaymentMethod> paymentMethods = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        clientAreas = await Context.ClientAreas.OrderBy(x => x.Code).ToListAsync();
+        clientTypes = await Context.ClientTypes.OrderBy(x => x.Code).ToListAsync();
+
+        // SQLite doesn't support ORDER BY on decimal, so we order in memory
+        var allTaxRates = await Context.TaxRates.Where(t => !t.IsDeleted).ToListAsync();
+        taxRates = allTaxRates.OrderByDescending(x => x.Rate).ToList();
+
+        var allAccounts = await Context.Accounts.Where(a => !a.IsDeleted).ToListAsync();
+        accounts = allAccounts.OrderBy(x => x.AccountNumber).ToList();
+
+        units = await Context.Units.OrderBy(x => x.Name).ToListAsync();
+
+        var allCurrencies = await Context.Currencies.Where(c => !c.IsDeleted).ToListAsync();
+        currencies = allCurrencies.OrderByDescending(x => x.IsDefault).ThenBy(x => x.Code).ToList();
+
+        paymentMethods = await Context.PaymentMethods.Where(p => !p.IsDeleted).OrderByDescending(x => x.IsDefault).ThenBy(x =>
+        x.Name).ToListAsync();
+    }
+
+    private async Task DeleteTaxRate(int id)
+    {
+        var item = await Context.TaxRates.FindAsync(id);
+        if (item != null)
+        {
+            item.IsDeleted = true;
+            await Context.SaveChangesAsync();
+            await OnInitializedAsync();
+        }
+    }
+
+    private async Task DeleteAccount(int id)
+    {
+        var item = await Context.Accounts.FindAsync(id);
+        if (item != null)
+        {
+            item.IsDeleted = true;
+            await Context.SaveChangesAsync();
+            await OnInitializedAsync();
+        }
+    }
+
+    private async Task DeleteCurrency(int id)
+    {
+        var item = await Context.Currencies.FindAsync(id);
+        if (item != null)
+        {
+            item.IsDeleted = true;
+            await Context.SaveChangesAsync();
+            await OnInitializedAsync();
+        }
+    }
+
+    private async Task DeletePaymentMethod(int id)
+    {
+        var item = await Context.PaymentMethods.FindAsync(id);
+        if (item != null)
+        {
+            item.IsDeleted = true;
+            await Context.SaveChangesAsync();
+            await OnInitializedAsync();
+        }
+    }
+}

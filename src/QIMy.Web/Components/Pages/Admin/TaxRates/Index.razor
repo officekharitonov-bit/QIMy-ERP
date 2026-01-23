@@ -1,0 +1,105 @@
+@page "/admin/tax-rates"
+@using QIMy.Application.TaxRates.DTOs
+@using QIMy.Application.TaxRates.Commands.DeleteTaxRate
+@using QIMy.Application.TaxRates.Queries.GetAllTaxRates
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Tax Rates Management</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📊 Tax Rates (Налоговые ставки)</h3>
+    <a href="/admin/tax-rates/create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Добавить Tax Rate
+    </a>
+</div>
+
+@if (taxRates == null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (!taxRates.Any())
+{
+    <div class="alert alert-info">
+        Налоговые ставки не найдены. Добавьте первую!
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Rate (%)</th>
+                    <th>Name</th>
+                    <th>Default</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var taxRate in taxRates)
+                {
+                    <tr>
+                        <td><strong>@taxRate.Rate%</strong></td>
+                        <td>@taxRate.Name</td>
+                        <td>
+                            @if (taxRate.IsActive)
+                            {
+                                <span class="badge bg-success">✓ Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="/admin/tax-rates/edit/@taxRate.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i> Редактировать
+                            </a>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteTaxRate(taxRate.Id)">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<TaxRateDto>? taxRates;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = new GetAllTaxRatesQuery();
+        var result = await Mediator.Send(query);
+        taxRates = result.OrderByDescending(x => x.Rate).ToList();
+    }
+
+    private async Task DeleteTaxRate(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить эту налоговую ставку?"))
+        {
+            var command = new DeleteTaxRateCommand(id);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Error}");
+            }
+        }
+    }
+}
