@@ -1,0 +1,6 @@
+﻿CompanyName;ContactPerson;Email;Phone;Address;City;PostalCode;Country;TaxNumber;VatNumber;BankAccount
+ООО Тестовый Поставщик ОБНОВЛЕН;Иван Иванов UPDATED;updated@supplier.com;+43 999 888777;Новая улица 456;Зальцбург;5020;Австрия;999888777;ATU99988877;AT999888777666555444
+ООО Тестовый Поставщик Копия;Петр Петров;duplicate2@supplier.com;+43 111 222333;;;;;;ATU11122233;
+ООО CSV Поставщик 1;Контакт 1;csv1@test.com;+43 111 111111;;;;;;ATU11111111;
+ООО CSV Поставщик 2;Контакт 2;csv2@test.com;+43 222 222222;;;;;;ATU22222222;
+ООО CSV Поставщик 3;Контакт 3;csv3@test.com;+43 333 333333;;;;;;ATU33333333;

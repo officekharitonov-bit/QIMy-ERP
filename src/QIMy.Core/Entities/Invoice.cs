@@ -13,6 +13,10 @@ public class Invoice : BaseEntity
     public int CurrencyId { get; set; }
     public int? BankAccountId { get; set; }
     public int? PaymentMethodId { get; set; }
+    /// <summary>
+    /// Ссылка на Personen Index для подтягивания данных клиента и налогов
+    /// </summary>
+    public int? PersonenIndexEntryId { get; set; }
 
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
@@ -21,7 +25,7 @@ public class Invoice : BaseEntity
 
     public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
     public string? Notes { get; set; }
-    public string? Terms { get; set; }
+    public string? Terms { get; set;}
 
     // Navigation properties
     public Client Client { get; set; } = null!;
@@ -29,6 +33,7 @@ public class Invoice : BaseEntity
     public Currency Currency { get; set; } = null!;
     public BankAccount? BankAccount { get; set; }
     public PaymentMethod? PaymentMethod { get; set; }
+    public PersonenIndexEntry? PersonenIndexEntry { get; set; }
     public ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<InvoiceDiscount> InvoiceDiscounts { get; set; } = new List<InvoiceDiscount>();

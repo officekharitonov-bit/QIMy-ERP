@@ -9,7 +9,13 @@ public class TaxRateProfile : Profile
     public TaxRateProfile()
     {
         CreateMap<TaxRate, TaxRateDto>()
-            .ForMember(d => d.IsActive, opt => opt.MapFrom(s => s.IsDefault));
+            .ForMember(d => d.IsActive, opt => opt.MapFrom(s => s.EffectiveUntil == null))
+            .ForMember(d => d.RateType, opt => opt.MapFrom(s => s.RateType.ToString()));
+        
+        CreateMap<TaxRate, VatRateDto>()
+            .ForMember(d => d.IsActive, opt => opt.MapFrom(s => s.EffectiveUntil == null))
+            .ForMember(d => d.RateType, opt => opt.MapFrom(s => s.RateType.ToString()));
+        
         CreateMap<CreateTaxRateDto, TaxRate>()
             .ForMember(d => d.Id, opt => opt.Ignore())
             .ForMember(d => d.CreatedAt, opt => opt.Ignore())

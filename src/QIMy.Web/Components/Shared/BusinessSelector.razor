@@ -1,0 +1,51 @@
+@using QIMy.Web.Services
+@inject BusinessContext BusinessCtx
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<div class="d-flex align-items-center gap-2">
+    <span class="text-muted small">Фирма:</span>
+    <select class="form-select form-select-sm" style="min-width: 240px;" @onchange="OnBusinessChanged" value="@selectedId">
+        @if (businesses?.Count > 0)
+        {
+            @foreach (var b in businesses)
+            {
+                <option value="@b.Id">@b.Name</option>
+            }
+        }
+        else
+        {
+            <option disabled selected>Нет доступных фирм</option>
+        }
+    </select>
+
+    <a class="btn btn-sm btn-outline-secondary" href="@SettingsLink">
+        <i class="bi bi-gear"></i>
+    </a>
+</div>
+
+@code {
+    private List<Business> businesses = new();
+    private int? selectedId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await BusinessCtx.InitializeAsync();
+        businesses = await BusinessCtx.GetUserBusinessesAsync();
+        selectedId = BusinessCtx.CurrentBusinessId ?? (businesses.Count > 0 ? businesses[0].Id : (int?)null);
+    }
+
+    private async Task OnBusinessChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e?.Value?.ToString(), out var id))
+        {
+            selectedId = id;
+            await BusinessCtx.SetBusinessAsync(id);
+            StateHasChanged();
+        }
+    }
+
+    private string SettingsLink => selectedId.HasValue
+        ? $"/admin/businesses/edit/{selectedId.Value}"
+        : "/admin/businesses";
+}

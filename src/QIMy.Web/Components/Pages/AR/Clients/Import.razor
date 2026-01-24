@@ -36,8 +36,8 @@
                             with the following columns:</p>
 
                         <div class="alert alert-info">
-                            <strong>Expected format:</strong><br />
-                            <code>CountryCode;ClientCode;CompanyName;Country;Address;PostalCode;City;Currency;...</code>
+                            <strong>Expected format (22 columns, ; separated):</strong><br />
+                            <code>ExterneKontoNr;ClientCode;CompanyName;Country;Address;PostalCode;City;Currency;PaymentTerms;DiscountPercent;DiscountDays;VatNumber;Free11;SupplierAccount;Free04;Free05;AccountNumber;Free02;Free03;Branch;CountryNumber;Description</code>
                         </div>
 
                         <InputFile OnChange="HandleFileSelection" class="form-control mb-3" accept=".csv" />
@@ -382,21 +382,34 @@
                 var parts = line.Split(';');
                 if (parts.Length < 3) continue;
 
+                string GetPart(int idx) => idx < parts.Length ? parts[idx].Trim() : string.Empty;
+
                 var dto = new ClientImportDto
                 {
                     RowNumber = rowNumber,
-                    CountryCode = parts[0].Trim(),
-                    ClientCode = parts[1].Trim(),
-                    CompanyName = parts[2].Trim(),
-                    Country = parts.Length > 3 ? parts[3].Trim() : "Österreich",
-                    Address = parts.Length > 4 ? parts[4].Trim() : null,
-                    PostalCode = parts.Length > 5 ? parts[5].Trim() : null,
-                    City = parts.Length > 6 ? parts[6].Trim() : null,
-                    VatNumber = parts.Length > 7 ? parts[7].Trim() : null,
-                    Email = parts.Length > 8 ? parts[8].Trim() : null,
-                    Phone = parts.Length > 9 ? parts[9].Trim() : null,
-                    ContactPerson = parts.Length > 10 ? parts[10].Trim() : null,
-                    TaxNumber = parts.Length > 11 ? parts[11].Trim() : null
+                    CountryCode = GetPart(0),
+                    ExternalAccountNumber = GetPart(0),
+                    ClientCode = GetPart(1),
+                    CompanyName = GetPart(2),
+                    Country = string.IsNullOrWhiteSpace(GetPart(3)) ? "Österreich" : GetPart(3),
+                    Address = GetPart(4),
+                    PostalCode = GetPart(5),
+                    City = GetPart(6),
+                    Currency = GetPart(7),
+                    PaymentTerms = GetPart(8),
+                    DiscountPercent = GetPart(9),
+                    DiscountDays = GetPart(10),
+                    VatNumber = GetPart(11),
+                    FreeField11 = GetPart(12),
+                    SupplierSuggestedAccount = GetPart(13),
+                    FreeField04 = GetPart(14),
+                    FreeField05 = GetPart(15),
+                    AccountNumber = GetPart(16),
+                    FreeField02 = GetPart(17),
+                    FreeField03 = GetPart(18),
+                    Branch = GetPart(19),
+                    CountryNumber = GetPart(20),
+                    Description = GetPart(21)
                 };
 
                 // Validate

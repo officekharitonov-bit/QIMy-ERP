@@ -1,9 +1,13 @@
 @page "/ar/invoices"
 @using QIMy.Core.Entities
 @using QIMy.Core.Interfaces
+@using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
 @inject IInvoiceService InvoiceService
+@inject PdfInvoiceGeneratorService PdfGenerator
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject BusinessContext BusinessCtx
 @rendermode InteractiveServer
 
 <PageTitle>Счета (Rechnungen) - AR Module</PageTitle>
@@ -88,13 +92,54 @@
                                 <strong>@invoice.TotalAmount.ToString("N2") €</strong>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="/ar/invoices/edit/@invoice.Id" class="btn btn-outline-primary">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button class="btn btn-outline-danger" @onclick="async () => await DeleteInvoice(invoice)">
-                                        <i class="bi bi-trash"></i>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Actions
                                     </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="/ar/invoices/edit/@invoice.Id">
+                                                <i class="bi bi-eye"></i> Show
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" @onclick="async () => await OpenPdf(invoice)">
+                                                <i class="bi bi-file-pdf"></i> Open PDF
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" @onclick="async () => await ExportPdf(invoice)">
+                                                <i class="bi bi-download"></i> Export to PDF
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" @onclick="async () => await ExportExcel(invoice)">
+                                                <i class="bi bi-file-excel"></i> Export to Excel
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" @onclick="async () => await ExportCsv(invoice)">
+                                                <i class="bi bi-file-earmark-spreadsheet"></i> Export to CSV
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="/ar/invoices/edit/@invoice.Id">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" @onclick="async () => await CopyInvoice(invoice)">
+                                                <i class="bi bi-files"></i> Copy
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button class="dropdown-item text-danger" @onclick="async () => await DeleteInvoice(invoice)">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
@@ -118,6 +163,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await BusinessCtx.InitializeAsync();
+        BusinessCtx.Changed += async () => 
+        {
+            await LoadInvoices();
+            StateHasChanged();
+        };
         await LoadInvoices();
     }
 
@@ -126,11 +177,126 @@
         isLoading = true;
         try
         {
-            invoices = (await InvoiceService.GetAllInvoicesAsync()).ToList();
+            var all = (await InvoiceService.GetAllInvoicesAsync()).ToList();
+            var bizId = BusinessCtx.CurrentBusinessId;
+            invoices = bizId.HasValue 
+                ? all.Where(i => i.BusinessId == bizId.Value).ToList() 
+                : all;
         }
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async Task OpenPdf(Invoice invoice)
+    {
+        try
+        {
+            var fullInvoice = await InvoiceService.GetInvoiceByIdAsync(invoice.Id);
+            if (fullInvoice == null) return;
+
+            var pdfBytes = PdfGenerator.GeneratePdf(fullInvoice);
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JS.InvokeVoidAsync("eval", $"window.open('data:application/pdf;base64,{base64}', '_blank')");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error opening PDF: {ex.Message}");
+        }
+    }
+
+    private async Task ExportPdf(Invoice invoice)
+    {
+        try
+        {
+            var fullInvoice = await InvoiceService.GetInvoiceByIdAsync(invoice.Id);
+            if (fullInvoice == null) return;
+
+            var pdfBytes = PdfGenerator.GeneratePdf(fullInvoice);
+            var fileName = $"Invoice_{invoice.InvoiceNumber.Replace("/", "-")}.pdf";
+            
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", Convert.ToBase64String(pdfBytes));
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error exporting PDF: {ex.Message}");
+        }
+    }
+
+    private async Task ExportExcel(Invoice invoice)
+    {
+        try
+        {
+            var fullInvoice = await InvoiceService.GetInvoiceByIdAsync(invoice.Id);
+            if (fullInvoice == null) return;
+
+            // TODO: Implement Excel export with ClosedXML
+            await JS.InvokeVoidAsync("alert", "Excel export coming soon!");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+
+    private async Task ExportCsv(Invoice invoice)
+    {
+        try
+        {
+            var fullInvoice = await InvoiceService.GetInvoiceByIdAsync(invoice.Id);
+            if (fullInvoice == null) return;
+
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine("Description,Quantity,Unit Price,Tax Amount,Total");
+            
+            foreach (var item in fullInvoice.Items)
+            {
+                csv.AppendLine($"\"{item.Description}\",{item.Quantity},{item.UnitPrice},{item.TaxAmount},{item.TotalAmount}");
+            }
+            
+            var fileName = $"Invoice_{invoice.InvoiceNumber.Replace("/", "-")}.csv";
+            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv.ToString())));
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error exporting CSV: {ex.Message}");
+        }
+    }
+
+    private async Task CopyInvoice(Invoice invoice)
+    {
+        try
+        {
+            var fullInvoice = await InvoiceService.GetInvoiceByIdAsync(invoice.Id);
+            if (fullInvoice == null) return;
+
+            // Create a copy with new invoice number
+            var copy = new Invoice
+            {
+                ClientId = fullInvoice.ClientId,
+                InvoiceDate = DateTime.Now,
+                DueDate = DateTime.Now.AddDays(30),
+                Status = InvoiceStatus.Draft,
+                InvoiceNumber = $"INV-{DateTime.Now:yyyyMMdd-HHmmss}-{new Random().Next(100, 999)}",
+                Notes = fullInvoice.Notes,
+                Items = fullInvoice.Items.Select(i => new InvoiceItem
+                {
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TaxId = i.TaxId,
+                    TaxAmount = i.TaxAmount,
+                    TotalAmount = i.TotalAmount
+                }).ToList()
+            };
+
+            var newId = await InvoiceService.CreateInvoiceAsync(copy);
+            Navigation.NavigateTo($"/ar/invoices/edit/{newId}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error copying invoice: {ex.Message}");
         }
     }
 

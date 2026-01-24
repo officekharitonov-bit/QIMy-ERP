@@ -14,4 +14,10 @@ public class Business : BaseEntity
     public string? Phone { get; set; }
     public string? Website { get; set; }
     public string? Logo { get; set; }
+
+    // Navigation properties
+    /// <summary>
+    /// Пользователи, связанные с этим бизнесом
+    /// </summary>
+    public ICollection<UserBusiness> Users { get; set; } = new List<UserBusiness>();
 }

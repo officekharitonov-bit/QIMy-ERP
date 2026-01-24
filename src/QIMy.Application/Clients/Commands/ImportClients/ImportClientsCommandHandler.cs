@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -126,6 +127,23 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                 {
                     _logger.LogDebug("Создание клиента {ClientCode} - {CompanyName}", clientCode, dto.CompanyName);
                     // Create client
+                    // Опционально: подбираем валюту по коду
+                    int? currencyId = null;
+                    if (!string.IsNullOrWhiteSpace(dto.Currency))
+                    {
+                        var currency = (await _unitOfWork.Currencies.FindAsync(
+                            c => c.Code == dto.Currency, cancellationToken)).FirstOrDefault();
+                        currencyId = currency?.Id;
+                    }
+
+                    // Платежные условия: пробуем распарсить в дни, иначе дефолт 30
+                    var paymentTermsDays = 30;
+                    if (!string.IsNullOrWhiteSpace(dto.PaymentTerms) &&
+                        int.TryParse(dto.PaymentTerms, out var parsedTerms))
+                    {
+                        paymentTermsDays = parsedTerms;
+                    }
+
                     var client = new Core.Entities.Client
                     {
                         ClientCode = clientCode,
@@ -139,8 +157,17 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                         City = dto.City,
                         Country = dto.Country ?? "Österreich",
                         TaxNumber = dto.TaxNumber,
-                        ClientAreaId = null,  // Would need to look up by code
-                        ClientTypeId = null   // Would need to look up by code
+                        ClientAreaId = null,  // TODO: map by country/area code if потребуется
+                        ClientTypeId = null,  // TODO: map by type code if потребуется
+                        CurrencyId = currencyId,
+                        PaymentTermsDays = paymentTermsDays,
+                        Notes = dto.Description,
+                        CustomField01 = dto.ExternalAccountNumber,
+                        CustomField02 = dto.DiscountPercent,
+                        CustomField03 = dto.DiscountDays,
+                        CustomField04 = dto.AccountNumber,
+                        CustomField05 = dto.SupplierSuggestedAccount,
+                        CustomField06 = dto.Branch
                     };
 
                     await _unitOfWork.Clients.AddAsync(client, cancellationToken);
@@ -228,21 +255,34 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                 continue;
             }
 
+            string GetPart(int idx) => idx < parts.Length ? parts[idx].Trim() : string.Empty;
+
             var dto = new ClientImportDto
             {
                 RowNumber = rowNumber,
-                CountryCode = parts[0].Trim(),
-                ClientCode = parts[1].Trim(),
-                CompanyName = parts[2].Trim(),
-                Country = parts.Length > 3 ? parts[3].Trim() : "Österreich",
-                Address = parts.Length > 4 ? parts[4].Trim() : null,
-                PostalCode = parts.Length > 5 ? parts[5].Trim() : null,
-                City = parts.Length > 6 ? parts[6].Trim() : null,
-                VatNumber = parts.Length > 7 ? parts[7].Trim() : null,
-                Email = parts.Length > 8 ? parts[8].Trim() : null,
-                Phone = parts.Length > 9 ? parts[9].Trim() : null,
-                ContactPerson = parts.Length > 10 ? parts[10].Trim() : null,
-                TaxNumber = parts.Length > 11 ? parts[11].Trim() : null
+                CountryCode = GetPart(0), // Freifeld 01 по BMD может быть ISO, оставляем как есть
+                ExternalAccountNumber = GetPart(0),
+                ClientCode = GetPart(1),
+                CompanyName = GetPart(2),
+                Country = string.IsNullOrWhiteSpace(GetPart(3)) ? "Österreich" : GetPart(3),
+                Address = GetPart(4),
+                PostalCode = GetPart(5),
+                City = GetPart(6),
+                Currency = GetPart(7),
+                PaymentTerms = GetPart(8),
+                DiscountPercent = GetPart(9),
+                DiscountDays = GetPart(10),
+                VatNumber = GetPart(11),
+                FreeField11 = GetPart(12),
+                SupplierSuggestedAccount = GetPart(13),
+                FreeField04 = GetPart(14),
+                FreeField05 = GetPart(15),
+                AccountNumber = GetPart(16),
+                FreeField02 = GetPart(17),
+                FreeField03 = GetPart(18),
+                Branch = GetPart(19),
+                CountryNumber = GetPart(20),
+                Description = GetPart(21)
             };
 
             clients.Add(dto);

@@ -7,6 +7,7 @@ using QIMy.Infrastructure.Data;
 using QIMy.Infrastructure.Repositories;
 using QIMy.Infrastructure.Services;
 using QIMy.Core.Interfaces;
+using QIMy.API.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,13 +43,31 @@ builder.Services.AddAutoMapper(typeof(QIMy.Application.MappingProfiles.ClientPro
 // Add Repository Pattern + Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+// Add HttpClient for Vatlayer API
+builder.Services.AddHttpClient<IVatlayerService, VatlayerService>();
+
+// Add Vatlayer service
+builder.Services.AddScoped<IVatlayerService, VatlayerService>();
+
+// Add VAT rate update background service (runs daily)
+builder.Services.AddHostedService<VatRateUpdateService>();
+
 // Add legacy services for backward compatibility (import/export)
 builder.Services.AddScoped<IClientService, ClientService>();
+
+// Add Personen Index import service
+builder.Services.AddScoped<PersonenIndexImportService>();
+
+// Add Duplicate Detection service
+builder.Services.AddScoped<IDuplicateDetectionService, DuplicateDetectionService>();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.OperationFilter<SwashbuckleFileUploadFilter>();
+});
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -70,8 +89,9 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        // Apply pending migrations
+        // Apply pending migrations (if present) and ensure schema is created (SQLite dev runs may have empty migrations)
         context.Database.Migrate();
+        await context.Database.EnsureCreatedAsync();
         await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
         Console.WriteLine("✅ Database migrated and seeded successfully");
     }

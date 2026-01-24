@@ -46,5 +46,10 @@ public class UpdateClientCommandValidator : AbstractValidator<UpdateClientComman
             .GreaterThan(0)
             .When(c => c.ClientAreaId.HasValue)
             .WithMessage("Неверный идентификатор области клиента");
+
+        RuleFor(c => c.DoubleConfirmed)
+            .Equal(true)
+            .When(c => c.IgnoreDuplicateWarning)
+            .WithMessage("Для сохранения дубликата требуется второе подтверждение (DoubleConfirmed=true)");
     }
 }

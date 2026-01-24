@@ -11,8 +11,8 @@ using QIMy.Infrastructure.Data;
 namespace QIMy.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260120064841_InitialSQLServer")]
-    partial class InitialSQLServer
+    [Migration("20260123232931_ExpandProductAndClientFields")]
+    partial class ExpandProductAndClientFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -164,6 +164,9 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.Property<int?>("ClientAreaId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -400,6 +403,15 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BIC")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("City")
                         .HasColumnType("TEXT");
 
@@ -426,11 +438,50 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("CreditLimit")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CurrencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CustomField01")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField02")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField03")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField04")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField05")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField06")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DefaultPaymentMethodId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Fax")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IBAN")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PaymentTermsDays")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Phone")
@@ -449,11 +500,18 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<string>("VatNumber")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Website")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClientAreaId");
 
                     b.HasIndex("ClientTypeId");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.HasIndex("DefaultPaymentMethodId");
 
                     b.ToTable("Clients");
                 });
@@ -973,6 +1031,12 @@ namespace QIMy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AdditionalName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Brand")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -990,6 +1054,12 @@ namespace QIMy.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PartNumber")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
@@ -1001,11 +1071,17 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("TareUnit")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("TaxRateId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("UnitId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("UnitsInTare")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -1151,6 +1227,9 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
@@ -1274,9 +1353,21 @@ namespace QIMy.Infrastructure.Migrations
                         .WithMany("Clients")
                         .HasForeignKey("ClientTypeId");
 
+                    b.HasOne("QIMy.Core.Entities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId");
+
+                    b.HasOne("QIMy.Core.Entities.PaymentMethod", "DefaultPaymentMethod")
+                        .WithMany()
+                        .HasForeignKey("DefaultPaymentMethodId");
+
                     b.Navigation("ClientArea");
 
                     b.Navigation("ClientType");
+
+                    b.Navigation("Currency");
+
+                    b.Navigation("DefaultPaymentMethod");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ExpenseInvoice", b =>

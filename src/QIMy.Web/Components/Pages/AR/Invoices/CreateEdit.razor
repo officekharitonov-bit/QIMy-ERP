@@ -3,9 +3,16 @@
 @using QIMy.Core.Entities
 @using QIMy.Core.Enums
 @using QIMy.Core.Interfaces
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Globalization
+@using QIMy.Infrastructure.Services
+@using Microsoft.JSInterop
 @inject IInvoiceService InvoiceService
 @inject IClientService ClientService
+@inject IProductService ProductService
 @inject NavigationManager Navigation
+@inject PdfInvoiceGeneratorService PdfGenerator
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>@(Id.HasValue ? "Редактировать" : "Создать") счёт - AR Module</PageTitle>
@@ -84,10 +91,16 @@
 
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Позиции счёта</h5>
-                    <button class="btn btn-sm btn-primary" @onclick="AddItem">
-                        <i class="bi bi-plus"></i> Добавить позицию
-                    </button>
+                    <h5 class="mb-0">Позиции счёта <span class="badge bg-secondary">@items.Count</span></h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary" @onclick="AddItem">
+                            <i class="bi bi-plus"></i> Добавить позицию
+                        </button>
+                        <a class="btn btn-sm btn-outline-secondary" href="@downloadUrl" download="invoice-items.csv" title="Выгрузить позиции в CSV">
+                            <i class="bi bi-download"></i> Экспорт (CSV)
+                        </a>
+                        <InputFile OnChange="HandleCsvUpload" accept=".csv,text/csv" class="form-control form-control-sm" />
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (!items.Any())
@@ -102,7 +115,7 @@
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 40%">Описание</th>
+                                        <th style="width: 40%">Услуга</th>
                                         <th style="width: 10%" class="text-end">Кол-во</th>
                                         <th style="width: 15%" class="text-end">Цена (Netto)</th>
                                         <th style="width: 10%" class="text-end">НДС %</th>
@@ -115,8 +128,23 @@
                                     {
                                         <tr>
                                             <td>
-                                                <input type="text" class="form-control form-control-sm" 
-                                                       @bind="item.Description" placeholder="Описание" />
+                                                <select class="form-select form-select-sm" 
+                                                        @onchange="(ChangeEventArgs e) => SelectProduct(item, Convert.ToInt32(e.Value ?? 0))">
+                                                    <option value="0">-- Выберите услугу --</option>
+                                                    @foreach (var product in products)
+                                                    {
+                                                        <option value="@product.Id" 
+                                                                selected="@(item.ProductId == product.Id)">
+                                                            @product.Name @(string.IsNullOrEmpty(product.SKU) ? "" : $"({product.SKU})")
+                                                        </option>
+                                                    }
+                                                </select>
+                                                @if (string.IsNullOrEmpty(item.Description))
+                                                {
+                                                    <small class="text-muted d-block mt-1">Выберите из списка или напишите вручную</small>
+                                                }
+                                                <input type="text" class="form-control form-control-sm mt-1" 
+                                                       @bind="item.Description" placeholder="Описание (опционально)" />
                                             </td>
                                             <td>
                                                 <input type="number" class="form-control form-control-sm text-end" 
@@ -178,6 +206,18 @@
                     }
                     <i class="bi bi-save"></i> Сохранить счёт
                 </button>
+
+                @if (Id.HasValue && !isSaving)
+                {
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-info btn-sm" @onclick="ExportPdf" title="Скачать PDF">
+                            <i class="bi bi-file-pdf"></i> PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm" @onclick="ExportCsv" title="Скачать CSV">
+                            <i class="bi bi-file-earmark-csv"></i> CSV
+                        </button>
+                    </div>
+                }
                 <a href="/ar/invoices" class="btn btn-outline-secondary">Отмена</a>
             </div>
         </div>
@@ -189,6 +229,7 @@
     public int? Id { get; set; }
 
     private List<Client> clients = new();
+    private List<Product> products = new();
     private int selectedClientId = 0;
     private string invoiceNumber = string.Empty;
     private DateTime invoiceDate = DateTime.Today;
@@ -197,6 +238,7 @@
     private List<InvoiceItemModel> items = new();
     private string errorMessage = string.Empty;
     private bool isSaving = false;
+    private string downloadUrl = string.Empty;
 
     private decimal subTotal => items.Sum(i => i.Quantity * i.UnitPrice);
     private decimal totalTax => items.Sum(i => CalculateItemTax(i));
@@ -205,6 +247,7 @@
     protected override async Task OnInitializedAsync()
     {
         clients = (await ClientService.GetAllClientsAsync()).ToList();
+        products = (await ProductService.GetAllProductsAsync()).ToList();
 
         if (Id.HasValue)
         {
@@ -232,16 +275,44 @@
     {
         items.Add(new InvoiceItemModel
         {
+            ProductId = 0,
             Description = string.Empty,
             Quantity = 1,
             UnitPrice = 0,
             TaxRatePercent = 20
         });
+        BuildCsvDownloadUrl();
+    }
+
+    private void SelectProduct(InvoiceItemModel item, int productId)
+    {
+        if (productId <= 0)
+        {
+            item.ProductId = 0;
+            return;
+        }
+
+        var product = products.FirstOrDefault(p => p.Id == productId);
+        if (product != null)
+        {
+            item.ProductId = productId;
+            item.Description = product.Name;
+            item.UnitPrice = product.Price;
+            
+            // Set tax rate if product has one configured
+            if (product.TaxRateId.HasValue && product.TaxRate != null)
+            {
+                item.TaxRatePercent = product.TaxRate.Rate;
+            }
+            
+            BuildCsvDownloadUrl();
+        }
     }
 
     private void RemoveItem(InvoiceItemModel item)
     {
         items.Remove(item);
+        BuildCsvDownloadUrl();
     }
 
     private decimal CalculateItemTotal(InvoiceItemModel item)
@@ -316,8 +387,157 @@
         }
     }
 
+    private void BuildCsvDownloadUrl()
+    {
+        // Построить CSV из текущих позиций и подготовить data: URL для скачивания
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Description;Quantity;UnitPrice;TaxRatePercent");
+        foreach (var it in items)
+        {
+            // Используем инвариантную культуру для чисел
+            var qty = it.Quantity.ToString(CultureInfo.InvariantCulture);
+            var price = it.UnitPrice.ToString(CultureInfo.InvariantCulture);
+            var tax = it.TaxRatePercent.ToString(CultureInfo.InvariantCulture);
+            // Экранируем точку с запятой в описании, заменяя на запятую
+            var desc = (it.Description ?? string.Empty).Replace(";", ",");
+            sb.AppendLine($"{desc};{qty};{price};{tax}");
+        }
+        var csv = sb.ToString();
+        downloadUrl = "data:text/csv;charset=utf-8," + Uri.EscapeDataString(csv);
+    }
+
+    private async Task HandleCsvUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // 2MB лимит
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+
+            if (string.IsNullOrWhiteSpace(content)) return;
+
+            var lines = content.Replace("\r", string.Empty).Split('\n');
+            var parsed = new List<InvoiceItemModel>();
+
+            foreach (var raw in lines)
+            {
+                var line = raw.Trim();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // Пропустить заголовок
+                if (line.StartsWith("Description", StringComparison.OrdinalIgnoreCase) ||
+                    line.StartsWith("Описание", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // Поддержать ; и , как разделители
+                string[] parts;
+                if (line.Contains(';')) parts = line.Split(';');
+                else parts = line.Split(',');
+
+                if (parts.Length < 4)
+                {
+                    // Минимум 4 столбца: Description;Quantity;UnitPrice;TaxRatePercent
+                    continue;
+                }
+
+                var desc = parts[0].Trim();
+                if (!TryParseDecimal(parts[1], out var qty)) qty = 0;
+                if (!TryParseDecimal(parts[2], out var unitPrice)) unitPrice = 0;
+                if (!TryParseDecimal(parts[3], out var taxRate)) taxRate = 20;
+
+                parsed.Add(new InvoiceItemModel
+                {
+                    Description = desc,
+                    Quantity = qty,
+                    UnitPrice = unitPrice,
+                    TaxRatePercent = taxRate
+                });
+            }
+
+            if (parsed.Count > 0)
+            {
+                items = parsed;
+                BuildCsvDownloadUrl();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка импорта CSV: {ex.Message}";
+        }
+    }
+
+    private static bool TryParseDecimal(string? s, out decimal value)
+    {
+        // Пробуем точки/запятые в разных культурах
+        if (decimal.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return true;
+        var ru = new CultureInfo("ru-RU");
+        if (decimal.TryParse(s, NumberStyles.Float, ru, out value)) return true;
+        var de = new CultureInfo("de-DE");
+        if (decimal.TryParse(s, NumberStyles.Float, de, out value)) return true;
+        return false;
+    }
+
+    private async Task ExportPdf()
+    {
+        if (!Id.HasValue)
+        {
+            errorMessage = "Сначала сохраните счёт";
+            return;
+        }
+
+        try
+        {
+            var invoice = await InvoiceService.GetInvoiceByIdAsync(Id.Value);
+            if (invoice == null)
+            {
+                errorMessage = "Счёт не найден";
+                return;
+            }
+
+            var pdfBytes = PdfGenerator.GeneratePdf(invoice);
+            var fileName = $"Invoice_{invoice.InvoiceNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", Convert.ToBase64String(pdfBytes));
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка при создании PDF: {ex.Message}";
+        }
+    }
+
+    private async Task ExportCsv()
+    {
+        if (!Id.HasValue)
+        {
+            errorMessage = "Сначала сохраните счёт";
+            return;
+        }
+
+        try
+        {
+            var csv = "Description;Quantity;UnitPrice;TaxRatePercent\n";
+            foreach (var item in items)
+            {
+                csv += $"\"{item.Description}\";{item.Quantity:F2};{item.UnitPrice:F2};{item.TaxRatePercent:F1}\n";
+            }
+
+            var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            var fileName = $"Invoice_{invoiceNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(csvBytes));
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка при экспорте CSV: {ex.Message}";
+        }
+    }
+
     private class InvoiceItemModel
     {
+        public int ProductId { get; set; } = 0;
         public string Description { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }

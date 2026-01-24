@@ -15,4 +15,7 @@ public record UpdateProductCommand : IRequest<Result<ProductDto>>
     public int? TaxRateId { get; init; }
     public bool IsService { get; init; }
     public int StockQuantity { get; init; }
+
+    public bool IgnoreDuplicateWarning { get; init; }
+    public bool DoubleConfirmed { get; init; }
 }

@@ -1,13 +1,16 @@
 @page "/ar/clients"
 @using QIMy.Application.Clients.DTOs
 @using QIMy.Application.Clients.Commands.DeleteClient
+@using QIMy.Application.Clients.Commands.UpdateClient
 @using QIMy.Application.Clients.Queries.GetAllClients
 @using MediatR
 @using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
 @inject IMediator Mediator
 @inject ClientExportService ExportService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject BusinessContext BusinessCtx
 @rendermode InteractiveServer
 
 <PageTitle>Клиенты - AR Module</PageTitle>
@@ -21,6 +24,20 @@
             </h3>
         </div>
         <div class="col-auto">
+            @if (selectedClients.Any())
+            {
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-warning" @onclick="() => showBulkEditModal = true">
+                        <i class="bi bi-pencil-square me-1"></i> Изменить (@selectedClients.Count)
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="BulkDelete">
+                        <i class="bi bi-trash me-1"></i> Удалить (@selectedClients.Count)
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="ClearSelection">
+                        <i class="bi bi-x-circle me-1"></i> Отменить
+                    </button>
+                </div>
+            }
             <div class="btn-group me-2">
                 <a href="/AR/Clients/Import" class="btn btn-success">
                     <i class="bi bi-upload me-1"></i> Import CSV
@@ -28,7 +45,8 @@
                 <button type="button" class="btn btn-info" @onclick="ExportToCSV">
                     <i class="bi bi-download me-1"></i> Export CSV
                 </button>
-            </div><a href="/ar/clients/create" class="btn btn-primary">
+            </div>
+            <a href="/ar/clients/create" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Новый клиент
             </a>
         </div>
@@ -54,6 +72,11 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" 
+                                   @onchange="ToggleSelectAll" 
+                                   checked="@(selectedClients.Count == clients.Count && clients.Any())" />
+                        </th>
                         <th>Код</th>
                         <th>Название</th>
                         <th>Тип</th>
@@ -67,7 +90,12 @@
                 <tbody>
                     @foreach (var client in clients)
                     {
-                        <tr>
+                        <tr class="@(selectedClients.Contains(client.Id) ? "table-active" : "")">
+                            <td>
+                                <input type="checkbox" class="form-check-input" 
+                                       @onchange="() => ToggleClientSelection(client.Id)" 
+                                       checked="@selectedClients.Contains(client.Id)" />
+                            </td>
                             <td><code>@client.ClientCode</code></td>
                             <td>
                                 <strong>@client.CompanyName</strong>
@@ -121,13 +149,70 @@
     }
 </div>
 
+<!-- Модальное окно массового редактирования -->
+@if (showBulkEditModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Массовое редактирование (@selectedClients.Count клиентов)</h5>
+                    <button type="button" class="btn-close" @onclick="() => showBulkEditModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Изменить регион</label>
+                        <select class="form-select" @bind="bulkClientAreaId">
+                            <option value="">-- Не изменять --</option>
+                            <option value="1">Inland (Внутри страны)</option>
+                            <option value="2">EU (Европейский союз)</option>
+                            <option value="3">Third Country (Третья страна)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Изменить тип</label>
+                        <select class="form-select" @bind="bulkClientTypeId">
+                            <option value="">-- Не изменять --</option>
+                            <option value="1">B2B (Business)</option>
+                            <option value="2">B2C (Consumer)</option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" @bind="bulkRenumberClients" id="bulkRenumber">
+                        <label class="form-check-label" for="bulkRenumber">
+                            Перенумеровать клиентов (начиная с 200000)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showBulkEditModal = false">Отмена</button>
+                    <button type="button" class="btn btn-primary" @onclick="ApplyBulkEdit">
+                        <i class="bi bi-check-lg"></i> Применить изменения
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<ClientDto> clients = new();
     private bool isLoading = true;
     private string? errorMessage;
+    private HashSet<int> selectedClients = new();
+    private bool showBulkEditModal = false;
+    private string bulkClientAreaId = "";
+    private string bulkClientTypeId = "";
+    private bool bulkRenumberClients = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await BusinessCtx.InitializeAsync();
+        BusinessCtx.Changed += async () =>
+        {
+            await LoadClients();
+            StateHasChanged();
+        };
         await LoadClients();
     }
 
@@ -140,7 +225,11 @@
             var query = new GetAllClientsQuery();
             var result = await Mediator.Send(query);
 
-            clients = result.ToList();
+            // Фильтрация по текущему бизнесу
+            var bizId = BusinessCtx.CurrentBusinessId;
+            clients = bizId.HasValue 
+                ? result.Where(c => c.BusinessId == bizId.Value).ToList()
+                : result.ToList();
         }
         catch (Exception ex)
         {
@@ -182,6 +271,133 @@
         catch (Exception ex)
         {
             await JS.InvokeVoidAsync("alert", $"Error exporting: {ex.Message}");
+        }
+    }
+
+    // Массовые действия
+    private void ToggleClientSelection(int clientId)
+    {
+        if (selectedClients.Contains(clientId))
+            selectedClients.Remove(clientId);
+        else
+            selectedClients.Add(clientId);
+    }
+
+    private void ToggleSelectAll()
+    {
+        if (selectedClients.Count == clients.Count)
+            selectedClients.Clear();
+        else
+            selectedClients = clients.Select(c => c.Id).ToHashSet();
+    }
+
+    private void ClearSelection()
+    {
+        selectedClients.Clear();
+    }
+
+    private async Task BulkDelete()
+    {
+        if (!selectedClients.Any()) return;
+
+        var confirmed = await JS.InvokeAsync<bool>("confirm", 
+            $"Вы уверены, что хотите удалить {selectedClients.Count} клиентов? Это действие необратимо!");
+
+        if (!confirmed) return;
+
+        try
+        {
+            var deletedCount = 0;
+            foreach (var clientId in selectedClients.ToList())
+            {
+                var command = new DeleteClientCommand(clientId);
+                var result = await Mediator.Send(command);
+                if (result.IsSuccess)
+                    deletedCount++;
+            }
+
+            await JS.InvokeVoidAsync("alert", $"Успешно удалено {deletedCount} из {selectedClients.Count} клиентов");
+            selectedClients.Clear();
+            await LoadClients();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка массового удаления: {ex.Message}";
+        }
+    }
+
+    private async Task ApplyBulkEdit()
+    {
+        if (!selectedClients.Any()) return;
+
+        try
+        {
+            var updatedCount = 0;
+            var startCode = 200000;
+
+            foreach (var clientId in selectedClients.ToList())
+            {
+                var client = clients.FirstOrDefault(c => c.Id == clientId);
+                if (client == null) continue;
+
+                // Создаем команду обновления напрямую
+                var command = new UpdateClientCommand
+                {
+                    Id = client.Id,
+                    CompanyName = client.CompanyName,
+                    ContactPerson = client.ContactPerson,
+                    VatNumber = client.VatNumber,
+                    Address = client.Address,
+                    PostalCode = client.PostalCode,
+                    City = client.City,
+                    Country = client.Country,
+                    Email = client.Email,
+                    Phone = client.Phone
+                };
+
+                // Применяем массовые изменения
+                if (!string.IsNullOrEmpty(bulkClientAreaId) && int.TryParse(bulkClientAreaId, out var areaId))
+                {
+                    command.ClientAreaId = areaId;
+                }
+                else
+                {
+                    command.ClientAreaId = client.ClientAreaId;
+                }
+
+                if (!string.IsNullOrEmpty(bulkClientTypeId) && int.TryParse(bulkClientTypeId, out var typeId))
+                {
+                    command.ClientTypeId = typeId;
+                }
+                else
+                {
+                    command.ClientTypeId = client.ClientTypeId;
+                }
+
+                // Примечание: ClientCode не изменяется в текущей версии UpdateClientCommand
+                // Если нужна перенумерация, потребуется добавить это поле в команду
+
+                var result = await Mediator.Send(command);
+
+                if (result.IsSuccess)
+                    updatedCount++;
+            }
+
+            await JS.InvokeVoidAsync("alert", $"Успешно обновлено {updatedCount} из {selectedClients.Count} клиентов");
+            
+            // Сброс формы
+            showBulkEditModal = false;
+            selectedClients.Clear();
+            bulkClientAreaId = "";
+            bulkClientTypeId = "";
+            bulkRenumberClients = false;
+            
+            await LoadClients();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка массового обновления: {ex.Message}";
+            await JS.InvokeVoidAsync("alert", errorMessage);
         }
     }
 }

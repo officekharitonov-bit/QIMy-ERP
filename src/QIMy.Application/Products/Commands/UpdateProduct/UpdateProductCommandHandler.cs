@@ -14,12 +14,15 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<UpdateProductCommandHandler> _logger;
+    private readonly IDuplicateDetectionService _duplicateDetectionService;
 
-    public UpdateProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UpdateProductCommandHandler> _logger)
+    public UpdateProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UpdateProductCommandHandler> _logger,
+        IDuplicateDetectionService duplicateDetectionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         this._logger = _logger;
+        _duplicateDetectionService = duplicateDetectionService;
     }
 
     public async Task<Result<ProductDto>> Handle(UpdateProductCommand request, CancellationToken cancellationToken)
@@ -32,16 +35,28 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             return Result<ProductDto>.Failure("Product not found.");
         }
 
-        // Check for duplicate SKU if provided and changed
-        if (!string.IsNullOrEmpty(request.SKU) && request.SKU != product.SKU)
-        {
-            var existingSku = await _unitOfWork.Products
-                .FindAsync(p => p.SKU == request.SKU && p.Id != request.Id && !p.IsDeleted, cancellationToken);
+        // Duplicate check by name/SKU
+        var duplicate = await _duplicateDetectionService.CheckProductDuplicateAsync(
+            request.Name,
+            request.SKU,
+            excludeId: request.Id,
+            cancellationToken);
 
-            if (existingSku.Any())
+        if (duplicate != null)
+        {
+            if (!request.IgnoreDuplicateWarning)
             {
-                return Result<ProductDto>.Failure("Product with this SKU already exists.");
+                return Result<ProductDto>.Failure(
+                    $"Duplicate product: {duplicate.Message}. Set IgnoreDuplicateWarning=true and DoubleConfirmed=true to proceed.");
             }
+
+            if (request.IgnoreDuplicateWarning && !request.DoubleConfirmed)
+            {
+                return Result<ProductDto>.Failure(
+                    $"Second confirmation required: {duplicate.Message}. Set DoubleConfirmed=true.");
+            }
+
+            _logger.LogWarning("Product duplicate accepted after double confirmation on update: Id={Id}", request.Id);
         }
 
         // Validate Unit exists if provided

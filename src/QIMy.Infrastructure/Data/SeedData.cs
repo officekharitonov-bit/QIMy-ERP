@@ -7,14 +7,30 @@ public static class SeedData
 {
     public static async Task SeedReferenceData(ApplicationDbContext context)
     {
+        // Get or create first business for seeding
+        var business = await context.Businesses.FirstOrDefaultAsync();
+        if (business == null)
+        {
+            business = new Business
+            {
+                Name = "Default Company",
+                LegalName = "Default Company Ltd",
+                Email = "info@defaultcompany.com"
+            };
+            await context.Businesses.AddAsync(business);
+            await context.SaveChangesAsync();
+        }
+        
+        var businessId = business.Id;
+
         // Seed ClientAreas
         if (!await context.ClientAreas.AnyAsync())
         {
             var clientAreas = new[]
             {
-                new ClientArea { Name = "Inländisch", Code = "1", Description = "Inland - Austria" },
-                new ClientArea { Name = "EU", Code = "2", Description = "European Union" },
-                new ClientArea { Name = "Ausländisch", Code = "3", Description = "Third Countries (Export)" }
+                new ClientArea { Name = "Inländisch", Code = "1", Description = "Inland - Austria", BusinessId = businessId },
+                new ClientArea { Name = "EU", Code = "2", Description = "European Union", BusinessId = businessId },
+                new ClientArea { Name = "Ausländisch", Code = "3", Description = "Third Countries (Export)", BusinessId = businessId }
             };
             await context.ClientAreas.AddRangeAsync(clientAreas);
             await context.SaveChangesAsync();
@@ -25,25 +41,78 @@ public static class SeedData
         {
             var clientTypes = new[]
             {
-                new ClientType { Name = "B2B", Code = "1", Description = "Business to Business" },
-                new ClientType { Name = "B2C", Code = "2", Description = "Business to Consumer" }
+                new ClientType { Name = "B2B", Code = "1", Description = "Business to Business", BusinessId = businessId },
+                new ClientType { Name = "B2C", Code = "2", Description = "Business to Consumer", BusinessId = businessId }
             };
             await context.ClientTypes.AddRangeAsync(clientTypes);
             await context.SaveChangesAsync();
         }
 
-        // Seed TaxRates (Austrian VAT rates)
+        // Seed TaxRates - Will be populated by VatRateUpdateService from Vatlayer API
+        // Seed only Austria rates initially (for backward compatibility)
         if (!await context.TaxRates.AnyAsync())
         {
+            var now = DateTime.UtcNow;
             var taxRates = new[]
             {
-                new TaxRate { Name = "Standard VAT", Rate = 20m, IsDefault = true },
-                new TaxRate { Name = "Reduced VAT 10%", Rate = 10m, IsDefault = false },
-                new TaxRate { Name = "Reduced VAT 13%", Rate = 13m, IsDefault = false },
-                new TaxRate { Name = "VAT Free (Export)", Rate = 0m, IsDefault = false }
+                new TaxRate 
+                { 
+                    CountryCode = "AT",
+                    CountryName = "Austria",
+                    Name = "Standard VAT (AT)", 
+                    Rate = 20m, 
+                    RateType = TaxRateType.Standard,
+                    IsDefault = true, 
+                    BusinessId = businessId,
+                    EffectiveFrom = now,
+                    EffectiveUntil = null,
+                    Source = "Manual",
+                    Notes = "Initial seed - will be updated by Vatlayer API"
+                },
+                new TaxRate 
+                { 
+                    CountryCode = "AT",
+                    CountryName = "Austria",
+                    Name = "Reduced VAT 10% (AT)", 
+                    Rate = 10m, 
+                    RateType = TaxRateType.Reduced,
+                    IsDefault = false, 
+                    BusinessId = businessId,
+                    EffectiveFrom = now,
+                    EffectiveUntil = null,
+                    Source = "Manual"
+                },
+                new TaxRate 
+                { 
+                    CountryCode = "AT",
+                    CountryName = "Austria",
+                    Name = "Reduced VAT 13% (AT)", 
+                    Rate = 13m, 
+                    RateType = TaxRateType.SuperReduced,
+                    IsDefault = false, 
+                    BusinessId = businessId,
+                    EffectiveFrom = now,
+                    EffectiveUntil = null,
+                    Source = "Manual"
+                },
+                new TaxRate 
+                { 
+                    CountryCode = "AT",
+                    CountryName = "Austria",
+                    Name = "VAT Free Export (AT)", 
+                    Rate = 0m, 
+                    RateType = TaxRateType.Zero,
+                    IsDefault = false, 
+                    BusinessId = businessId,
+                    EffectiveFrom = now,
+                    EffectiveUntil = null,
+                    Source = "Manual"
+                }
             };
             await context.TaxRates.AddRangeAsync(taxRates);
             await context.SaveChangesAsync();
+            
+            // Note: VatRateUpdateService will populate EU countries automatically on first run
         }
 
         // Seed Accounts (Revenue accounts / Erlöskonten)
@@ -64,7 +133,8 @@ public static class SeedData
                     AccountCode = "1",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = standardTaxRate?.Id,
-                    IsForServices = false
+                    IsForServices = false,
+                    BusinessId = businessId
                 },
                 new Account
                 {
@@ -73,7 +143,8 @@ public static class SeedData
                     AccountCode = "1",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = standardTaxRate?.Id,
-                    IsForServices = false
+                    IsForServices = false,
+                    BusinessId = businessId
                 },
                 new Account
                 {
@@ -82,7 +153,8 @@ public static class SeedData
                     AccountCode = "1",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = standardTaxRate?.Id,
-                    IsForServices = false
+                    IsForServices = false,
+                    BusinessId = businessId
                 },
                 new Account
                 {
@@ -91,7 +163,8 @@ public static class SeedData
                     AccountCode = "2",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = reducedTaxRate10?.Id,
-                    IsForServices = false
+                    IsForServices = false,
+                    BusinessId = businessId
                 },
                 new Account
                 {
@@ -100,7 +173,8 @@ public static class SeedData
                     AccountCode = "0",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = zeroTaxRate?.Id,
-                    IsForServices = false
+                    IsForServices = false,
+                    BusinessId = businessId
                 },
                 new Account
                 {
@@ -109,7 +183,8 @@ public static class SeedData
                     AccountCode = "3",
                     ClientAreaId = domesticArea.Id,
                     DefaultTaxRateId = reducedTaxRate13?.Id,
-                    IsForServices = false
+                    IsForServices = false,
+                    BusinessId = businessId
                 }
             };
             await context.Accounts.AddRangeAsync(accounts);
@@ -130,7 +205,8 @@ public static class SeedData
                     {
                         AccountId = account.Id,
                         TaxRateId = account.DefaultTaxRateId.Value,
-                        IsActive = true
+                        IsActive = true,
+                        BusinessId = businessId
                     });
                 }
             }
@@ -147,13 +223,13 @@ public static class SeedData
         {
             var units = new[]
             {
-                new Unit { Name = "Stück", ShortName = "Stk" },
-                new Unit { Name = "KG", ShortName = "kg" },
-                new Unit { Name = "Meter", ShortName = "m" },
-                new Unit { Name = "Liter", ShortName = "l" },
-                new Unit { Name = "Karton", ShortName = "Karton" },
-                new Unit { Name = "Std", ShortName = "h" },
-                new Unit { Name = "Pauschalbetrag", ShortName = "Pauschal" }
+                new Unit { Name = "Stück", ShortName = "Stk", BusinessId = businessId },
+                new Unit { Name = "KG", ShortName = "kg", BusinessId = businessId },
+                new Unit { Name = "Meter", ShortName = "m", BusinessId = businessId },
+                new Unit { Name = "Liter", ShortName = "l", BusinessId = businessId },
+                new Unit { Name = "Karton", ShortName = "Karton", BusinessId = businessId },
+                new Unit { Name = "Std", ShortName = "h", BusinessId = businessId },
+                new Unit { Name = "Pauschalbetrag", ShortName = "Pauschal", BusinessId = businessId }
             };
             await context.Units.AddRangeAsync(units);
             await context.SaveChangesAsync();
@@ -170,7 +246,8 @@ public static class SeedData
                     Name = "Euro",
                     Symbol = "€",
                     ExchangeRate = 1.0m,
-                    IsDefault = true
+                    IsDefault = true,
+                    BusinessId = businessId
                 },
                 new Currency
                 {
@@ -178,7 +255,8 @@ public static class SeedData
                     Name = "US Dollar",
                     Symbol = "$",
                     ExchangeRate = 1.1m,
-                    IsDefault = false
+                    IsDefault = false,
+                    BusinessId = businessId
                 },
                 new Currency
                 {
@@ -186,7 +264,8 @@ public static class SeedData
                     Name = "Russian Ruble",
                     Symbol = "₽",
                     ExchangeRate = 0.01m,
-                    IsDefault = false
+                    IsDefault = false,
+                    BusinessId = businessId
                 },
                 new Currency
                 {
@@ -194,7 +273,8 @@ public static class SeedData
                     Name = "Swiss Franc",
                     Symbol = "CHF",
                     ExchangeRate = 1.05m,
-                    IsDefault = false
+                    IsDefault = false,
+                    BusinessId = businessId
                 },
                 new Currency
                 {
@@ -202,7 +282,8 @@ public static class SeedData
                     Name = "British Pound",
                     Symbol = "£",
                     ExchangeRate = 1.17m,
-                    IsDefault = false
+                    IsDefault = false,
+                    BusinessId = businessId
                 }
             };
             await context.Currencies.AddRangeAsync(currencies);
@@ -214,12 +295,12 @@ public static class SeedData
         {
             var paymentMethods = new[]
             {
-                new PaymentMethod { Name = "Überweisung", IsDefault = true },
-                new PaymentMethod { Name = "Barzahlung", IsDefault = false },
-                new PaymentMethod { Name = "Kreditkarte", IsDefault = false },
-                new PaymentMethod { Name = "PayPal", IsDefault = false },
-                new PaymentMethod { Name = "Lastschrift", IsDefault = false },
-                new PaymentMethod { Name = "Scheck", IsDefault = false }
+                new PaymentMethod { Name = "Überweisung", IsDefault = true, BusinessId = businessId },
+                new PaymentMethod { Name = "Barzahlung", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Kreditkarte", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "PayPal", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Lastschrift", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Scheck", IsDefault = false, BusinessId = businessId }
             };
             await context.PaymentMethods.AddRangeAsync(paymentMethods);
             await context.SaveChangesAsync();

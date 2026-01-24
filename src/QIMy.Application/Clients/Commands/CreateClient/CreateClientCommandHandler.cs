@@ -17,15 +17,18 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<CreateClientCommandHandler> _logger;
+    private readonly IDuplicateDetectionService _duplicateDetectionService;
 
     public CreateClientCommandHandler(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ILogger<CreateClientCommandHandler> logger)
+        ILogger<CreateClientCommandHandler> logger,
+        IDuplicateDetectionService duplicateDetectionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _logger = logger;
+        _duplicateDetectionService = duplicateDetectionService;
     }
 
     public async Task<Result<ClientDto>> Handle(CreateClientCommand request, CancellationToken cancellationToken)
@@ -34,7 +37,32 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
 
         try
         {
-            // 1. Проверка на дубликат по VatNumber
+            // 1. Проверка на дубликат по названию/коду
+            var duplicate = await _duplicateDetectionService.CheckClientDuplicateAsync(
+                request.CompanyName,
+                clientCode: null,
+                excludeId: null,
+                cancellationToken);
+
+            if (duplicate != null)
+            {
+                // Логика двойного подтверждения
+                if (!request.IgnoreDuplicateWarning)
+                {
+                    return Result<ClientDto>.Failure(
+                        $"Дубликат клиента: {duplicate.Message}. Подтвердите IgnoreDuplicateWarning=true и DoubleConfirmed=true, чтобы создать дубликат.");
+                }
+
+                if (request.IgnoreDuplicateWarning && !request.DoubleConfirmed)
+                {
+                    return Result<ClientDto>.Failure(
+                        $"Требуется второе подтверждение для дубликата: {duplicate.Message}. Установите DoubleConfirmed=true.");
+                }
+
+                _logger.LogWarning("Client duplicate accepted after double confirmation: {CompanyName}", request.CompanyName);
+            }
+
+            // 2. Проверка на дубликат по VatNumber (строгий запрет)
             if (!string.IsNullOrEmpty(request.VatNumber))
             {
                 var existingClients = await _unitOfWork.Clients
@@ -47,7 +75,7 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
                 }
             }
 
-            // 2. Создание entity из command
+            // 3. Создание entity из command
             var client = new Client
             {
                 CompanyName = request.CompanyName,
@@ -64,20 +92,20 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 3. Генерация ClientCode
+            // 4. Генерация ClientCode
             client.ClientCode = await GenerateNextClientCodeAsync(client.ClientAreaId, cancellationToken);
 
-            // 4. Сохранение в БД
+            // 5. Сохранение в БД
             await _unitOfWork.Clients.AddAsync(client, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Client created successfully: Id={ClientId}, Code={ClientCode}",
                 client.Id, client.ClientCode);
 
-            // 5. Получение полной сущности с навигационными свойствами
+            // 6. Получение полной сущности с навигационными свойствами
             var createdClient = await _unitOfWork.Clients.GetByIdAsync(client.Id, cancellationToken);
 
-            // 6. Маппинг в DTO
+            // 7. Маппинг в DTO
             var dto = _mapper.Map<ClientDto>(createdClient);
 
             return Result<ClientDto>.Success(dto);

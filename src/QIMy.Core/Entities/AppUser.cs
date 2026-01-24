@@ -51,4 +51,9 @@ public class AppUser : IdentityUser
     /// Полное имя пользователя
     /// </summary>
     public string FullName => $"{FirstName} {LastName}".Trim();
+
+    /// <summary>
+    /// Список всех бизнесов, доступных этому пользователю
+    /// </summary>
+    public ICollection<UserBusiness> Businesses { get; set; } = new List<UserBusiness>();
 }

@@ -35,6 +35,16 @@ public class UnitOfWork : IUnitOfWork
 
     private IRepository<Tax>? _taxes;
     private IRepository<Payment>? _payments;
+    
+    private IRepository<PersonenIndexEntry>? _personenIndexEntries;
+    private IRepository<JournalEntry>? _journalEntries;
+    private IRepository<JournalEntryLine>? _journalEntryLines;
+    private IRepository<BankStatement>? _bankStatements;
+    private IRepository<BankStatementLine>? _bankStatementLines;
+    private IRepository<BankReconciliation>? _bankReconciliations;
+    private IRepository<CashEntry>? _cashEntries;
+    private IRepository<CashBox>? _cashBoxes;
+    private IRepository<CashBookDay>? _cashBookDays;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -104,6 +114,37 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<Payment> Payments =>
         _payments ??= new Repository<Payment>(_context);
+
+    // Personen Index (Справочник контрагентов)
+    public IRepository<PersonenIndexEntry> PersonenIndexEntries =>
+        _personenIndexEntries ??= new Repository<PersonenIndexEntry>(_context);
+
+    // Journal Entries (BUCHUNGSSCHRITTE)
+    public IRepository<JournalEntry> JournalEntries =>
+        _journalEntries ??= new Repository<JournalEntry>(_context);
+
+    public IRepository<JournalEntryLine> JournalEntryLines =>
+        _journalEntryLines ??= new Repository<JournalEntryLine>(_context);
+
+    // Bank Statements (БАНК)
+    public IRepository<BankStatement> BankStatements =>
+        _bankStatements ??= new Repository<BankStatement>(_context);
+
+    public IRepository<BankStatementLine> BankStatementLines =>
+        _bankStatementLines ??= new Repository<BankStatementLine>(_context);
+
+    public IRepository<BankReconciliation> BankReconciliations =>
+        _bankReconciliations ??= new Repository<BankReconciliation>(_context);
+
+    // Cash Management (КАССА)
+    public IRepository<CashEntry> CashEntries =>
+        _cashEntries ??= new Repository<CashEntry>(_context);
+
+    public IRepository<CashBox> CashBoxes =>
+        _cashBoxes ??= new Repository<CashBox>(_context);
+
+    public IRepository<CashBookDay> CashBookDays =>
+        _cashBookDays ??= new Repository<CashBookDay>(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

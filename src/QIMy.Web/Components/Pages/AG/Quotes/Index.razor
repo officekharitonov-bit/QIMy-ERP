@@ -1,0 +1,150 @@
+@page "/ag/quotes"
+@using QIMy.Core.Entities
+@using QIMy.Core.Interfaces
+@using QIMy.Web.Services
+@inject IQuoteService QuoteService
+@inject NavigationManager Navigation
+@inject BusinessContext BusinessCtx
+@inject IJSRuntime JS
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>
+                <i class="bi bi-file-earmark-text"></i> Angebote
+                <span class="badge bg-secondary">@quotes.Count</span>
+            </h3>
+        </div>
+        <div class="col-auto">
+            <a href="/ag/quotes/create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Новое предложение
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (!quotes.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Предложения не найдены. Создайте первое!
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Номер</th>
+                        <th>Дата</th>
+                        <th>Клиент</th>
+                        <th>Статус</th>
+                        <th class="text-end">Сумма (Netto)</th>
+                        <th class="text-end">Итого</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var q in quotes.Take(50))
+                    {
+                        <tr>
+                            <td><strong>@q.QuoteNumber</strong></td>
+                            <td>@q.QuoteDate.ToString("dd.MM.yyyy")</td>
+                            <td>@(q.Client != null ? q.Client.CompanyName : "")</td>
+                            <td>
+                                @switch (q.Status)
+                                {
+                                    case QuoteStatus.Draft:
+                                        <span class="badge bg-secondary">Черновик</span>
+                                        break;
+                                    case QuoteStatus.Sent:
+                                        <span class="badge bg-warning">Отправлен</span>
+                                        break;
+                                    case QuoteStatus.Accepted:
+                                        <span class="badge bg-success">Принят</span>
+                                        break;
+                                    case QuoteStatus.Rejected:
+                                        <span class="badge bg-danger">Отклонён</span>
+                                        break;
+                                    case QuoteStatus.Expired:
+                                        <span class="badge bg-dark">Истёк</span>
+                                        break;
+                                    case QuoteStatus.Cancelled:
+                                        <span class="badge bg-danger">Отменён</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="text-end"><code>@q.SubTotal.ToString("N2")</code></td>
+                            <td class="text-end"><strong>@q.TotalAmount.ToString("N2") €</strong></td>
+                            <td>
+                                <div class="btn-group">
+                                    <a class="btn btn-sm btn-outline-primary" href="/ag/quotes/edit/@q.Id">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteQuote(q.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (quotes.Count > 50)
+        {
+            <div class="alert alert-info mt-3">Показано первых 50 из @quotes.Count предложений.</div>
+        }
+    }
+</div>
+
+@code {
+    private List<Quote> quotes = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await BusinessCtx.InitializeAsync();
+        BusinessCtx.Changed += async () =>
+        {
+            await LoadQuotes();
+            StateHasChanged();
+        };
+        await LoadQuotes();
+    }
+
+    private async Task LoadQuotes()
+    {
+        isLoading = true;
+        try
+        {
+            var all = (await QuoteService.GetAllQuotesAsync()).ToList();
+            var bizId = BusinessCtx.CurrentBusinessId;
+            if (bizId.HasValue)
+                quotes = all.Where(q => q.BusinessId == bizId.Value).ToList();
+            else
+                quotes = all;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteQuote(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Удалить предложение?"))
+        {
+            await QuoteService.DeleteQuoteAsync(id);
+            await LoadQuotes();
+        }
+    }
+}

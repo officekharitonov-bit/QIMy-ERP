@@ -16,6 +16,13 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Business> Businesses => Set<Business>();
+    public DbSet<UserBusiness> UserBusinesses => Set<UserBusiness>();
+    
+    /// <summary>
+    /// Personen Index - центральный справочник контрагентов
+    /// Это "телефонная книга" системы - единственный источник правды
+    /// </summary>
+    public DbSet<PersonenIndexEntry> PersonenIndexEntries => Set<PersonenIndexEntry>();
 
     // Invoices (AR - Ausgangsrechnungen)
     public DbSet<Invoice> Invoices => Set<Invoice>();
@@ -23,9 +30,38 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<InvoiceDiscount> InvoiceDiscounts => Set<InvoiceDiscount>();
 
+    // Quotes (AG - Angebote)
+    public DbSet<Quote> Quotes => Set<Quote>();
+    public DbSet<QuoteItem> QuoteItems => Set<QuoteItem>();
+
+    // Returns (ST - Storno/Credit Notes)
+    public DbSet<Return> Returns => Set<Return>();
+    public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
+
+    // Delivery Notes (LS - Lieferscheine)
+    public DbSet<DeliveryNote> DeliveryNotes => Set<DeliveryNote>();
+    public DbSet<DeliveryNoteItem> DeliveryNoteItems => Set<DeliveryNoteItem>();
+
     // Expense Invoices (ER - Eingangsrechnungen)
     public DbSet<ExpenseInvoice> ExpenseInvoices => Set<ExpenseInvoice>();
     public DbSet<ExpenseInvoiceItem> ExpenseInvoiceItems => Set<ExpenseInvoiceItem>();
+
+    // Journal Entries (BUCHUNGSSCHRITTE - Бухгалтерские проводки)
+    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
+    public DbSet<JournalEntryLine> JournalEntryLines => Set<JournalEntryLine>();
+
+    // Bank Statements (БАНК)
+    public DbSet<BankStatement> BankStatements => Set<BankStatement>();
+    public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
+    public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
+
+    // Cash Management (КАССА)
+    public DbSet<CashEntry> CashEntries => Set<CashEntry>();
+    public DbSet<CashBox> CashBoxes => Set<CashBox>();
+    public DbSet<CashBookDay> CashBookDays => Set<CashBookDay>();
+
+    // Numbering
+    public DbSet<NumberingConfig> NumberingConfigs => Set<NumberingConfig>();
 
     // Reference data
     public DbSet<Currency> Currencies => Set<Currency>();
@@ -38,6 +74,9 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<Discount> Discounts => Set<Discount>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+    public DbSet<VatRateChangeLog> VatRateChangeLogs => Set<VatRateChangeLog>();
+    public DbSet<Country> Countries => Set<Country>();
+    public DbSet<EuCountryData> EuCountryData => Set<EuCountryData>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -130,5 +169,55 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
         // Payment amount
         modelBuilder.Entity<Payment>()
             .Property(p => p.Amount).HasPrecision(18, 2);
+
+        // JournalEntry amounts
+        modelBuilder.Entity<JournalEntry>()
+            .Property(j => j.TotalDebit).HasPrecision(18, 2);
+        modelBuilder.Entity<JournalEntry>()
+            .Property(j => j.TotalCredit).HasPrecision(18, 2);
+
+        // JournalEntryLine amounts
+        modelBuilder.Entity<JournalEntryLine>()
+            .Property(j => j.Amount).HasPrecision(18, 2);
+
+        // BankStatement amounts
+        modelBuilder.Entity<BankStatement>()
+            .Property(b => b.OpeningBalance).HasPrecision(18, 2);
+        modelBuilder.Entity<BankStatement>()
+            .Property(b => b.ClosingBalance).HasPrecision(18, 2);
+        modelBuilder.Entity<BankStatement>()
+            .Property(b => b.TotalDebits).HasPrecision(18, 2);
+        modelBuilder.Entity<BankStatement>()
+            .Property(b => b.TotalCredits).HasPrecision(18, 2);
+
+        // BankStatementLine amounts
+        modelBuilder.Entity<BankStatementLine>()
+            .Property(b => b.Amount).HasPrecision(18, 2);
+
+        // BankReconciliation amounts
+        modelBuilder.Entity<BankReconciliation>()
+            .Property(b => b.Amount).HasPrecision(18, 2);
+
+        // CashEntry amounts
+        modelBuilder.Entity<CashEntry>()
+            .Property(c => c.Amount).HasPrecision(18, 2);
+
+        // CashBox balance
+        modelBuilder.Entity<CashBox>()
+            .Property(c => c.CurrentBalance).HasPrecision(18, 2);
+
+        // CashBookDay amounts
+        modelBuilder.Entity<CashBookDay>()
+            .Property(c => c.OpeningBalance).HasPrecision(18, 2);
+        modelBuilder.Entity<CashBookDay>()
+            .Property(c => c.TotalIncome).HasPrecision(18, 2);
+        modelBuilder.Entity<CashBookDay>()
+            .Property(c => c.TotalExpense).HasPrecision(18, 2);
+        modelBuilder.Entity<CashBookDay>()
+            .Property(c => c.ExpectedClosingBalance).HasPrecision(18, 2);
+        modelBuilder.Entity<CashBookDay>()
+            .Property(c => c.ActualClosingBalance).HasPrecision(18, 2);
+        modelBuilder.Entity<CashBookDay>()
+            .Property(c => c.Variance).HasPrecision(18, 2);
     }
 }

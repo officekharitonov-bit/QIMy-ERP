@@ -16,15 +16,18 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<UpdateClientCommandHandler> _logger;
+    private readonly IDuplicateDetectionService _duplicateDetectionService;
 
     public UpdateClientCommandHandler(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ILogger<UpdateClientCommandHandler> logger)
+        ILogger<UpdateClientCommandHandler> logger,
+        IDuplicateDetectionService duplicateDetectionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _logger = logger;
+        _duplicateDetectionService = duplicateDetectionService;
     }
 
     public async Task<Result<ClientDto>> Handle(UpdateClientCommand request, CancellationToken cancellationToken)
@@ -42,7 +45,31 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
                 throw new NotFoundException("Client", request.Id);
             }
 
-            // 2. Проверка на дубликат VatNumber (если изменился)
+            // 2. Проверка на дубликат по названию/коду
+            var duplicate = await _duplicateDetectionService.CheckClientDuplicateAsync(
+                request.CompanyName,
+                clientCode: null,
+                excludeId: request.Id,
+                cancellationToken);
+
+            if (duplicate != null)
+            {
+                if (!request.IgnoreDuplicateWarning)
+                {
+                    return Result<ClientDto>.Failure(
+                        $"Дубликат клиента: {duplicate.Message}. Подтвердите IgnoreDuplicateWarning=true и DoubleConfirmed=true, чтобы сохранить изменения как дубликат.");
+                }
+
+                if (request.IgnoreDuplicateWarning && !request.DoubleConfirmed)
+                {
+                    return Result<ClientDto>.Failure(
+                        $"Требуется второе подтверждение для дубликата: {duplicate.Message}. Установите DoubleConfirmed=true.");
+                }
+
+                _logger.LogWarning("Client duplicate accepted after double confirmation on update: Id={ClientId}", request.Id);
+            }
+
+            // 3. Проверка на дубликат VatNumber (если изменился) — строгий запрет
             if (!string.IsNullOrEmpty(request.VatNumber) &&
                 request.VatNumber != client.VatNumber)
             {
@@ -58,7 +85,7 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
                 }
             }
 
-            // 3. Обновляем свойства
+            // 4. Обновляем свойства
             client.CompanyName = request.CompanyName;
             client.ContactPerson = request.ContactPerson;
             client.Email = request.Email;
@@ -71,16 +98,16 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
             client.ClientTypeId = request.ClientTypeId;
             client.ClientAreaId = request.ClientAreaId;
 
-            // 4. Сохраняем
+            // 5. Сохраняем
             await _unitOfWork.Clients.UpdateAsync(client, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Client updated successfully: Id={ClientId}", client.Id);
 
-            // 5. Получаем обновленного клиента с навигационными свойствами
+            // 6. Получаем обновленного клиента с навигационными свойствами
             var updatedClient = await _unitOfWork.Clients.GetByIdAsync(client.Id, cancellationToken);
 
-            // 6. Маппинг в DTO
+            // 7. Маппинг в DTO
             var dto = _mapper.Map<ClientDto>(updatedClient);
 
             return Result<ClientDto>.Success(dto);

@@ -1,0 +1,187 @@
+﻿==========================================================================================
+PERSONEN INDEX.XLSX - DETAILED STRUCTURE ANALYSIS
+==========================================================================================
+
+SHEET 1: Personen index
+------------------------------------------------------------------------------------------
+Dimensions: 0 rows x 29 columns
+
+COLUMNS:
+  Col 1: 1
+  Col 2: 2
+  Col 3: 3
+  Col 4: 4
+  Col 5: 5
+  Col 6: 6
+  Col 7: 7
+  Col 8: 8
+  Col 9: 9
+  Col 10: 10
+  Col 11: 11
+  Col 12: 12
+  Col 13: 13
+  Col 14: 14
+  Col 15: 15
+  Col 16: 16
+  Col 17: 17
+  Col 18: 18
+  Col 19: 19
+  Col 20: 20
+  Col 21: 21
+  Col 22: 22
+  Col 23: [EMPTY]
+  Col 24: [EMPTY]
+  Col 25: [EMPTY]
+  Col 26: [EMPTY]
+  Col 27: [EMPTY]
+  Col 28: [EMPTY]
+  Col 29: [EMPTY]
+
+
+
+SHEET 2: EU-RATE
+------------------------------------------------------------------------------------------
+Dimensions: 1000 rows x 13 columns
+
+COLUMNS:
+  Col 1: Member States
+  Col 2: Code
+  Col 3: Standard Rate
+  Col 4: LAND
+  Col 5: Erwerbsschwelle
+  Col 6: Lieferschwelle
+  Col 7: WAE
+  Col 8: Kto-Nr
+  Col 9: Filiale
+  Col 10: Land-NR
+  Col 11: [EMPTY]
+  Col 12: [EMPTY]
+  Col 13: [EMPTY]
+
+SAMPLE DATA (first 5 rows):
+  Row 2 : Austria | AT | 20 | Österreich | 11000 | 35000 | EUR | 4000 | [EMPTY] | 1 | [EMPTY] | ATU72197106 | UID
+  Row 3 : Belgium | BE | 21 | Belgien | 11200 | 35000 | EUR | 4001 | 1 | 4 | [EMPTY] | quartalsweise | UVA-Abgabe
+  Row 4 : Bulgaria | BG | 20 | Bulgarien | 20000 | 70000 | BGN | 4002 | 2 | 24 | [EMPTY] | EUR | UVA -Währung
+  Row 5 : Croatia | HR | 25 | Kroatien | 77000 | 270000 | HRK | 4003 | 3 | 28 | [EMPTY] | [EMPTY] | [EMPTY]
+  Row 6 : Cyprus | CY | 19 | Zypern | 10251 | 35000 | EUR | 4004 | 4 | 246 | [EMPTY] | [EMPTY] | [EMPTY]
+
+
+SHEET 3: CODE_INDEX
+------------------------------------------------------------------------------------------
+Dimensions: 1000 rows x 11 columns
+
+COLUMNS:
+  Col 1: [EMPTY]
+  Col 2: [EMPTY]
+  Col 3: [EMPTY]
+  Col 4: [EMPTY]
+  Col 5: [EMPTY]
+  Col 6: [EMPTY]
+  Col 7: [EMPTY]
+  Col 8: [EMPTY]
+  Col 9: Liefer- und Erwerbsschwellen
+  Col 10: [EMPTY]
+  Col 11: [EMPTY]
+
+SAMPLE DATA (first 5 rows):
+  Row 2 : Kto-Nr | Bezeichnung | Fogalom | Kontoart | сode | USt-Pz | [EMPTY] | [EMPTY] | EU-Mitgliedsstaat | Erwerbsschwelle | Lieferschwelle
+  Row 3 : 4113 | Erlöse sonstige Leistungen EU | Más EU szolgáltatásokból származó bevétel | Ertrag | 77 | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY]
+  Row 4 : 4211 | Erlöse, steuerpflichtig in anderem EU-Land - HU - MOSS | Más EU-országban adóköteles bevételek - HU - MOSS | Ertrag | 1 | 27 | [EMPTY] | [EMPTY] | Belgien | 11 200 € | 35 000 €
+  Row 5 : 4212 | Erlöse, steuerpflichtig in anderem EU-Land - SK - MOSS | Más EU-országban adóköteles bevételek - SK - MOSS | Ertrag | 1 | 20 | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY]
+  Row 6 : 4413 | Kundenskonto sonstige Leistungen EU | Ügyfélszámla egyéb szolgáltatások EU | Ertrag | 77 | [EMPTY] | [EMPTY] | [EMPTY] | Bulgarien | 20.000 BGN | 70.000 BGN
+
+
+SHEET 4: Steuercodes
+------------------------------------------------------------------------------------------
+Dimensions: 1038 rows x 12 columns
+
+COLUMNS:
+  Col 1: Kto-Nr
+  Col 2: Bezeichnung
+  Col 3: Kontoart
+  Col 4: code
+  Col 5: P-Kz
+  Col 6: USt-Pz
+  Col 7: Automatik
+  Col 8: A
+  Col 9: Texte
+  Col 10: перевод Google
+  Col 11: [EMPTY]
+  Col 12: [EMPTY]
+
+SAMPLE DATA (first 5 rows):
+  Row 2 : 100 | Konzessionen | Aktiv | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | A | [EMPTY] | концессии | активы | [EMPTY]
+  Row 3 : 109 | kumulierte Abschreibungen zu Konzessionen | Aktiv | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | Совокупная амортизация по концессиям | активы | [EMPTY]
+  Row 4 : 110 | Patentrechte | Aktiv | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | A | [EMPTY] | Патентные права | активы | [EMPTY]
+  Row 5 : 111 | Lizenzen | Aktiv | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | A | [EMPTY] | лицензии | активы | [EMPTY]
+  Row 6 : 118 | kumulierte Abschreibungen zu Patentrechten | Aktiv | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | [EMPTY] | Совокупные списания по патентным правам | активы | [EMPTY]
+
+
+SHEET 5: Sorted list
+------------------------------------------------------------------------------------------
+Dimensions: 1000 rows x 3 columns
+
+COLUMNS:
+  Col 1: Kto-Nr
+  Col 2: Freifeld 01
+  Col 3: Nachname
+
+SAMPLE DATA (first 5 rows):
+  Row 2 : 200000 | AT | Barverkaufe AUSTRIA - Selbstausfuhr (EU)
+  Row 3 : 200001 | DE | Barverkaufe DEUTSCHLAND -100.000 ˆ  Lieferschwelle
+  Row 4 : 200002 | BE | Barverkaufe BELGIEN - NETTO 35.000 ˆ Lieferschwell
+  Row 5 : 200003 | FI | Barverkaufe FINNLAND - 35.000 ˆ
+  Row 6 : 200004 | SW | Barverkaufe SCHWEDEN - 320.000 SEK - 30,625.26
+
+
+SHEET 6: Länder
+------------------------------------------------------------------------------------------
+Dimensions: 1000 rows x 4 columns
+
+COLUMNS:
+  Col 1: Österreich
+  Col 2: 34700
+  Col 3: Austria
+  Col 4: 1
+
+SAMPLE DATA (first 5 rows):
+  Row 2 : Deutschland | 21186 | Germany | 2
+  Row 3 : Italien | 21186 | Italy | 3
+  Row 4 : Belgien | 21186 | Belgium | 4
+  Row 5 : Niederlande | 21186 | Netherlands | 5
+  Row 6 : Frankreich | 21186 | France | 6
+
+
+==========================================================================================
+SUMMARY
+==========================================================================================
+
+Sheet 1: Personen Index
+  Purpose: Main person/client data sheet (appears to be empty or formula-based)
+  Used by: Contains formulas referencing other sheets
+
+Sheet 2: EU-RATE
+  Purpose: EU VAT rates and country reference data
+  Columns: Country name, ISO code, VAT rate, German name, threshold values, currency, account number
+  Key field: Code (ISO 2-letter country code)
+
+Sheet 3: CODE_INDEX
+  Purpose: Accounting codes and account descriptions
+  Columns: Account number, Description (German), Description (Hungarian), Account type, Code
+  Key field: Kto-Nr (Account number)
+
+Sheet 4: Steuercodes
+  Purpose: Tax codes and automatic posting rules
+  Columns: Account number, Description, Account type, Code, Tax codes, Automation rules
+  Key field: Kto-Nr (Account number)
+
+Sheet 5: Sorted list
+  Purpose: Reference list of account numbers with country codes
+  Columns: Account number, Country code (Freifeld 01), Description
+  Key field: Kto-Nr (Account number)
+
+Sheet 6: Laender (Countries)
+  Purpose: Country master data with numeric country codes
+  Columns: Country name (German), Account range?, English name, Country number
+  Key field: Country number
+

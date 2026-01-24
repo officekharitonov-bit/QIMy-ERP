@@ -34,6 +34,23 @@ public interface IUnitOfWork : IDisposable
     // Other Repositories
     IRepository<Tax> Taxes { get; }
     IRepository<Payment> Payments { get; }
+    
+    // Personen Index (Справочник контрагентов)
+    IRepository<PersonenIndexEntry> PersonenIndexEntries { get; }
+
+    // Journal Entries (BUCHUNGSSCHRITTE)
+    IRepository<JournalEntry> JournalEntries { get; }
+    IRepository<JournalEntryLine> JournalEntryLines { get; }
+
+    // Bank Statements (БАНК)
+    IRepository<BankStatement> BankStatements { get; }
+    IRepository<BankStatementLine> BankStatementLines { get; }
+    IRepository<BankReconciliation> BankReconciliations { get; }
+
+    // Cash Management (КАССА)
+    IRepository<CashEntry> CashEntries { get; }
+    IRepository<CashBox> CashBoxes { get; }
+    IRepository<CashBookDay> CashBookDays { get; }
 
     /// <summary>
     /// Сохранить все изменения в базе данных

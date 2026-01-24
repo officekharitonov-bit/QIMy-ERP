@@ -5,6 +5,7 @@ namespace QIMy.Core.Entities;
 /// </summary>
 public class Supplier : BaseEntity
 {
+    public int? BusinessId { get; set; }
     public string CompanyName { get; set; } = string.Empty;
     public string? ContactPerson { get; set; }
     public string? Email { get; set; }
@@ -18,5 +19,6 @@ public class Supplier : BaseEntity
     public string? BankAccount { get; set; }
     
     // Navigation properties
+    public Business? Business { get; set; }
     public ICollection<ExpenseInvoice> ExpenseInvoices { get; set; } = new List<ExpenseInvoice>();
 }

@@ -21,4 +21,14 @@ public record UpdateClientCommand : IRequest<Result<ClientDto>>
     public string? Country { get; set; }
     public int? ClientTypeId { get; set; }
     public int? ClientAreaId { get; set; }
+
+    /// <summary>
+    /// Первое игнорирование предупреждения о дубликате (пользователь подтвердил 1 раз)
+    /// </summary>
+    public bool IgnoreDuplicateWarning { get; set; }
+
+    /// <summary>
+    /// Второе подтверждение для создания дубликата (пользователь подтвердил 2 раза)
+    /// </summary>
+    public bool DoubleConfirmed { get; set; }
 }

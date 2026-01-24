@@ -1,6 +1,8 @@
 @page "/admin/products"
 @using QIMy.Application.Products.DTOs
 @using QIMy.Application.Products.Commands.DeleteProduct
+@using QIMy.Application.Products.Commands.CreateProduct
+@using QIMy.Application.Products.Commands.UpdateProduct
 @using QIMy.Application.Products.Queries.GetAllProducts
 @using MediatR
 @inject IMediator Mediator
@@ -15,6 +17,24 @@
     <a href="/admin/products/create" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Добавить Product
     </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <button class="btn btn-outline-secondary" @onclick="ExportCsv">
+            <i class="bi bi-download me-1"></i> Download list (CSV)
+        </button>
+        <InputFile OnChange="ImportCsv" accept=".csv,text/csv" class="form-control" />
+        <div class="form-check ms-2">
+            <input class="form-check-input" type="checkbox" id="updateExisting" @bind="updateExisting" />
+            <label class="form-check-label" for="updateExisting">
+                Update existing (match by SKU)
+            </label>
+        </div>
+    </div>
+    <div class="px-3 pb-2 text-muted">
+        Формат CSV: <code>SKU;Name;Description;Price;UnitId;TaxRateId;IsService;StockQuantity</code>
+    </div>
 </div>
 
 @if (products == null)
@@ -82,6 +102,7 @@ else
 
 @code {
     private List<ProductDto>? products;
+    private bool updateExisting = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,6 +131,141 @@ else
             {
                 await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Error}");
             }
+        }
+    }
+
+    private async Task ExportCsv()
+    {
+        if (products == null || !products.Any())
+        {
+            await JS.InvokeVoidAsync("alert", "Нет данных для экспорта.");
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("SKU;Name;Description;Price;UnitId;TaxRateId;IsService;StockQuantity");
+        foreach (var p in products)
+        {
+            var sku = (p.SKU ?? string.Empty).Replace(";", ",");
+            var name = (p.Name ?? string.Empty).Replace(";", ",");
+            var desc = (p.Description ?? string.Empty).Replace(";", ",");
+            var price = p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var unitId = p.UnitId?.ToString() ?? string.Empty;
+            var taxId = p.TaxRateId?.ToString() ?? string.Empty;
+            var isService = p.IsService ? "1" : "0";
+            var stock = p.StockQuantity.ToString();
+            sb.AppendLine($"{sku};{name};{desc};{price};{unitId};{taxId};{isService};{stock}");
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+        var fileName = $"products-{DateTime.UtcNow:yyyyMMddHHmmss}.csv";
+        await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
+    }
+
+    private async Task ImportCsv(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(content)) return;
+
+            var lines = content.Replace("\r", string.Empty).Split('\n');
+            int processed = 0, created = 0, updated = 0;
+
+            foreach (var raw in lines)
+            {
+                var line = raw.Trim();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (line.StartsWith("SKU", StringComparison.OrdinalIgnoreCase)) continue; // header
+
+                string[] parts = line.Contains(';') ? line.Split(';') : line.Split(',');
+                if (parts.Length < 4) continue; // require at least SKU;Name;Description;Price
+
+                var sku = parts[0].Trim();
+                var name = parts[1].Trim();
+                var desc = parts[2].Trim();
+                var priceStr = parts[3].Trim();
+
+                // optional
+                int? unitId = null; if (parts.Length > 4 && int.TryParse(parts[4].Trim(), out var u)) unitId = u;
+                int? taxRateId = null; if (parts.Length > 5 && int.TryParse(parts[5].Trim(), out var t)) taxRateId = t;
+                bool isService = false; if (parts.Length > 6) isService = parts[6].Trim() == "1" || parts[6].Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+                int stock = 0; if (parts.Length > 7 && int.TryParse(parts[7].Trim(), out var s)) stock = s;
+
+                if (!decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var price))
+                {
+                    // try RU/DE cultures
+                    if (!decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, new System.Globalization.CultureInfo("ru-RU"), out price))
+                        decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, new System.Globalization.CultureInfo("de-DE"), out price);
+                }
+
+                if (updateExisting)
+                {
+                    // Try find existing by SKU in loaded list first
+                    var existing = products?.FirstOrDefault(p => string.Equals(p.SKU ?? string.Empty, sku, StringComparison.OrdinalIgnoreCase));
+                    if (existing != null)
+                    {
+                        var cmd = new UpdateProductCommand
+                        {
+                            Id = existing.Id,
+                            Name = name,
+                            Description = desc,
+                            SKU = sku,
+                            Price = price,
+                            UnitId = unitId,
+                            TaxRateId = taxRateId,
+                            IsService = isService,
+                            StockQuantity = stock
+                        };
+                        var res = await Mediator.Send(cmd);
+                        if (res.IsSuccess)
+                        {
+                            updated++;
+                            processed++;
+                        }
+                        else
+                        {
+                            await JS.InvokeVoidAsync("console.warn", $"Update failed: {res.Error}");
+                        }
+                        continue;
+                    }
+                }
+
+                var create = new CreateProductCommand
+                {
+                    Name = name,
+                    Description = desc,
+                    SKU = sku,
+                    Price = price,
+                    UnitId = unitId,
+                    TaxRateId = taxRateId,
+                    IsService = isService,
+                    StockQuantity = stock
+                };
+                var createdRes = await Mediator.Send(create);
+                if (createdRes.IsSuccess)
+                {
+                    created++;
+                    processed++;
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("console.warn", $"Create failed: {createdRes.Error}");
+                }
+            }
+
+            await LoadData();
+            await JS.InvokeVoidAsync("alert", $"Импорт завершён. Обработано: {processed}, создано: {created}, обновлено: {updated}.");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
         }
     }
 }

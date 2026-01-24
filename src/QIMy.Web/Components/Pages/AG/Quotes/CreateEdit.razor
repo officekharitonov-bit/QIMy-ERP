@@ -1,0 +1,360 @@
+@page "/ag/quotes/create"
+@page "/ag/quotes/edit/{Id:int}"
+@using QIMy.Core.Entities
+@using QIMy.Core.Interfaces
+@inject IQuoteService QuoteService
+@inject IClientService ClientService
+@inject IProductService ProductService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject QIMy.Web.Services.BusinessContext BusinessCtx
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>
+                <i class="bi bi-file-earmark-text"></i>
+                @(Id.HasValue ? "Редактировать предложение" : "Новое предложение")
+            </h3>
+        </div>
+        <div class="col-auto">
+            <a href="/ag/quotes" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о предложении</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Клиент *</label>
+                            <select class="form-select" @bind="selectedClientId" disabled="@(Id.HasValue)">
+                                <option value="0">Выберите клиента...</option>
+                                @foreach (var client in clients)
+                                {
+                                    <option value="@client.Id">
+                                        @client.CompanyName (@client.ClientCode)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Дата предложения *</label>
+                            <input type="date" class="form-control" @bind="quoteDate" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Действительно до</label>
+                            <input type="date" class="form-control" @bind="validUntil" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Номер предложения</label>
+                            <input type="text" class="form-control" @bind="quoteNumber" placeholder="Оставьте пустым для автогенерации" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Статус</label>
+                            <select class="form-select" @bind="quoteStatus">
+                                <option value="0">Черновик</option>
+                                <option value="1">Отправлен</option>
+                                <option value="2">Принят</option>
+                                <option value="3">Отклонён</option>
+                                <option value="4">Истёк</option>
+                                <option value="5">Отменён</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Позиции предложения <span class="badge bg-secondary">@items.Count</span></h5>
+                    <button class="btn btn-sm btn-primary" @onclick="AddItem">
+                        <i class="bi bi-plus"></i> Добавить позицию
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (!items.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Добавьте позиции в предложение
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40%">Услуга</th>
+                                        <th style="width: 10%" class="text-end">Кол-во</th>
+                                        <th style="width: 15%" class="text-end">Цена (Netto)</th>
+                                        <th style="width: 10%" class="text-end">НДС %</th>
+                                        <th style="width: 15%" class="text-end">Итого</th>
+                                        <th style="width: 10%"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <select class="form-select form-select-sm" @onchange="(ChangeEventArgs e) => SelectProduct(item, Convert.ToInt32(e.Value ?? 0))">
+                                                    <option value="0">-- Выберите услугу --</option>
+                                                    @foreach (var product in products)
+                                                    {
+                                                        <option value="@product.Id" selected="@(item.ProductId == product.Id)">
+                                                            @product.Name @(string.IsNullOrEmpty(product.SKU) ? "" : $"({product.SKU})")
+                                                        </option>
+                                                    }
+                                                </select>
+                                                <input type="text" class="form-control form-control-sm mt-1" @bind="item.Description" placeholder="Описание (опционально)" />
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" @bind="item.Quantity" step="0.01" />
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" @bind="item.UnitPrice" step="0.01" />
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" @bind="item.TaxRatePercent" step="0.01" />
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>@CalculateItemTotal(item).ToString("N2") €</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveItem(item)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Итоговая сумма</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Сумма (Netto):</span>
+                        <strong>@subTotal.ToString("N2") €</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>НДС:</span>
+                        <strong>@totalTax.ToString("N2") €</strong>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <span class="h5">Итого:</span>
+                        <span class="h5 text-primary">@totalAmount.ToString("N2") €</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary btn-lg" @onclick="HandleSubmit" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-save"></i> Сохранить предложение
+                </button>
+                <a href="/ag/quotes" class="btn btn-outline-secondary">Отмена</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private List<Client> clients = new();
+    private List<Product> products = new();
+    private int selectedClientId = 0;
+    private string quoteNumber = string.Empty;
+    private DateTime quoteDate = DateTime.Today;
+    private DateTime? validUntil = DateTime.Today.AddDays(30);
+    private int quoteStatus = 0; // Draft
+    private List<QuoteItemModel> items = new();
+    private string errorMessage = string.Empty;
+    private bool isSaving = false;
+
+    private decimal subTotal => items.Sum(i => i.Quantity * i.UnitPrice);
+    private decimal totalTax => items.Sum(i => CalculateItemTax(i));
+    private decimal totalAmount => subTotal + totalTax;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await BusinessCtx.InitializeAsync();
+        clients = (await ClientService.GetAllClientsAsync()).ToList();
+        products = (await ProductService.GetAllProductsAsync()).ToList();
+
+        if (Id.HasValue)
+        {
+            var quote = await QuoteService.GetQuoteByIdAsync(Id.Value);
+            if (quote != null)
+            {
+                selectedClientId = quote.ClientId;
+                quoteNumber = quote.QuoteNumber;
+                quoteDate = quote.QuoteDate;
+                validUntil = quote.ValidUntil;
+                quoteStatus = (int)quote.Status;
+
+                items = quote.Items.Select(i => new QuoteItemModel
+                {
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TaxRatePercent = i.Tax?.TaxRate?.Rate ?? 20
+                }).ToList();
+            }
+        }
+    }
+
+    private void AddItem()
+    {
+        items.Add(new QuoteItemModel
+        {
+            ProductId = 0,
+            Description = string.Empty,
+            Quantity = 1,
+            UnitPrice = 0,
+            TaxRatePercent = 20
+        });
+    }
+
+    private void SelectProduct(QuoteItemModel item, int productId)
+    {
+        if (productId <= 0)
+        {
+            item.ProductId = 0;
+            return;
+        }
+
+        var product = products.FirstOrDefault(p => p.Id == productId);
+        if (product != null)
+        {
+            item.ProductId = productId;
+            item.Description = product.Name;
+            item.UnitPrice = product.Price;
+
+            if (product.TaxRateId.HasValue && product.TaxRate != null)
+            {
+                item.TaxRatePercent = product.TaxRate.Rate;
+            }
+        }
+    }
+
+    private void RemoveItem(QuoteItemModel item)
+    {
+        items.Remove(item);
+    }
+
+    private decimal CalculateItemTotal(QuoteItemModel item)
+    {
+        var netto = item.Quantity * item.UnitPrice;
+        var tax = netto * (item.TaxRatePercent / 100m);
+        return netto + tax;
+    }
+
+    private decimal CalculateItemTax(QuoteItemModel item)
+    {
+        return item.Quantity * item.UnitPrice * (item.TaxRatePercent / 100m);
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (selectedClientId == 0)
+        {
+            errorMessage = "Выберите клиента";
+            return;
+        }
+
+        if (!items.Any())
+        {
+            errorMessage = "Добавьте хотя бы одну позицию";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var quote = new Quote
+            {
+                Id = Id ?? 0,
+                ClientId = selectedClientId,
+                QuoteNumber = quoteNumber,
+                QuoteDate = quoteDate,
+                ValidUntil = validUntil ?? quoteDate.AddDays(30),
+                BusinessId = BusinessCtx.CurrentBusinessId,
+                Status = (QuoteStatus)quoteStatus,
+                SubTotal = subTotal,
+                TaxAmount = totalTax,
+                TotalAmount = totalAmount,
+                Items = items.Select(i => new QuoteItem
+                {
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TaxAmount = CalculateItemTax(i),
+                    TotalAmount = CalculateItemTotal(i)
+                }).ToList()
+            };
+
+            if (Id.HasValue)
+            {
+                await QuoteService.UpdateQuoteAsync(quote);
+            }
+            else
+            {
+                await QuoteService.CreateQuoteAsync(quote);
+            }
+
+            Navigation.NavigateTo("/ag/quotes");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private class QuoteItemModel
+    {
+        public int ProductId { get; set; } = 0;
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TaxRatePercent { get; set; }
+    }
+}

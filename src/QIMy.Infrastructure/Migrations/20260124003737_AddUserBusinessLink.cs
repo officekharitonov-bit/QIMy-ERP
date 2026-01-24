@@ -5,7 +5,7 @@
 namespace QIMy.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSQLServer : Migration
+    public partial class AddUserBusinessLink : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

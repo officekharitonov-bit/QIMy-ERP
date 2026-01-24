@@ -14,28 +14,43 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<CreateProductCommandHandler> _logger;
+    private readonly IDuplicateDetectionService _duplicateDetectionService;
 
-    public CreateProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CreateProductCommandHandler> _logger)
+    public CreateProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CreateProductCommandHandler> _logger,
+        IDuplicateDetectionService duplicateDetectionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         this._logger = _logger;
+        _duplicateDetectionService = duplicateDetectionService;
     }
 
     public async Task<Result<ProductDto>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating product: {Name}", request.Name);
 
-        // Check for duplicate SKU if provided
-        if (!string.IsNullOrEmpty(request.SKU))
-        {
-            var existingSku = await _unitOfWork.Products
-                .FindAsync(p => p.SKU == request.SKU && !p.IsDeleted, cancellationToken);
+        // Duplicate check by name/SKU
+        var duplicate = await _duplicateDetectionService.CheckProductDuplicateAsync(
+            request.Name,
+            request.SKU,
+            excludeId: null,
+            cancellationToken);
 
-            if (existingSku.Any())
+        if (duplicate != null)
+        {
+            if (!request.IgnoreDuplicateWarning)
             {
-                return Result<ProductDto>.Failure("Product with this SKU already exists.");
+                return Result<ProductDto>.Failure(
+                    $"Duplicate product: {duplicate.Message}. Set IgnoreDuplicateWarning=true and DoubleConfirmed=true to proceed.");
             }
+
+            if (request.IgnoreDuplicateWarning && !request.DoubleConfirmed)
+            {
+                return Result<ProductDto>.Failure(
+                    $"Second confirmation required: {duplicate.Message}. Set DoubleConfirmed=true.");
+            }
+
+            _logger.LogWarning("Product duplicate accepted after double confirmation: {Name}", request.Name);
         }
 
         // Validate Unit exists if provided

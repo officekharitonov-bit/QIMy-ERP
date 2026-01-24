@@ -11,6 +11,10 @@ public class ExpenseInvoice : BaseEntity
     public int SupplierId { get; set; }
     public int? BusinessId { get; set; }
     public int CurrencyId { get; set; }
+    /// <summary>
+    /// Ссылка на Personen Index для подтягивания данных поставщика
+    /// </summary>
+    public int? PersonenIndexEntryId { get; set; }
     
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
@@ -30,6 +34,7 @@ public class ExpenseInvoice : BaseEntity
     public Supplier Supplier { get; set; } = null!;
     public Business? Business { get; set; }
     public Currency Currency { get; set; } = null!;
+    public PersonenIndexEntry? PersonenIndexEntry { get; set; }
     public ICollection<ExpenseInvoiceItem> Items { get; set; } = new List<ExpenseInvoiceItem>();
 }
 

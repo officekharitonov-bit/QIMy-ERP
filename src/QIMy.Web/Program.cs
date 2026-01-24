@@ -10,6 +10,7 @@ using QIMy.Infrastructure.Data;
 using QIMy.Infrastructure.Repositories;
 using QIMy.Infrastructure.Services;
 using QIMy.Web.Components;
+using QIMy.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,12 +87,24 @@ builder.Services.AddAutoMapper(typeof(QIMy.Application.MappingProfiles.ClientPro
 // Add Repository Pattern + Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+// ============== DUPLICATE DETECTION SERVICE ==============
+builder.Services.AddScoped<IDuplicateDetectionService, DuplicateDetectionService>();
+
 // ============== OLD SERVICES (Keep for backward compatibility) ==============
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<ClientImportService>();
 builder.Services.AddScoped<ClientExportService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IViesService, ViesService>();
+builder.Services.AddScoped<PdfInvoiceGeneratorService>();
+builder.Services.AddScoped<NumberingService>();
+
+// ============== NEW DOCUMENT TYPE SERVICES ==============
+builder.Services.AddScoped<IQuoteService, QuoteService>();
+builder.Services.AddScoped<IReturnService, ReturnService>();
+builder.Services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
+builder.Services.AddScoped<BusinessContext>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -108,7 +121,11 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
+
+        // Ensure database is created (important for SQLite dev runs where migrations might be empty)
+        await context.Database.EnsureCreatedAsync();
+        // ВРЕМЕННО ОТКЛЮЧЕНО - seed data has issues with new schema
+        // await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
 
         // Ensure default admin user exists and is not locked out (dev convenience)
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
@@ -158,6 +175,100 @@ try
 catch (Exception ex)
 {
     Console.WriteLine($"Error seeding data: {ex.Message}");
+}
+
+// Seed default businesses and link admin user to them for multi-business selector
+try
+{
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+    var adminEmail = "office@kharitonov.at";
+    var admin = await userManager.FindByEmailAsync(adminEmail);
+    if (admin != null)
+    {
+        var businessNames = new[] { "AKHA GmbH", "BKHA GmbH", "Mag. Kharitonov Egor" };
+        var businesses = new List<Business>();
+
+        foreach (var name in businessNames)
+        {
+            var biz = await context.Businesses.FirstOrDefaultAsync(b => b.Name == name && !b.IsDeleted);
+            if (biz == null)
+            {
+                biz = new Business
+                {
+                    Name = name,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+                context.Businesses.Add(biz);
+            }
+            businesses.Add(biz);
+        }
+
+        await context.SaveChangesAsync();
+
+        var defaultName = "AKHA GmbH";
+        foreach (var biz in businesses)
+        {
+            var exists = await context.UserBusinesses
+                .AnyAsync(ub => ub.UserId == admin.Id && ub.BusinessId == biz.Id && !ub.IsDeleted);
+            if (!exists)
+            {
+                context.UserBusinesses.Add(new UserBusiness
+                {
+                    UserId = admin.Id,
+                    BusinessId = biz.Id,
+                    Role = "Owner",
+                    IsDefault = biz.Name == defaultName,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                });
+            }
+        }
+
+        // Set default BusinessId on admin user
+        var defaultBiz = businesses.FirstOrDefault(b => b.Name == defaultName);
+        if (defaultBiz != null)
+        {
+            admin.BusinessId = defaultBiz.Id;
+            context.Update(admin);
+        }
+
+        await context.SaveChangesAsync();
+
+        // Bind all existing data (Invoices, Quotes) to AKHA GmbH
+        var akha = businesses.FirstOrDefault(b => b.Name == "AKHA GmbH");
+        if (akha != null)
+        {
+            // Update Invoices without BusinessId
+            var invoicesWithoutBusiness = await context.Invoices.Where(i => i.BusinessId == null && !i.IsDeleted).ToListAsync();
+            foreach (var invoice in invoicesWithoutBusiness)
+            {
+                invoice.BusinessId = akha.Id;
+            }
+
+            // Update Quotes without BusinessId
+            var quotesWithoutBusiness = await context.Quotes.Where(q => q.BusinessId == null && !q.IsDeleted).ToListAsync();
+            foreach (var quote in quotesWithoutBusiness)
+            {
+                quote.BusinessId = akha.Id;
+            }
+
+            if (invoicesWithoutBusiness.Count > 0 || quotesWithoutBusiness.Count > 0)
+            {
+                await context.SaveChangesAsync();
+                Console.WriteLine($"Linked {invoicesWithoutBusiness.Count} invoices, {quotesWithoutBusiness.Count} quotes to AKHA GmbH");
+            }
+        }
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error seeding businesses: {ex.Message}");
 }
 
 // Configure the HTTP request pipeline.

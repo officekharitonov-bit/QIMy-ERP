@@ -159,6 +159,9 @@ namespace QIMy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("ClientAreaId")
                         .HasColumnType("INTEGER");
 
@@ -185,6 +188,8 @@ namespace QIMy.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
 
                     b.HasIndex("ClientAreaId");
 
@@ -334,6 +339,204 @@ namespace QIMy.Infrastructure.Migrations
                     b.ToTable("BankAccounts");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.BankReconciliation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BankStatementId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BankStatementLineId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DocumentDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankStatementId");
+
+                    b.HasIndex("BankStatementLineId");
+
+                    b.ToTable("BankReconciliations");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.BankStatement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BankAccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("ClosingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Quarter")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ReconciliedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StatementNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalCredits")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalDebits")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("BusinessId");
+
+                    b.ToTable("BankStatements");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.BankStatementLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdditionalInfo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BankStatementId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CounterpartyIban")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CounterpartyName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LineSequence")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LinkedDocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LinkedDocumentType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ReconciliationStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TransactionCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ValueDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankStatementId");
+
+                    b.ToTable("BankStatementLines");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Business", b =>
                 {
                     b.Property<int>("Id")
@@ -391,6 +594,225 @@ namespace QIMy.Infrastructure.Migrations
                     b.ToTable("Businesses");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.CashBookDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("ActualClosingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ApprovedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CashBoxId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DayDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ExpectedClosingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Quarter")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalExpense")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalIncome")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Variance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashBoxId");
+
+                    b.ToTable("CashBookDays");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.CashBox", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CashBoxNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CashBoxType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResponsiblePerson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.ToTable("CashBoxes");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.CashEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ApprovedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CashBoxId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CounterAccount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntryNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EntryType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LinkedDocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LinkedDocumentNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LinkedDocumentType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PersonenIndexEntryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quarter")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("CashBoxId");
+
+                    b.HasIndex("PersonenIndexEntryId");
+
+                    b.ToTable("CashEntries");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Client", b =>
                 {
                     b.Property<int>("Id")
@@ -399,6 +821,18 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.Property<string>("Address")
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("BIC")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("City")
                         .HasColumnType("TEXT");
@@ -426,11 +860,50 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("CreditLimit")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CurrencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CustomField01")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField02")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField03")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField04")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField05")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomField06")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DefaultPaymentMethodId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Fax")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IBAN")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PaymentTermsDays")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Phone")
@@ -449,11 +922,20 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<string>("VatNumber")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Website")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
 
                     b.HasIndex("ClientAreaId");
 
                     b.HasIndex("ClientTypeId");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.HasIndex("DefaultPaymentMethodId");
 
                     b.ToTable("Clients");
                 });
@@ -464,6 +946,9 @@ namespace QIMy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -485,6 +970,8 @@ namespace QIMy.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
 
                     b.ToTable("ClientAreas");
                 });
@@ -495,6 +982,9 @@ namespace QIMy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -517,13 +1007,60 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId");
+
                     b.ToTable("ClientTypes");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Country", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CountryNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsEuMember")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameGerman")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Countries");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Currency", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Code")
@@ -556,13 +1093,109 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId");
+
                     b.ToTable("Currencies");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.DeliveryNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeliveryAddress")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DeliveryDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeliveryNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("InvoiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("DeliveryNotes");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.DeliveryNoteItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DeliveryNoteId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("QuantityDelivered")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliveryNoteId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("DeliveryNoteItems");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Discount", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
@@ -587,7 +1220,58 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId");
+
                     b.ToTable("Discounts");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.EuCountryData", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CountryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CountryNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastVerified")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PurchaseThreshold")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SupplyThreshold")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId")
+                        .IsUnique();
+
+                    b.ToTable("EuCountryData");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ExpenseInvoice", b =>
@@ -638,6 +1322,9 @@ namespace QIMy.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("PersonenIndexEntryId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -664,6 +1351,8 @@ namespace QIMy.Infrastructure.Migrations
                     b.HasIndex("BusinessId");
 
                     b.HasIndex("CurrencyId");
+
+                    b.HasIndex("PersonenIndexEntryId");
 
                     b.HasIndex("SupplierId");
 
@@ -767,6 +1456,9 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<int?>("PaymentMethodId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("PersonenIndexEntryId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -802,6 +1494,8 @@ namespace QIMy.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("PaymentMethodId");
+
+                    b.HasIndex("PersonenIndexEntryId");
 
                     b.ToTable("Invoices");
                 });
@@ -897,6 +1591,187 @@ namespace QIMy.Infrastructure.Migrations
                     b.ToTable("InvoiceItems");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.JournalEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntryNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PersonenIndexEntryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quarter")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SourceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SourceReference")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SourceType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalCredit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalDebit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("PersonenIndexEntryId");
+
+                    b.ToTable("JournalEntries");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.JournalEntryLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AccountCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDebit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("JournalEntryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LineDescription")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LineSequence")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PersonenIndexEntryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JournalEntryId");
+
+                    b.HasIndex("PersonenIndexEntryId");
+
+                    b.ToTable("JournalEntryLines");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.NumberingConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ExampleNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Format")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("NextNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("NumberLength")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Prefix")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ResetYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Separator")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.ToTable("NumberingConfigs");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -906,6 +1781,9 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -933,6 +1811,8 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId");
+
                     b.HasIndex("InvoiceId");
 
                     b.HasIndex("PaymentMethodId");
@@ -944,6 +1824,9 @@ namespace QIMy.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
@@ -964,13 +1847,126 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId");
+
                     b.ToTable("PaymentMethods");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.PersonenIndexEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BranchNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("City")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactPerson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ContractorType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CountryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("CountryNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsInternalDivision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("KtoNr")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SuggestedExpenseAccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SuggestedIncomeAccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TAG")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UIDNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("SuggestedExpenseAccountId");
+
+                    b.HasIndex("SuggestedIncomeAccountId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("PersonenIndexEntries");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdditionalName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Brand")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BusinessId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
@@ -990,6 +1986,12 @@ namespace QIMy.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PartNumber")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
@@ -1001,22 +2003,257 @@ namespace QIMy.Infrastructure.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("TareUnit")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("TaxRateId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("UnitId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal?>("UnitsInTare")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
 
                     b.HasIndex("TaxRateId");
 
                     b.HasIndex("UnitId");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Quote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("QuoteDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("QuoteNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Terms")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ValidUntil")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.ToTable("Quotes");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.QuoteItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("QuoteId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TaxId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("QuoteId");
+
+                    b.HasIndex("TaxId");
+
+                    b.ToTable("QuoteItems");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Return", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("OriginalInvoiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ReturnDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.HasIndex("OriginalInvoiceId");
+
+                    b.ToTable("Returns");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.ReturnItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ReturnId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TaxId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ReturnId");
+
+                    b.HasIndex("TaxId");
+
+                    b.ToTable("ReturnItems");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Supplier", b =>
@@ -1030,6 +2267,9 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.Property<string>("BankAccount")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("City")
                         .HasColumnType("TEXT");
@@ -1069,6 +2309,8 @@ namespace QIMy.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
 
                     b.ToTable("Suppliers");
                 });
@@ -1117,7 +2359,27 @@ namespace QIMy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CountryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CountryName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EffectiveUntil")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDefault")
@@ -1130,14 +2392,28 @@ namespace QIMy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Rate")
                         .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RateType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("CountryId");
 
                     b.ToTable("TaxRates");
                 });
@@ -1148,8 +2424,14 @@ namespace QIMy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
@@ -1167,7 +2449,103 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BusinessId");
+
                     b.ToTable("Units");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.UserBusiness", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserBusinesses");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.VatRateChangeLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ChangeDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChangedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CountryName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsNotified")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("NewRate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("NotifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("OldRate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RateType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VatRateChangeLogs");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1223,6 +2601,10 @@ namespace QIMy.Infrastructure.Migrations
 
             modelBuilder.Entity("QIMy.Core.Entities.Account", b =>
                 {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
                     b.HasOne("QIMy.Core.Entities.ClientArea", "ClientArea")
                         .WithMany("Accounts")
                         .HasForeignKey("ClientAreaId");
@@ -1231,6 +2613,8 @@ namespace QIMy.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("DefaultTaxRateId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Business");
 
                     b.Navigation("ClientArea");
 
@@ -1264,8 +2648,106 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("DefaultCurrency");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.BankReconciliation", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.BankStatement", "BankStatement")
+                        .WithMany("Reconciliations")
+                        .HasForeignKey("BankStatementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.BankStatementLine", "BankStatementLine")
+                        .WithMany()
+                        .HasForeignKey("BankStatementLineId");
+
+                    b.Navigation("BankStatement");
+
+                    b.Navigation("BankStatementLine");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.BankStatement", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.BankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BankAccount");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.BankStatementLine", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.BankStatement", "BankStatement")
+                        .WithMany("Lines")
+                        .HasForeignKey("BankStatementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BankStatement");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.CashBookDay", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.CashBox", "CashBox")
+                        .WithMany("DailyBooks")
+                        .HasForeignKey("CashBoxId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashBox");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.CashBox", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.CashEntry", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.CashBox", "CashBox")
+                        .WithMany("Entries")
+                        .HasForeignKey("CashBoxId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.PersonenIndexEntry", "PersonenIndexEntry")
+                        .WithMany()
+                        .HasForeignKey("PersonenIndexEntryId");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("CashBox");
+
+                    b.Navigation("PersonenIndexEntry");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Client", b =>
                 {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
                     b.HasOne("QIMy.Core.Entities.ClientArea", "ClientArea")
                         .WithMany("Clients")
                         .HasForeignKey("ClientAreaId");
@@ -1274,9 +2756,110 @@ namespace QIMy.Infrastructure.Migrations
                         .WithMany("Clients")
                         .HasForeignKey("ClientTypeId");
 
+                    b.HasOne("QIMy.Core.Entities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId");
+
+                    b.HasOne("QIMy.Core.Entities.PaymentMethod", "DefaultPaymentMethod")
+                        .WithMany()
+                        .HasForeignKey("DefaultPaymentMethodId");
+
+                    b.Navigation("Business");
+
                     b.Navigation("ClientArea");
 
                     b.Navigation("ClientType");
+
+                    b.Navigation("Currency");
+
+                    b.Navigation("DefaultPaymentMethod");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.ClientArea", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.ClientType", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Currency", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.DeliveryNote", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.HasOne("QIMy.Core.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.DeliveryNoteItem", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.DeliveryNote", "DeliveryNote")
+                        .WithMany("Items")
+                        .HasForeignKey("DeliveryNoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId");
+
+                    b.Navigation("DeliveryNote");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Discount", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.EuCountryData", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Country", "Country")
+                        .WithOne("EuData")
+                        .HasForeignKey("QIMy.Core.Entities.EuCountryData", "CountryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Country");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ExpenseInvoice", b =>
@@ -1291,6 +2874,10 @@ namespace QIMy.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("QIMy.Core.Entities.PersonenIndexEntry", "PersonenIndexEntry")
+                        .WithMany("ExpenseInvoices")
+                        .HasForeignKey("PersonenIndexEntryId");
+
                     b.HasOne("QIMy.Core.Entities.Supplier", "Supplier")
                         .WithMany("ExpenseInvoices")
                         .HasForeignKey("SupplierId")
@@ -1300,6 +2887,8 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("Business");
 
                     b.Navigation("Currency");
+
+                    b.Navigation("PersonenIndexEntry");
 
                     b.Navigation("Supplier");
                 });
@@ -1341,6 +2930,10 @@ namespace QIMy.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("PaymentMethodId");
 
+                    b.HasOne("QIMy.Core.Entities.PersonenIndexEntry", "PersonenIndexEntry")
+                        .WithMany("Invoices")
+                        .HasForeignKey("PersonenIndexEntryId");
+
                     b.Navigation("BankAccount");
 
                     b.Navigation("Business");
@@ -1350,6 +2943,8 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("Currency");
 
                     b.Navigation("PaymentMethod");
+
+                    b.Navigation("PersonenIndexEntry");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.InvoiceDiscount", b =>
@@ -1401,8 +2996,55 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("Tax");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.JournalEntry", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.PersonenIndexEntry", "PersonenIndexEntry")
+                        .WithMany()
+                        .HasForeignKey("PersonenIndexEntryId");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("PersonenIndexEntry");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.JournalEntryLine", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.JournalEntry", "JournalEntry")
+                        .WithMany("Lines")
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.PersonenIndexEntry", "PersonenIndexEntry")
+                        .WithMany()
+                        .HasForeignKey("PersonenIndexEntryId");
+
+                    b.Navigation("JournalEntry");
+
+                    b.Navigation("PersonenIndexEntry");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.NumberingConfig", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Payment", b =>
                 {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
                     b.HasOne("QIMy.Core.Entities.Invoice", "Invoice")
                         .WithMany("Payments")
                         .HasForeignKey("InvoiceId")
@@ -1413,13 +3055,67 @@ namespace QIMy.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("PaymentMethodId");
 
+                    b.Navigation("Business");
+
                     b.Navigation("Invoice");
 
                     b.Navigation("PaymentMethod");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.PaymentMethod", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.PersonenIndexEntry", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.HasOne("QIMy.Core.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId");
+
+                    b.HasOne("QIMy.Core.Entities.Country", "Country")
+                        .WithMany()
+                        .HasForeignKey("CountryId");
+
+                    b.HasOne("QIMy.Core.Entities.Account", "SuggestedExpenseAccount")
+                        .WithMany()
+                        .HasForeignKey("SuggestedExpenseAccountId");
+
+                    b.HasOne("QIMy.Core.Entities.Account", "SuggestedIncomeAccount")
+                        .WithMany()
+                        .HasForeignKey("SuggestedIncomeAccountId");
+
+                    b.HasOne("QIMy.Core.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("Country");
+
+                    b.Navigation("SuggestedExpenseAccount");
+
+                    b.Navigation("SuggestedIncomeAccount");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Product", b =>
                 {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
                     b.HasOne("QIMy.Core.Entities.TaxRate", "TaxRate")
                         .WithMany()
                         .HasForeignKey("TaxRateId");
@@ -1428,9 +3124,122 @@ namespace QIMy.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("UnitId");
 
+                    b.Navigation("Business");
+
                     b.Navigation("TaxRate");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Quote", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.HasOne("QIMy.Core.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("Currency");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.QuoteItem", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId");
+
+                    b.HasOne("QIMy.Core.Entities.Quote", "Quote")
+                        .WithMany("Items")
+                        .HasForeignKey("QuoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Tax", "Tax")
+                        .WithMany()
+                        .HasForeignKey("TaxId");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Quote");
+
+                    b.Navigation("Tax");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Return", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.HasOne("QIMy.Core.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Invoice", "OriginalInvoice")
+                        .WithMany()
+                        .HasForeignKey("OriginalInvoiceId");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("Currency");
+
+                    b.Navigation("OriginalInvoice");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.ReturnItem", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId");
+
+                    b.HasOne("QIMy.Core.Entities.Return", "Return")
+                        .WithMany("Items")
+                        .HasForeignKey("ReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.Tax", "Tax")
+                        .WithMany()
+                        .HasForeignKey("TaxId");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Return");
+
+                    b.Navigation("Tax");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Supplier", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Tax", b =>
@@ -1458,14 +3267,79 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("TaxRate");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.TaxRate", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.HasOne("QIMy.Core.Entities.Country", null)
+                        .WithMany("TaxRates")
+                        .HasForeignKey("CountryId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Unit", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.UserBusiness", b =>
+                {
+                    b.HasOne("QIMy.Core.Entities.Business", "Business")
+                        .WithMany("Users")
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QIMy.Core.Entities.AppUser", "User")
+                        .WithMany("Businesses")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.Account", b =>
                 {
                     b.Navigation("Taxes");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.AppUser", b =>
+                {
+                    b.Navigation("Businesses");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.BankAccount", b =>
                 {
                     b.Navigation("Invoices");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.BankStatement", b =>
+                {
+                    b.Navigation("Lines");
+
+                    b.Navigation("Reconciliations");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Business", b =>
+                {
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.CashBox", b =>
+                {
+                    b.Navigation("DailyBooks");
+
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Client", b =>
@@ -1485,6 +3359,18 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("Clients");
                 });
 
+            modelBuilder.Entity("QIMy.Core.Entities.Country", b =>
+                {
+                    b.Navigation("EuData");
+
+                    b.Navigation("TaxRates");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.DeliveryNote", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("QIMy.Core.Entities.ExpenseInvoice", b =>
                 {
                     b.Navigation("Items");
@@ -1497,6 +3383,28 @@ namespace QIMy.Infrastructure.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.JournalEntry", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.PersonenIndexEntry", b =>
+                {
+                    b.Navigation("ExpenseInvoices");
+
+                    b.Navigation("Invoices");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Quote", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("QIMy.Core.Entities.Return", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Supplier", b =>

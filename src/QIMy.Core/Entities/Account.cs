@@ -6,6 +6,7 @@ namespace QIMy.Core.Entities;
 /// </summary>
 public class Account : BaseEntity
 {
+    public int? BusinessId { get; set; }
     public string AccountNumber { get; set; } = string.Empty; // e.g., "4000", "4062"
     public string Name { get; set; } = string.Empty;
     public string AccountCode { get; set; } = string.Empty; // Tax code for accounting
@@ -15,6 +16,7 @@ public class Account : BaseEntity
     public string? Comment { get; set; } // Custom invoice comment
 
     // Navigation properties
+    public Business? Business { get; set; }
     public ClientArea? ClientArea { get; set; }
     public TaxRate? DefaultTaxRate { get; set; }
     public ICollection<Tax> Taxes { get; set; } = new List<Tax>();
