@@ -98,8 +98,8 @@ public class ReturnService : IReturnService
             .Include(r => r.Currency)
             .Where(r => !r.IsDeleted &&
                 (r.ReturnNumber.Contains(searchTerm) ||
-                 r.Client.CompanyName.Contains(searchTerm) ||
-                 r.Client.Email.Contains(searchTerm)))
+                 (r.Client != null && r.Client.CompanyName != null && r.Client.CompanyName.Contains(searchTerm)) ||
+                 (r.Client != null && r.Client.Email != null && r.Client.Email.Contains(searchTerm))))
             .OrderByDescending(r => r.ReturnDate)
             .ToListAsync();
     }

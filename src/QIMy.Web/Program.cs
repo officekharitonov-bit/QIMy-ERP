@@ -122,8 +122,8 @@ try
     {
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        // Ensure database is created (important for SQLite dev runs where migrations might be empty)
-        await context.Database.EnsureCreatedAsync();
+        // Apply migrations properly (instead of EnsureCreatedAsync which bypasses migrations)
+        await context.Database.MigrateAsync();
         // ВРЕМЕННО ОТКЛЮЧЕНО - seed data has issues with new schema
         // await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
 

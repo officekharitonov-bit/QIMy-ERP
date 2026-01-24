@@ -96,8 +96,8 @@ public class QuoteService : IQuoteService
             .Include(q => q.Currency)
             .Where(q => !q.IsDeleted &&
                 (q.QuoteNumber.Contains(searchTerm) ||
-                 q.Client.CompanyName.Contains(searchTerm) ||
-                 q.Client.Email.Contains(searchTerm)))
+                 (q.Client != null && q.Client.CompanyName != null && q.Client.CompanyName.Contains(searchTerm)) ||
+                 (q.Client != null && q.Client.Email != null && q.Client.Email.Contains(searchTerm))))
             .OrderByDescending(q => q.QuoteDate)
             .ToListAsync();
     }

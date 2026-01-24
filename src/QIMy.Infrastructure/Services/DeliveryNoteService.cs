@@ -88,8 +88,8 @@ public class DeliveryNoteService : IDeliveryNoteService
             .Include(d => d.Client)
             .Where(d => !d.IsDeleted &&
                 (d.DeliveryNumber.Contains(searchTerm) ||
-                 d.Client.CompanyName.Contains(searchTerm) ||
-                 d.Client.Email.Contains(searchTerm)))
+                 (d.Client != null && d.Client.CompanyName != null && d.Client.CompanyName.Contains(searchTerm)) ||
+                 (d.Client != null && d.Client.Email != null && d.Client.Email.Contains(searchTerm))))
             .OrderByDescending(d => d.DeliveryDate)
             .ToListAsync();
     }

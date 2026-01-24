@@ -1,0 +1,180 @@
+@page "/er/suppliers"
+@using QIMy.Application.Suppliers.DTOs
+@using QIMy.Application.Suppliers.Commands.DeleteSupplier
+@using QIMy.Application.Suppliers.Queries.GetSuppliers
+@using MediatR
+@using QIMy.Web.Services
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject BusinessContext BusinessCtx
+@rendermode InteractiveServer
+
+<PageTitle>Поставщики - ER Module</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>
+                <i class="bi bi-truck"></i> Поставщики
+                <span class="badge bg-secondary">@suppliers.Count</span>
+            </h3>
+        </div>
+        <div class="col-auto">
+            <a href="/er/suppliers/create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Новый поставщик
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (!suppliers.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Поставщики не найдены. Создайте первого поставщика!
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Название</th>
+                        <th>Контакт</th>
+                        <th>VAT</th>
+                        <th>Город</th>
+                        <th>Страна</th>
+                        <th>Email</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var supplier in suppliers)
+                    {
+                        <tr>
+                            <td><code>@supplier.Id</code></td>
+                            <td>
+                                <strong>@supplier.CompanyName</strong>
+                                @if (!string.IsNullOrWhiteSpace(supplier.ContactPerson))
+                                {
+                                    <br />
+                                    <small class="text-muted">@supplier.ContactPerson</small>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(supplier.Phone))
+                                {
+                                    <a href="tel:@supplier.Phone">@supplier.Phone</a>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(supplier.VatNumber))
+                                {
+                                    <code>@supplier.VatNumber</code>
+                                }
+                            </td>
+                            <td>@supplier.City</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(supplier.Country))
+                                {
+                                    <span class="badge bg-secondary">@supplier.Country</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(supplier.Email))
+                                {
+                                    <a href="mailto:@supplier.Email">@supplier.Email</a>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/er/suppliers/edit/@supplier.Id" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger" @onclick="async () => await DeleteSupplier(supplier)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SupplierDto> suppliers = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await BusinessCtx.InitializeAsync();
+        BusinessCtx.Changed += async () =>
+        {
+            await LoadSuppliers();
+            StateHasChanged();
+        };
+        await LoadSuppliers();
+    }
+
+    private async Task LoadSuppliers()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var query = new GetSuppliersQuery();
+            var result = await Mediator.Send(query);
+
+            // Фильтрация по текущему бизнесу
+            var bizId = BusinessCtx.CurrentBusinessId;
+            suppliers = bizId.HasValue 
+                ? result.Where(s => s.BusinessId == bizId.Value).ToList()
+                : result.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка загрузки: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteSupplier(SupplierDto supplier)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Удалить поставщика '{supplier.CompanyName}'?"))
+        {
+            var command = new DeleteSupplierCommand { Id = supplier.Id };
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                await LoadSuppliers();
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка удаления: {result.Error}");
+            }
+        }
+    }
+}
