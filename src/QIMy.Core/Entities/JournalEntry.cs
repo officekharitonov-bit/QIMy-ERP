@@ -69,12 +69,12 @@ public class JournalEntry : BaseEntity
     /// <summary>
     /// Дата создания проводки в системе
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public new DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Дата последнего обновления
     /// </summary>
-    public DateTime? UpdatedAt { get; set; }
+    public new DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     /// ID пользователя, создавшего проводку

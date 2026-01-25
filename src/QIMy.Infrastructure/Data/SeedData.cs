@@ -305,5 +305,76 @@ public static class SeedData
             await context.PaymentMethods.AddRangeAsync(paymentMethods);
             await context.SaveChangesAsync();
         }
+
+        // Seed Clients (Kunden)
+        await SeedClientsAsync(context, businessId);
+    }
+
+    /// <summary>
+    /// Import clients from CSV or create basic test clients
+    /// </summary>
+    private static async Task SeedClientsAsync(ApplicationDbContext context, int businessId)
+    {
+        if (await context.Clients.AnyAsync(c => !c.IsDeleted))
+            return;
+
+        var b2bType = await context.ClientTypes.FirstOrDefaultAsync(ct => ct.Name == "B2B");
+        var b2cType = await context.ClientTypes.FirstOrDefaultAsync(ct => ct.Name == "B2C");
+        var domesticArea = await context.ClientAreas.FirstOrDefaultAsync(ca => ca.Code == "1");
+
+        var clients = new List<Client>
+        {
+            // From Invoice examples in database
+            new Client
+            {
+                CompanyName = "ANDREI GIGI",
+                ContactPerson = "Andrei Gigi",
+                Country = "Austria",
+                BusinessId = businessId,
+                ClientTypeId = b2bType?.Id,
+                ClientAreaId = domesticArea?.Id,
+                VatNumber = "ATU12345678",
+                PaymentTermsDays = 30
+            },
+            new Client
+            {
+                CompanyName = "ALEMIRA GROUP, s.r.o.",
+                ContactPerson = "Aleksandr Alekseev",
+                Country = "Slovakia",
+                City = "Bratislava",
+                BusinessId = businessId,
+                ClientTypeId = b2bType?.Id,
+                ClientAreaId = domesticArea?.Id,
+                VatNumber = "SK2121212121",
+                PaymentTermsDays = 45
+            },
+            new Client
+            {
+                CompanyName = "ALERO Handels GmbH",
+                ContactPerson = "Contact Person",
+                Country = "Austria",
+                City = "Vienna",
+                BusinessId = businessId,
+                ClientTypeId = b2bType?.Id,
+                ClientAreaId = domesticArea?.Id,
+                VatNumber = "ATU98765432",
+                PaymentTermsDays = 30
+            },
+            new Client
+            {
+                CompanyName = "Test Client B2C",
+                ContactPerson = "Test Person",
+                Country = "Austria",
+                City = "Vienna",
+                Email = "test@example.at",
+                BusinessId = businessId,
+                ClientTypeId = b2cType?.Id,
+                ClientAreaId = domesticArea?.Id,
+                PaymentTermsDays = 7
+            }
+        };
+
+        await context.Clients.AddRangeAsync(clients);
+        await context.SaveChangesAsync();
     }
 }

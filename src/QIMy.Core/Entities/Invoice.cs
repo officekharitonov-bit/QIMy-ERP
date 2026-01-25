@@ -27,6 +27,47 @@ public class Invoice : BaseEntity
     public string? Notes { get; set; }
     public string? Terms { get; set;}
 
+    // Austrian invoice type (Rechnungsmerkmale)
+    public InvoiceType InvoiceType { get; set; } = InvoiceType.Domestic;
+    
+    // Tax-specific fields for different invoice types
+    /// <summary>
+    /// For Reverse Charge invoices - indicates VAT liability is with customer
+    /// </summary>
+    public bool IsReverseCharge { get; set; } = false;
+    
+    /// <summary>
+    /// For Kleinunternehmer (small business) - no VAT charged
+    /// </summary>
+    public bool IsSmallBusinessExemption { get; set; } = false;
+    
+    /// <summary>
+    /// For Exportrechnung - tax-free export
+    /// </summary>
+    public bool IsTaxFreeExport { get; set; } = false;
+    
+    /// <summary>
+    /// For Innergemeinschaftliche Lieferung (intra-EU supply)
+    /// </summary>
+    public bool IsIntraEUSale { get; set; } = false;
+
+    // BMD NTCS FIBU posting parameters
+    /// <summary>
+    /// Austrian tax code (Steuercode 1-99) for FIBU posting
+    /// </summary>
+    public int? Steuercode { get; set; }
+    
+    /// <summary>
+    /// Revenue account number (Erlöskonto) for FIBU posting
+    /// Example: 4000 (standard), 4062 (Kleinunternehmer)
+    /// </summary>
+    public string? Konto { get; set; }
+    
+    /// <summary>
+    /// Tax percentage (Prozentsatz) - e.g., 20.0 for 20% VAT
+    /// </summary>
+    public decimal? Proz { get; set; }
+
     // Navigation properties
     public Client Client { get; set; } = null!;
     public Business? Business { get; set; }
@@ -47,4 +88,28 @@ public enum InvoiceStatus
     PartiallyPaid,
     Overdue,
     Cancelled
+}
+
+/// <summary>
+/// Austrian invoice types based on Rechnungsmerkmale requirements
+/// </summary>
+public enum InvoiceType
+{
+    /// <summary>Inland - domestic supply within Austria with standard 20% VAT</summary>
+    Domestic = 0,
+    
+    /// <summary>Exportrechnung - tax-free export, 0% VAT</summary>
+    Export = 1,
+    
+    /// <summary>Innergemeinschaftliche Lieferung - intra-EU supply, 0% VAT in AT, customer reports VAT</summary>
+    IntraEUSale = 2,
+    
+    /// <summary>Reverse Charge - VAT liability on customer, 0% VAT in invoice</summary>
+    ReverseCharge = 3,
+    
+    /// <summary>Kleinunternehmer - small business exemption, no VAT</summary>
+    SmallBusinessExemption = 4,
+    
+    /// <summary>Dreiecksgeschäfte - triangular transactions</summary>
+    TriangularTransaction = 5
 }

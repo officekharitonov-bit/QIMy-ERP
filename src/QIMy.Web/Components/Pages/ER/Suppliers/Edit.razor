@@ -36,7 +36,7 @@
             else
             {
                 <EditForm Model="@command" OnValidSubmit="HandleSubmit">
-                    <FluentValidation.FluentValidator />
+                    <DataAnnotationsValidator />
                     
                     <div class="card">
                         <div class="card-body">
@@ -143,7 +143,7 @@
 
         try
         {
-            var query = new GetSupplierByIdQuery { Id = Id };
+            var query = new GetSupplierByIdQuery(Id);
             var result = await Mediator.Send(query);
 
             if (result.IsSuccess && result.Value != null)

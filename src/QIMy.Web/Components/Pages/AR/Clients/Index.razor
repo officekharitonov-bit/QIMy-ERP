@@ -39,9 +39,17 @@
                 </div>
             }
             <div class="btn-group me-2">
-                <a href="/AR/Clients/Import" class="btn btn-success">
-                    <i class="bi bi-upload me-1"></i> Import CSV
-                </a>
+                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-upload me-1"></i> Import
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="/AR/Clients/SmartImport">
+                        <i class="bi bi-magic me-2"></i>Smart Import (новый!)
+                    </a></li>
+                    <li><a class="dropdown-item" href="/AR/Clients/Import">
+                        <i class="bi bi-file-text me-2"></i>Standard Import
+                    </a></li>
+                </ul>
                 <button type="button" class="btn btn-info" @onclick="ExportToCSV">
                     <i class="bi bi-download me-1"></i> Export CSV
                 </button>

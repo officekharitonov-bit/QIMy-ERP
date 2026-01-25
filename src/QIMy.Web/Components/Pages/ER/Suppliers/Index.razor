@@ -145,10 +145,13 @@
             var result = await Mediator.Send(query);
 
             // Фильтрация по текущему бизнесу
-            var bizId = BusinessCtx.CurrentBusinessId;
-            suppliers = bizId.HasValue 
-                ? result.Where(s => s.BusinessId == bizId.Value).ToList()
-                : result.ToList();
+            if (result.IsSuccess && result.Value != null)
+            {
+                var bizId = BusinessCtx.CurrentBusinessId;
+                suppliers = bizId.HasValue 
+                    ? result.Value.Where(s => s.BusinessId == bizId.Value).ToList()
+                    : result.Value;
+            }
         }
         catch (Exception ex)
         {
@@ -164,7 +167,7 @@
     {
         if (await JS.InvokeAsync<bool>("confirm", $"Удалить поставщика '{supplier.CompanyName}'?"))
         {
-            var command = new DeleteSupplierCommand { Id = supplier.Id };
+            var command = new DeleteSupplierCommand(supplier.Id);
             var result = await Mediator.Send(command);
 
             if (result.IsSuccess)

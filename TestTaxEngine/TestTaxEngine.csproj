@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\QIMy.Core\QIMy.Core.csproj" />
+    <ProjectReference Include="..\src\QIMy.Infrastructure\QIMy.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -98,6 +98,11 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IViesService, ViesService>();
 builder.Services.AddScoped<PdfInvoiceGeneratorService>();
+
+// ============== TAX LOGIC ENGINE ==============
+builder.Services.AddScoped<InvoiceTaxService>();
+builder.Services.AddScoped<FinalReportService>();
+builder.Services.AddScoped<AustrianInvoicePdfService>();
 builder.Services.AddScoped<NumberingService>();
 
 // ============== NEW DOCUMENT TYPE SERVICES ==============
@@ -124,8 +129,9 @@ try
 
         // Apply migrations properly (instead of EnsureCreatedAsync which bypasses migrations)
         await context.Database.MigrateAsync();
-        // ВРЕМЕННО ОТКЛЮЧЕНО - seed data has issues with new schema
-        // await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
+        
+        // Seed reference data (currencies, tax rates, etc.)
+        await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
 
         // Ensure default admin user exists and is not locked out (dev convenience)
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();

@@ -100,12 +100,12 @@ public class CashEntry : BaseEntity
     /// <summary>
     /// Дата создания записи в системе
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public new DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Дата последнего обновления
     /// </summary>
-    public DateTime? UpdatedAt { get; set; }
+    public new DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     /// ID пользователя, создавшего запись
@@ -267,17 +267,12 @@ public class CashBookDay : BaseEntity
     /// <summary>
     /// Дата создания записи в системе
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public new DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Дата последнего обновления
     /// </summary>
-    public DateTime? UpdatedAt { get; set; }
-
-    /// <summary>
-    /// Квартал и год для архивизации
-    /// </summary>
-    public int Quarter { get; set; }
+    public new DateTime? UpdatedAt { get; set; }
     public int Year { get; set; }
 }
 

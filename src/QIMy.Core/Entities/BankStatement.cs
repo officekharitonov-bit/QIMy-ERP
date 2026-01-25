@@ -218,7 +218,7 @@ public class BankReconciliation : BaseEntity
     /// <summary>
     /// Дата создания сверки
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public new DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Дата утверждения сверки

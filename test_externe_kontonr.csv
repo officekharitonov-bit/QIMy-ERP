@@ -1,0 +1,4 @@
+Externe KontoNr;Kto-Nr;Nachname;Straße;Plz;Ort;UID-Nummer;Land
+EXT-001;200001;Anatolii Skrypniak;Teststraße 1;1010;Wien;ATU12345678;Austria
+EXT-002;230008;Innogate Technology s. r. o.;Hlavní 5;11000;Praha;CZ111222333;Czech Republic
+SAP-12345;240009;Test GmbH;Hauptstr. 10;80331;München;DE987654321;Germany

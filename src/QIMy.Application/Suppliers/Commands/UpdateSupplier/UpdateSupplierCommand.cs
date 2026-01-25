@@ -6,20 +6,20 @@ namespace QIMy.Application.Suppliers.Commands.UpdateSupplier;
 
 public record UpdateSupplierCommand : IRequest<Result<SupplierDto>>
 {
-    public int Id { get; init; }
-    public int BusinessId { get; init; }
-    public string CompanyName { get; init; } = string.Empty;
-    public string? ContactPerson { get; init; }
-    public string? Email { get; init; }
-    public string? Phone { get; init; }
-    public string? Address { get; init; }
-    public string? City { get; init; }
-    public string? PostalCode { get; init; }
-    public string? Country { get; init; }
-    public string? TaxNumber { get; init; }
-    public string? VatNumber { get; init; }
-    public string? BankAccount { get; init; }
+    public int Id { get; set; }
+    public int BusinessId { get; set; }
+    public string CompanyName { get; set; } = string.Empty;
+    public string? ContactPerson { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Country { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? VatNumber { get; set; }
+    public string? BankAccount { get; set; }
     
-    public bool IgnoreDuplicateWarning { get; init; }
-    public bool DoubleConfirmed { get; init; }
+    public bool IgnoreDuplicateWarning { get; set; }
+    public bool DoubleConfirmed { get; set; }
 }

@@ -6,12 +6,14 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Globalization
 @using QIMy.Infrastructure.Services
+@using QIMy.Infrastructure.Services.TaxLogic
 @using Microsoft.JSInterop
 @inject IInvoiceService InvoiceService
 @inject IClientService ClientService
 @inject IProductService ProductService
 @inject NavigationManager Navigation
 @inject PdfInvoiceGeneratorService PdfGenerator
+@inject InvoiceTaxService TaxService
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
@@ -50,7 +52,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Клиент *</label>
-                            <select class="form-select" @bind="selectedClientId" disabled="@(Id.HasValue)">
+                            <select class="form-select" @bind="selectedClientId" @bind:after="OnClientChanged" disabled="@(Id.HasValue)">
                                 <option value="0">Выберите клиента...</option>
                                 @foreach (var client in clients)
                                 {
@@ -84,6 +86,50 @@
                         <div class="col-md-6">
                             <label class="form-label">Срок оплаты</label>
                             <input type="date" class="form-control" @bind="dueDate" />
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(taxCaseInfo))
+                    {
+                        <div class="alert alert-info d-flex align-items-center" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <div>
+                                <strong>Налоговый случай:</strong> @taxCaseInfo
+                                @if (!string.IsNullOrEmpty(taxWarning))
+                                {
+                                    <br/><span class="text-warning"><i class="bi bi-exclamation-triangle"></i> @taxWarning</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Steuercode <i class="bi bi-info-circle" title="Налоговый код BMD"></i></label>
+                            <input type="number" class="form-control" @bind="steuercode" min="1" max="99" />
+                            @if (steuercode.HasValue)
+                            {
+                                <small class="text-muted">@GetSteuercodeDescription(steuercode.Value)</small>
+                            }
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Konto <i class="bi bi-info-circle" title="Счёт доходов"></i></label>
+                            <input type="text" class="form-control" @bind="konto" placeholder="4000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Proz (%) <i class="bi bi-info-circle" title="Ставка НДС"></i></label>
+                            <input type="number" class="form-control" @bind="proz" min="0" max="100" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Тип счёта</label>
+                            <select class="form-select" @bind="invoiceType">
+                                <option value="@((int)InvoiceType.Domestic)">INLAND (AT)</option>
+                                <option value="@((int)InvoiceType.Export)">Export</option>
+                                <option value="@((int)InvoiceType.IntraEUSale)">IGL (EU)</option>
+                                <option value="@((int)InvoiceType.ReverseCharge)">Reverse Charge</option>
+                                <option value="@((int)InvoiceType.SmallBusinessExemption)">Kleinunternehmer</option>
+                                <option value="@((int)InvoiceType.TriangularTransaction)">Dreiecksgeschäft</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -240,9 +286,19 @@
     private bool isSaving = false;
     private string downloadUrl = string.Empty;
 
+    // Tax Logic Engine fields
+    private int? steuercode = null;
+    private string? konto = null;
+    private decimal? proz = null;
+    private int invoiceType = (int)InvoiceType.Domestic;
+    private string taxCaseInfo = string.Empty;
+    private string taxWarning = string.Empty;
+
     private decimal subTotal => items.Sum(i => i.Quantity * i.UnitPrice);
     private decimal totalTax => items.Sum(i => CalculateItemTax(i));
     private decimal totalAmount => subTotal + totalTax;
+
+    private Invoice? currentInvoice;
 
     protected override async Task OnInitializedAsync()
     {
@@ -251,16 +307,22 @@
 
         if (Id.HasValue)
         {
-            var invoice = await InvoiceService.GetInvoiceByIdAsync(Id.Value);
-            if (invoice != null)
+            currentInvoice = await InvoiceService.GetInvoiceByIdAsync(Id.Value);
+            if (currentInvoice != null)
             {
-                selectedClientId = invoice.ClientId;
-                invoiceNumber = invoice.InvoiceNumber;
-                invoiceDate = invoice.InvoiceDate;
-                dueDate = invoice.DueDate;
-                invoiceStatus = (int)invoice.Status;
+                selectedClientId = currentInvoice.ClientId;
+                invoiceNumber = currentInvoice.InvoiceNumber;
+                invoiceDate = currentInvoice.InvoiceDate;
+                dueDate = currentInvoice.DueDate;
+                invoiceStatus = (int)currentInvoice.Status;
 
-                items = invoice.Items.Select(i => new InvoiceItemModel
+                // Load tax fields
+                steuercode = currentInvoice.Steuercode;
+                konto = currentInvoice.Konto;
+                proz = currentInvoice.Proz;
+                invoiceType = (int)currentInvoice.InvoiceType;
+
+                items = currentInvoice.Items.Select(i => new InvoiceItemModel
                 {
                     Description = i.Description,
                     Quantity = i.Quantity,
@@ -315,6 +377,84 @@
         BuildCsvDownloadUrl();
     }
 
+    /// <summary>
+    /// Автоматическое определение налогового случая при выборе клиента
+    /// </summary>
+    private void OnClientChanged()
+    {
+        if (selectedClientId == 0)
+        {
+            taxCaseInfo = string.Empty;
+            taxWarning = string.Empty;
+            steuercode = null;
+            konto = null;
+            proz = null;
+            return;
+        }
+
+        var client = clients.FirstOrDefault(c => c.Id == selectedClientId);
+        if (client == null) return;
+
+        try
+        {
+            // Создаём временный invoice для определения налогового случая
+            var tempInvoice = new Invoice
+            {
+                SubTotal = subTotal == 0 ? 1000m : subTotal // Dummy amount для расчёта
+            };
+
+            // Применяем налоговую логику
+            TaxService.ApplyTaxLogic(
+                tempInvoice, 
+                client, 
+                sellerIsSmallBusiness: false, // TODO: получить из настроек компании
+                isGoodsSupply: true           // TODO: добавить чекбокс
+            );
+
+            // Обновляем поля (можно редактировать вручную!)
+            steuercode = tempInvoice.Steuercode;
+            konto = tempInvoice.Konto;
+            proz = tempInvoice.Proz;
+            invoiceType = (int)tempInvoice.InvoiceType;
+
+            // Формируем информационное сообщение
+            var taxCase = GetTaxCaseName(tempInvoice.InvoiceType);
+            taxCaseInfo = $"{taxCase} → StC {steuercode}, Konto {konto}, {proz}%";
+
+            // Проверяем валидацию
+            var (isValid, errors) = TaxService.ValidateInvoice(tempInvoice, client);
+            if (!isValid)
+            {
+                taxWarning = string.Join("; ", errors);
+            }
+            else
+            {
+                taxWarning = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            taxWarning = $"Ошибка определения налогового случая: {ex.Message}";
+        }
+    }
+
+    private string GetTaxCaseName(InvoiceType type) => type switch
+    {
+        InvoiceType.Domestic => "INLAND",
+        InvoiceType.Export => "Export",
+        InvoiceType.IntraEUSale => "IGL (Innergemeinschaftliche Lieferung)",
+        InvoiceType.ReverseCharge => "Reverse Charge",
+        InvoiceType.SmallBusinessExemption => "Kleinunternehmer",
+        InvoiceType.TriangularTransaction => "Dreiecksgeschäft",
+        _ => "Unknown"
+    };
+
+    private string GetSteuercodeDescription(int code)
+    {
+        var engine = new AustrianTaxLogicEngine();
+        return engine.GetSteuercodeDescription(code);
+    }
+
     private decimal CalculateItemTotal(InvoiceItemModel item)
     {
         var netto = item.Quantity * item.UnitPrice;
@@ -346,32 +486,69 @@
 
         try
         {
-            var invoice = new Invoice
+            if (Id.HasValue && currentInvoice != null)
             {
-                Id = Id ?? 0,
-                ClientId = selectedClientId,
-                InvoiceNumber = invoiceNumber,
-                InvoiceDate = invoiceDate,
-                DueDate = dueDate ?? invoiceDate.AddDays(30),
-                Status = (InvoiceStatus)invoiceStatus,
-                SubTotal = subTotal,
-                TotalAmount = totalAmount,
-                Items = items.Select(i => new InvoiceItem
-                {
-                    Description = i.Description,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
-                    TaxAmount = CalculateItemTax(i),
-                    TotalAmount = CalculateItemTotal(i)
-                }).ToList()
-            };
+                // Update existing invoice - modify the loaded instance
+                currentInvoice.ClientId = selectedClientId;
+                currentInvoice.InvoiceNumber = invoiceNumber;
+                currentInvoice.InvoiceDate = invoiceDate;
+                currentInvoice.DueDate = dueDate ?? invoiceDate.AddDays(30);
+                currentInvoice.Status = (InvoiceStatus)invoiceStatus;
+                currentInvoice.SubTotal = subTotal;
+                currentInvoice.TotalAmount = totalAmount;
 
-            if (Id.HasValue)
-            {
-                await InvoiceService.UpdateInvoiceAsync(invoice);
+                // Apply tax fields
+                currentInvoice.InvoiceType = (InvoiceType)invoiceType;
+                currentInvoice.Steuercode = steuercode;
+                currentInvoice.Konto = konto;
+                currentInvoice.Proz = proz;
+                
+                // Update existing items and clear old ones
+                currentInvoice.Items.Clear();
+                foreach (var itemModel in items)
+                {
+                    currentInvoice.Items.Add(new InvoiceItem
+                    {
+                        InvoiceId = currentInvoice.Id,
+                        Description = itemModel.Description,
+                        Quantity = itemModel.Quantity,
+                        UnitPrice = itemModel.UnitPrice,
+                        TaxAmount = CalculateItemTax(itemModel),
+                        TotalAmount = CalculateItemTotal(itemModel)
+                    });
+                }
+                
+                await InvoiceService.UpdateInvoiceAsync(currentInvoice);
             }
             else
             {
+                // Create new invoice
+                var invoice = new Invoice
+                {
+                    ClientId = selectedClientId,
+                    InvoiceNumber = invoiceNumber,
+                    InvoiceDate = invoiceDate,
+                    DueDate = dueDate ?? invoiceDate.AddDays(30),
+                    Status = (InvoiceStatus)invoiceStatus,
+                    SubTotal = subTotal,
+                    TotalAmount = totalAmount,
+                    
+                    // Apply tax fields
+                    InvoiceType = (InvoiceType)invoiceType,
+                    Steuercode = steuercode,
+                    Konto = konto,
+                    Proz = proz,
+                    
+                    Items = items.Select(i => new InvoiceItem
+                    {
+                        Description = i.Description,
+                        Quantity = i.Quantity,
+                        UnitPrice = i.UnitPrice,
+                        TaxAmount = CalculateItemTax(i),
+                        TotalAmount = CalculateItemTotal(i)
+                    }).ToList()
+                };
+                
                 await InvoiceService.CreateInvoiceAsync(invoice);
             }
 

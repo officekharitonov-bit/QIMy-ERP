@@ -1,0 +1,397 @@
+@using System.Text
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Column Mapping - Сопоставление колонок</h5>
+    </div>
+    <div class="card-body">
+        @if (CsvHeaders != null && CsvHeaders.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                <strong>Инструкция:</strong> Перетащите колонки CSV слева в нужные поля QIMy справа. 
+                Неиспользуемые колонки можно оставить в разделе "Игнорировать".
+            </div>
+
+            <div class="row">
+                <!-- Left: CSV Columns -->
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">📄 Колонки из CSV файла (@CsvHeaders.Count)</h6>
+                        </div>
+                        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                            @if (!CsvHeaders.Any())
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i> Не найдены колонки в CSV файле
+                                </div>
+                            }
+                            @foreach (var header in CsvHeaders)
+                            {
+                                var isMapped = ColumnMapping.ContainsValue(header);
+                                var displayHeader = string.IsNullOrWhiteSpace(header) ? "(пустая колонка)" : header;
+                                
+                                <div class="csv-column mb-2 @(isMapped ? "mapped" : "")" 
+                                     draggable="true"
+                                     @ondragstart="@(() => OnDragStart(header))"
+                                     @ondragend="OnDragEnd">
+                                    <div class="d-flex align-items-center justify-content-between p-2 border rounded @(isMapped ? "bg-success-subtle" : "bg-white")">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-grip-vertical me-2"></i>
+                                            <strong title="@displayHeader">
+                                                @if (displayHeader.Length > 30)
+                                                {
+                                                    @displayHeader.Substring(0, 30)<text>...</text>
+                                                }
+                                                else
+                                                {
+                                                    @displayHeader
+                                                }
+                                            </strong>
+                                        </div>
+                                        @if (isMapped)
+                                        {
+                                            var targetField = ColumnMapping.First(x => x.Value == header).Key;
+                                            <span class="badge bg-success">
+                                                → @GetFieldDisplayName(targetField)
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (SampleData.ContainsKey(header))
+                                    {
+                                        <small class="text-muted ms-4" title="@SampleData[header]">
+                                            Пример: @(SampleData[header].Length > 40 ? SampleData[header].Substring(0, 40) + "..." : SampleData[header])
+                                        </small>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle: Arrow -->
+                <div class="col-md-2 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-arrow-right" style="font-size: 3rem; color: #0d6efd;"></i>
+                </div>
+
+                <!-- Right: QIMy Fields -->
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">🎯 Поля QIMy</h6>
+                        </div>
+                        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                            @foreach (var field in TargetFields)
+                            {
+                                var isRequired = RequiredFields.Contains(field.Key);
+                                var mappedColumn = ColumnMapping.ContainsKey(field.Key) ? ColumnMapping[field.Key] : null;
+                                
+                                <div class="qimy-field mb-3 border rounded p-2 @(isRequired ? "border-danger" : "")"
+                                     @ondrop="@(() => OnDrop(field.Key))"
+                                     @ondragover="OnDragOver"
+                                     @ondragleave="OnDragLeave">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <strong>@field.Value</strong>
+                                            @if (isRequired)
+                                            {
+                                                <span class="badge bg-danger ms-1">обязательно</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(mappedColumn))
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => UnmapColumn(field.Key))">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrEmpty(mappedColumn))
+                                    {
+                                        <div class="mt-2 p-2 bg-success-subtle rounded">
+                                            <small>
+                                                <i class="bi bi-link-45deg"></i> 
+                                                <strong>@mappedColumn</strong>
+                                            </small>
+                                            @if (SampleData.ContainsKey(mappedColumn))
+                                            {
+                                                <br/>
+                                                <small class="text-muted">Пример: @SampleData[mappedColumn]</small>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2">
+                                            <select class="form-select form-select-sm" @onchange="@(e => OnDropdownSelect(field.Key, e.Value?.ToString()))">
+                                                <option value="">-- Выберите колонку CSV --</option>
+                                                @foreach (var header in CsvHeaders.Where(h => !ColumnMapping.ContainsValue(h) || ColumnMapping.GetValueOrDefault(field.Key) == h))
+                                                {
+                                                    <option value="@header">@header</option>
+                                                }
+                                            </select>
+                                            <small class="text-muted">Или перетащите колонку слева</small>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="alert alert-secondary">
+                        <strong>Статистика mapping:</strong>
+                        <ul class="mb-0">
+                            <li>Всего колонок CSV: <strong>@CsvHeaders.Count</strong></li>
+                            <li>Сопоставлено: <strong>@ColumnMapping.Count</strong></li>
+                            <li>Обязательных полей не заполнено: 
+                                <strong class="@(GetUnmappedRequiredCount() > 0 ? "text-danger" : "text-success")">
+                                    @GetUnmappedRequiredCount()
+                                </strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-success" @onclick="OnApplyMapping" disabled="@(GetUnmappedRequiredCount() > 0)">
+                    <i class="bi bi-check-circle"></i> Применить mapping
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="OnAutoMap">
+                    <i class="bi bi-magic"></i> Автоматическое сопоставление
+                </button>
+                <button class="btn btn-outline-warning" @onclick="OnResetMapping">
+                    <i class="bi bi-arrow-counterclockwise"></i> Сбросить
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> Загрузите CSV файл для начала mapping
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .csv-column {
+        cursor: move;
+        transition: all 0.2s;
+    }
+
+    .csv-column:hover {
+        transform: translateX(5px);
+    }
+
+    .csv-column.mapped {
+        opacity: 0.7;
+    }
+
+    .qimy-field {
+        min-height: 80px;
+        transition: all 0.2s;
+    }
+
+    .qimy-field.drag-over {
+        background-color: #e7f3ff !important;
+        border-color: #0d6efd !important;
+        border-width: 2px !important;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public List<string> CsvHeaders { get; set; } = new();
+
+    [Parameter]
+    public Dictionary<string, string> SampleData { get; set; } = new();
+
+    [Parameter]
+    public Dictionary<string, string> TargetFields { get; set; } = new();
+
+    [Parameter]
+    public List<string> RequiredFields { get; set; } = new();
+
+    [Parameter]
+    public Dictionary<string, string> ColumnMapping { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnMappingChanged { get; set; }
+
+    private string? draggedColumn;
+
+    private void OnDragStart(string columnName)
+    {
+        draggedColumn = columnName;
+    }
+
+    private void OnDragEnd()
+    {
+        draggedColumn = null;
+    }
+
+    private void OnDragOver(DragEventArgs e)
+    {
+        e.DataTransfer.DropEffect = "move";
+    }
+
+    private void OnDragLeave(DragEventArgs e)
+    {
+        // Remove highlight
+    }
+
+    private async Task OnDrop(string targetField)
+    {
+        if (!string.IsNullOrEmpty(draggedColumn))
+        {
+            // Remove previous mapping for this column
+            var existingMapping = ColumnMapping.FirstOrDefault(x => x.Value == draggedColumn);
+            if (existingMapping.Key != null)
+            {
+                ColumnMapping.Remove(existingMapping.Key);
+            }
+
+            // Add new mapping
+            ColumnMapping[targetField] = draggedColumn;
+            
+            await OnMappingChanged.InvokeAsync(ColumnMapping);
+            draggedColumn = null;
+        }
+    }
+
+    private async Task UnmapColumn(string targetField)
+    {
+        ColumnMapping.Remove(targetField);
+        await OnMappingChanged.InvokeAsync(ColumnMapping);
+    }
+
+    private async Task OnDropdownSelect(string targetField, string? csvColumn)
+    {
+        if (!string.IsNullOrEmpty(csvColumn))
+        {
+            ColumnMapping[targetField] = csvColumn;
+        }
+        else
+        {
+            ColumnMapping.Remove(targetField);
+        }
+        await OnMappingChanged.InvokeAsync(ColumnMapping);
+    }
+
+    private async Task OnAutoMap()
+    {
+        ColumnMapping.Clear();
+        var usedColumns = new HashSet<string>();
+
+        // Приоритет 1: Точные совпадения с алиасами
+        foreach (var targetField in TargetFields.Keys)
+        {
+            var alias = GetFieldAlias(targetField);
+            if (!string.IsNullOrEmpty(alias))
+            {
+                var exactAliasMatch = CsvHeaders.FirstOrDefault(h => 
+                    h.Equals(alias, StringComparison.OrdinalIgnoreCase) && !usedColumns.Contains(h)
+                );
+                if (exactAliasMatch != null)
+                {
+                    ColumnMapping[targetField] = exactAliasMatch;
+                    usedColumns.Add(exactAliasMatch);
+                }
+            }
+        }
+
+        // Приоритет 2: Точные совпадения с именем поля
+        foreach (var targetField in TargetFields.Keys)
+        {
+            if (ColumnMapping.ContainsKey(targetField)) continue;
+            
+            var exactMatch = CsvHeaders.FirstOrDefault(h => 
+                h.Equals(targetField, StringComparison.OrdinalIgnoreCase) && !usedColumns.Contains(h)
+            );
+            if (exactMatch != null)
+            {
+                ColumnMapping[targetField] = exactMatch;
+                usedColumns.Add(exactMatch);
+            }
+        }
+
+        // Приоритет 3: Частичные совпадения с алиасами
+        foreach (var targetField in TargetFields.Keys)
+        {
+            if (ColumnMapping.ContainsKey(targetField)) continue;
+            
+            var alias = GetFieldAlias(targetField);
+            if (!string.IsNullOrEmpty(alias))
+            {
+                var partialAliasMatch = CsvHeaders.FirstOrDefault(h => 
+                    (h.Contains(alias, StringComparison.OrdinalIgnoreCase) || 
+                     alias.Contains(h, StringComparison.OrdinalIgnoreCase)) && 
+                    !usedColumns.Contains(h)
+                );
+                if (partialAliasMatch != null)
+                {
+                    ColumnMapping[targetField] = partialAliasMatch;
+                    usedColumns.Add(partialAliasMatch);
+                }
+            }
+        }
+
+        await OnMappingChanged.InvokeAsync(ColumnMapping);
+    }
+
+    private async Task OnResetMapping()
+    {
+        ColumnMapping.Clear();
+        await OnMappingChanged.InvokeAsync(ColumnMapping);
+    }
+
+    private async Task OnApplyMapping()
+    {
+        if (GetUnmappedRequiredCount() == 0)
+        {
+            await OnMappingChanged.InvokeAsync(ColumnMapping);
+        }
+    }
+
+    private int GetUnmappedRequiredCount()
+    {
+        return RequiredFields.Count(f => !ColumnMapping.ContainsKey(f));
+    }
+
+    private string GetFieldDisplayName(string fieldKey)
+    {
+        return TargetFields.ContainsKey(fieldKey) ? TargetFields[fieldKey] : fieldKey;
+    }
+
+    private string? GetFieldAlias(string fieldKey)
+    {
+        // Common field aliases for auto-mapping
+        return fieldKey switch
+        {
+            "ClientCode" => "Kto-Nr",
+            "CompanyName" => "Nachname",
+            "ExternalAccountNumber" => "Externe KontoNr",
+            "VatNumber" => "UID-Nummer",
+            "Address" => "Straße",
+            "PostalCode" => "Plz",
+            "City" => "Ort",
+            "Country" => "Land",
+            "CountryNumber" => "Land-Nr",
+            "Currency" => "WAE",
+            "PaymentTerms" => "ZZiel",
+            "DiscountPercent" => "SktoProz1",
+            "DiscountDays" => "SktoTage1",
+            "Branch" => "Filiale",
+            "Description" => "Waren/Dienstleistungsbeschreibung",
+            _ => null
+        };
+    }
+}

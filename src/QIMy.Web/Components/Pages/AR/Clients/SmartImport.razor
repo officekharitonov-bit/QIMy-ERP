@@ -1,0 +1,626 @@
+@rendermode InteractiveServer
+@page "/AR/Clients/SmartImport"
+@using QIMy.Core.DTOs
+@using QIMy.Infrastructure.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using QIMy.Web.Components.Shared
+@inject ClientImportService ImportService
+@inject NavigationManager NavigationManager
+@inject ILogger<SmartImport> Logger
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-magic me-2"></i>Smart Import - Умный импорт клиентов</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item"><a href="/AR/Clients">Clients</a></li>
+                    <li class="breadcrumb-item active">Smart Import</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Step 1: File Upload -->
+    @if (currentStep == ImportStep.FileSelection)
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Шаг 1: Выбор файла</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            <strong>Умный импорт автоматически:</strong>
+                            <ul class="mb-0">
+                                <li>Определит формат вашего CSV файла (QIMy, BMD, или любой другой)</li>
+                                <li>Покажет предпросмотр данных</li>
+                                <li>Позволит вручную сопоставить колонки</li>
+                                <li>Сохранит настройки для повторного использования</li>
+                            </ul>
+                        </div>
+
+                        <InputFile OnChange="HandleFileSelection" class="form-control mb-3" accept=".csv" />
+
+                        @if (selectedFileName != null)
+                        {
+                            <div class="alert alert-success">
+                                <i class="bi bi-file-earmark-check me-2"></i>
+                                Выбран файл: <strong>@selectedFileName</strong>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                            </div>
+                        }
+
+                        <div class="card bg-light mt-3">
+                            <div class="card-body">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" @bind="hasHeaderRow" id="hasHeaderRow">
+                                    <label class="form-check-label" for="hasHeaderRow">
+                                        <strong>Первая строка содержит названия колонок</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mb-3">
+                                    Если отмечено, первая строка будет использована как названия колонок.
+                                    Если не отмечено, колонки будут называться "Колонка 1", "Колонка 2", и т.д.
+                                </small>
+
+                                <label for="encodingSelect" class="form-label"><strong>Кодировка файла:</strong></label>
+                                <select class="form-select" @bind="selectedEncoding" id="encodingSelect">
+                                    <option value="utf-8">UTF-8 (по умолчанию)</option>
+                                    <option value="utf-16">UTF-16 (Unicode)</option>
+                                    <option value="windows-1252">Windows-1252 (ANSI)</option>
+                                    <option value="iso-8859-1">ISO-8859-1 (Latin-1)</option>
+                                </select>
+                                <small class="text-muted">
+                                    Если видите _F_r_e_i_f_e_l_d_ - выберите UTF-16
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-primary btn-lg" @onclick="AnalyzeFile"
+                                disabled="@(selectedFile == null || isLoading)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-search me-2"></i>
+                                }
+                                Анализировать файл
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm bg-light">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Поддерживаемые форматы</h5>
+                        <ul class="small">
+                            <li><strong>QIMy:</strong> Внутренний формат QIMy</li>
+                            <li><strong>BMD NTCS:</strong> Экспорт из BMD</li>
+                            <li><strong>Excel CSV:</strong> Любой CSV из Excel</li>
+                            <li><strong>Пользовательский:</strong> Произвольный формат с ручным mapping</li>
+                        </ul>
+                        <hr />
+                        <p class="small text-muted mb-0">
+                            <i class="bi bi-shield-check me-1"></i>
+                            Кодировка: Windows-1252 (поддержка немецких и русских символов)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 2: Column Mapping -->
+    @if (currentStep == ImportStep.ColumnMapping)
+    {
+        <div class="row">
+            <div class="col-12">
+                @if (csvHeaders.Any())
+                {
+                    <div class="alert alert-secondary mb-3">
+                        <strong>📊 Анализ файла:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Файл:</strong> @selectedFileName</li>
+                            <li><strong>Колонок найдено:</strong> @csvHeaders.Count</li>
+                            <li><strong>Примеров данных:</strong> @sampleData.Count</li>
+                            <li><strong>Кодировка:</strong> Windows-1252 с авто-определением UTF-8</li>
+                        </ul>
+                        @if (csvHeaders.Count > 0)
+                        {
+                            <details class="mt-2">
+                                <summary class="cursor-pointer"><small>🔍 Показать все колонки CSV</small></summary>
+                                <div class="mt-2">
+                                    <code style="white-space: pre-wrap; word-break: break-all;">
+                                        @string.Join("; ", csvHeaders.Select((h, i) => $"[{i}] {h}"))
+                                    </code>
+                                </div>
+                            </details>
+                        }
+                    </div>
+                }
+
+                <CsvColumnMapper 
+                    CsvHeaders="@csvHeaders"
+                    SampleData="@sampleData"
+                    TargetFields="@targetFields"
+                    RequiredFields="@requiredFields"
+                    ColumnMapping="@columnMapping"
+                    OnMappingChanged="OnMappingChanged" />
+                
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-lg" @onclick="PreviewWithMapping"
+                                disabled="@(GetUnmappedRequiredCount() > 0 || isLoading)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-eye me-2"></i>
+                                }
+                                Предпросмотр с этим mapping
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="BackToFileSelection">
+                                <i class="bi bi-arrow-left me-2"></i>Назад
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 3: Preview -->
+    @if (currentStep == ImportStep.Preview && previewData != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Шаг 3: Предпросмотр импорта</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Всего строк:</strong> @previewData.Count
+                                </div>
+                                <div class="col-md-3">
+                                    <strong class="text-success">Валидных:</strong> @previewData.Count(d => d.IsValid)
+                                </div>
+                                <div class="col-md-3">
+                                    <strong class="text-danger">С ошибками:</strong> @previewData.Count(d => !d.IsValid)
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="skipErrors" id="skipErrors">
+                                        <label class="form-check-label" for="skipErrors">
+                                            Пропустить ошибки
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Строка</th>
+                                        <th>Статус</th>
+                                        <th>Код клиента</th>
+                                        <th>Название</th>
+                                        <th>Страна</th>
+                                        <th>Город</th>
+                                        <th>UID</th>
+                                        <th>Ошибки</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in previewData.Take(100))
+                                    {
+                                        <tr class="@(item.IsValid ? "" : "table-danger")">
+                                            <td>@item.RowNumber</td>
+                                            <td>
+                                                @if (item.IsValid)
+                                                {
+                                                    <i class="bi bi-check-circle text-success"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-x-circle text-danger"></i>
+                                                }
+                                            </td>
+                                            <td>@item.ClientCode</td>
+                                            <td>@item.CompanyName</td>
+                                            <td>@item.Country</td>
+                                            <td>@item.City</td>
+                                            <td>@item.VatNumber</td>
+                                            <td>
+                                                @if (!item.IsValid)
+                                                {
+                                                    <small class="text-danger">
+                                                        @string.Join("; ", item.ValidationErrors)
+                                                    </small>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (previewData.Count > 100)
+                        {
+                            <div class="alert alert-warning mt-2">
+                                Показаны первые 100 строк из @previewData.Count.
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-success btn-lg" @onclick="ExecuteImport"
+                                disabled="@(previewData.All(d => !d.IsValid) || isLoading)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-database-fill-add me-2"></i>
+                                }
+                                Выполнить импорт
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="BackToMapping">
+                                <i class="bi bi-arrow-left me-2"></i>Изменить mapping
+                            </button>
+                            <button class="btn btn-outline-danger" @onclick="CancelImport">
+                                <i class="bi bi-x-circle me-2"></i>Отменить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 4: Results -->
+    @if (currentStep == ImportStep.Complete && importResult != null)
+    {
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Импорт завершен</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card text-center bg-success text-white">
+                            <div class="card-body">
+                                <h2>@importResult.SuccessCount</h2>
+                                <p class="mb-0">Импортировано</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center bg-danger text-white">
+                            <div class="card-body">
+                                <h2>@importResult.ErrorCount</h2>
+                                <p class="mb-0">Ошибок</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center bg-warning text-dark">
+                            <div class="card-body">
+                                <h2>@importResult.SkippedCount</h2>
+                                <p class="mb-0">Пропущено</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (importResult.Errors.Any())
+                {
+                    <div class="mt-4">
+                        <h6>Ошибки импорта:</h6>
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Строка</th>
+                                        <th>Код</th>
+                                        <th>Название</th>
+                                        <th>Ошибка</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var error in importResult.Errors)
+                                    {
+                                        <tr>
+                                            <td>@error.RowNumber</td>
+                                            <td>@error.ClientCode</td>
+                                            <td>@error.CompanyName</td>
+                                            <td>
+                                                <small class="text-danger">
+                                                    @error.ErrorMessage
+                                                    @if (error.Details?.Any() == true)
+                                                    {
+                                                        <br />@string.Join(", ", error.Details)
+                                                    }
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <div class="mt-4 d-flex gap-2">
+                    <a href="/AR/Clients" class="btn btn-success btn-lg">
+                        <i class="bi bi-check-circle me-2"></i>Открыть список клиентов
+                    </a>
+                    <button class="btn btn-outline-secondary" @onclick="ResetImport">
+                        <i class="bi bi-arrow-repeat me-2"></i>Импортировать ещё
+                    </button>
+                </div>
+
+                @if (importResult.SuccessCount > 0)
+                {
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Импортировано @importResult.SuccessCount клиентов.</strong>
+                        Перейдите в <a href="/AR/Clients" class="alert-link">список клиентов</a> чтобы увидеть результат.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+            <div class="card shadow-lg">
+                <div class="card-body text-center p-4">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mb-0">@loadingMessage</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private enum ImportStep
+    {
+        FileSelection,
+        ColumnMapping,
+        Preview,
+        Complete
+    }
+
+    private ImportStep currentStep = ImportStep.FileSelection;
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private byte[]? fileContent; // Cache file content in memory
+    private string selectedEncoding = "utf-8"; // Encoding selector
+    private bool isLoading = false;
+    private string? errorMessage;
+    private string loadingMessage = "Обработка...";
+
+    // Column mapping data
+    private List<string> csvHeaders = new();
+    private Dictionary<string, string> sampleData = new();
+    private Dictionary<string, string> columnMapping = new();
+    private Dictionary<string, string> targetFields = new()
+    {
+        { "ClientCode", "Код клиента" },
+        { "CompanyName", "Название компании" },
+        { "ExternalAccountNumber", "Externe KontoNr (внешний номер)" },
+        { "Country", "Страна" },
+        { "CountryCode", "Код страны" },
+        { "Address", "Адрес" },
+        { "PostalCode", "Индекс" },
+        { "City", "Город" },
+        { "VatNumber", "UID-номер" },
+        { "Email", "Email" },
+        { "Phone", "Телефон" },
+        { "ContactPerson", "Контактное лицо" },
+        { "AccountNumber", "Счет (Erlöskonto)" },
+        { "PaymentTerms", "Условия оплаты" },
+        { "DiscountPercent", "Скидка %" },
+        { "DiscountDays", "Дни скидки" },
+        { "Currency", "Валюта" },
+        { "TaxNumber", "Налоговый номер" },
+        { "Branch", "Филиал" },
+        { "CountryNumber", "Номер страны (Land-Nr)" },
+        { "Description", "Описание товаров/услуг" },
+        { "SupplierSuggestedAccount", "Счет поставщика" }
+    };
+    private List<string> requiredFields = new() { "ClientCode", "CompanyName" };
+
+    // Preview data
+    private List<ClientImportDto>? previewData;
+    private bool skipErrors = true;
+    private bool hasHeaderRow = true; // Default: first row is header
+
+    // Import result
+    private ImportResult? importResult;
+
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        errorMessage = null;
+        
+        // Read file into memory immediately to avoid Blazor file reference issues
+        try
+        {
+            using var uploadStream = selectedFile.OpenReadStream(MaxFileSize);
+            using var memoryStream = new MemoryStream();
+            await uploadStream.CopyToAsync(memoryStream);
+            fileContent = memoryStream.ToArray();
+            
+            Logger.LogInformation($"File loaded into memory: {selectedFileName}, {fileContent.Length} bytes");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка загрузки файла: {ex.Message}";
+            Logger.LogError(ex, "Failed to load file into memory");
+        }
+    }
+
+    private async Task AnalyzeFile()
+    {
+        if (fileContent == null) return;
+
+        isLoading = true;
+        loadingMessage = "Анализ структуры файла...";
+        errorMessage = null;
+
+        try
+        {
+            // Analyze structure from cached file content
+            using var analyzeStream = new MemoryStream(fileContent);
+            var (headers, samples) = await ImportService.AnalyzeCsvStructureAsync(analyzeStream, hasHeaderRow, selectedEncoding);
+
+            csvHeaders = headers;
+            sampleData = samples;
+
+            Logger.LogInformation($"Analyzed CSV: {csvHeaders.Count} columns, hasHeader: {hasHeaderRow}");
+
+            currentStep = ImportStep.ColumnMapping;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка анализа файла: {ex.Message}";
+            Logger.LogError(ex, "Failed to analyze CSV structure");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task OnMappingChanged(Dictionary<string, string> mapping)
+    {
+        columnMapping = mapping;
+        Logger.LogInformation($"Column mapping updated: {mapping.Count} mappings");
+        return Task.CompletedTask;
+    }
+
+    private async Task PreviewWithMapping()
+    {
+        if (fileContent == null || columnMapping.Count == 0) return;
+
+        isLoading = true;
+        loadingMessage = "Загрузка предпросмотра с вашим mapping...";
+        errorMessage = null;
+
+        try
+        {
+            using var stream = new MemoryStream(fileContent);
+            previewData = await ImportService.PreviewImportAsync(stream, columnMapping, selectedEncoding);
+
+            Logger.LogInformation($"Preview loaded: {previewData.Count} rows, {previewData.Count(d => d.IsValid)} valid");
+
+            currentStep = ImportStep.Preview;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка загрузки предпросмотра: {ex.Message}";
+            Logger.LogError(ex, "Failed to load preview with mapping");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ExecuteImport()
+    {
+        if (fileContent == null || previewData == null) return;
+
+        isLoading = true;
+        loadingMessage = $"Импорт {previewData.Count} записей...";
+        errorMessage = null;
+
+        try
+        {
+            using var stream = new MemoryStream(fileContent);
+            importResult = await ImportService.ImportClientsAsync(stream, skipErrors, columnMapping, selectedEncoding);
+
+            Logger.LogInformation($"Import completed: {importResult.SuccessCount} imported, {importResult.ErrorCount} errors");
+
+            currentStep = ImportStep.Complete;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка импорта: {ex.Message}";
+            Logger.LogError(ex, "Import execution failed");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void BackToFileSelection()
+    {
+        currentStep = ImportStep.FileSelection;
+        csvHeaders.Clear();
+        sampleData.Clear();
+        columnMapping.Clear();
+        previewData = null;
+    }
+
+    private void BackToMapping()
+    {
+        currentStep = ImportStep.ColumnMapping;
+        previewData = null;
+    }
+
+    private void CancelImport()
+    {
+        ResetImport();
+    }
+
+    private void ResetImport()
+    {
+        currentStep = ImportStep.FileSelection;
+        selectedFile = null;
+        selectedFileName = null;
+        csvHeaders.Clear();
+        sampleData.Clear();
+        columnMapping.Clear();
+        previewData = null;
+        importResult = null;
+        errorMessage = null;
+    }
+
+    private int GetUnmappedRequiredCount()
+    {
+        return requiredFields.Count(f => !columnMapping.ContainsKey(f));
+    }
+}

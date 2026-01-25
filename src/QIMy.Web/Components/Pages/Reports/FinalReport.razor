@@ -1,0 +1,320 @@
+@page "/reports/final-report"
+@using QIMy.Infrastructure.Services
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@inject FinalReportService ReportService
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpClientFactory HttpClientFactory
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>Final Report</h2>
+            <p class="text-muted">Generate comprehensive financial reports for a date range</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" @bind="fromDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Till Date</label>
+                    <input type="date" class="form-control" @bind="toDate" />
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-primary me-2" @onclick="ShowReport" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Show
+                    </button>
+                    <div class="btn-group" role="group" disabled="@(!hasData)">
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                            Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <button class="dropdown-item" @onclick="@(async () => await ExportReport(ExportFormat.PDF))" disabled="@isLoading">
+                                    Export to PDF
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" @onclick="@(async () => await ExportReport(ExportFormat.CSV))" disabled="@isLoading">
+                                    Export to CSV
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">
+            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+
+    @if (reportData != null)
+    {
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">SUMMARY</h5>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Total Invoices</h6>
+                            <h3>@reportData.TotalInvoices</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Total Amount</h6>
+                            <h3>@reportData.TotalAmount.ToString("N2") EUR</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Total Tax</h6>
+                            <h3>@reportData.TotalTax.ToString("N2") EUR</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Total Items</h6>
+                            <h3>@reportData.TotalItems</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">INVOICE DETAILS</h5>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr class="table-light">
+                                <th>Invoice #</th>
+                                <th>Client</th>
+                                <th>Date</th>
+                                <th class="text-end">Items</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in reportData.Invoices)
+                            {
+                                <tr>
+                                    <td><strong>@item.InvoiceNumber</strong></td>
+                                    <td>@item.ClientName</td>
+                                    <td>@item.InvoiceDate.ToString("dd.MM.yyyy")</td>
+                                    <td class="text-end">@item.ItemCount</td>
+                                    <td class="text-end">@item.TotalAmount.ToString("N2") EUR</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    public enum ExportFormat
+    {
+        PDF,
+        CSV
+    }
+
+    private int businessId = 2; // Default - should be set from user context
+    private DateTime fromDate = DateTime.Now.AddMonths(-1);
+    private DateTime toDate = DateTime.Now;
+    private bool isLoading = false;
+    private bool hasData = false;
+    private string? errorMessage;
+    private ReportData? reportData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        fromDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        toDate = DateTime.Now;
+        
+        // TODO: Get businessId from user claims or user context
+        // For now using default value of 2 (Mag. Kharitonov Egor)
+    }
+
+    private ReportData ParseReportFromCsv(string csvContent)
+    {
+        var lines = csvContent.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        var data = new ReportData 
+        { 
+            FromDate = fromDate, 
+            ToDate = toDate, 
+            Invoices = new List<InvoiceRow>() 
+        };
+
+        bool inDetailsSection = false;
+        foreach (var line in lines)
+        {
+            if (line.Contains("Total Invoices,"))
+                data.TotalInvoices = int.Parse(line.Split(',')[1]);
+            else if (line.Contains("Total Amount,"))
+                data.TotalAmount = decimal.Parse(line.Split(',')[1]);
+            else if (line.Contains("Total Tax,"))
+                data.TotalTax = decimal.Parse(line.Split(',')[1]);
+            else if (line.Contains("Total Items,"))
+                data.TotalItems = int.Parse(line.Split(',')[1]);
+            else if (line.StartsWith("INVOICE DETAILS"))
+                inDetailsSection = true;
+            else if (inDetailsSection && !line.StartsWith("Invoice Number"))
+            {
+                // Parse invoice row
+                var parts = line.Split(';');
+                if (parts.Length >= 5)
+                {
+                    data.Invoices.Add(new InvoiceRow
+                    {
+                        InvoiceNumber = parts[0].Trim('"'),
+                        ClientName = parts[1].Trim('"'),
+                        InvoiceDate = DateTime.Parse(parts[2]),
+                        ItemCount = int.Parse(parts[3]),
+                        TotalAmount = decimal.Parse(parts[4])
+                    });
+                }
+            }
+        }
+
+        return data;
+    }
+
+    private async Task ShowReport()
+    {
+        if (fromDate > toDate)
+        {
+            errorMessage = "From Date cannot be greater than Till Date";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        reportData = null;
+
+        try
+        {
+            // Get PDF from service (but we use it to get invoice data)
+            var pdfBytes = await ReportService.GenerateFinalReportPdfAsync(businessId, fromDate, toDate);
+            
+            // Get CSV to extract invoice data
+            var csvData = await ReportService.GenerateFinalReportCsvAsync(businessId, fromDate, toDate);
+            
+            // Parse CSV to populate reportData for UI display
+            reportData = ParseReportFromCsv(csvData);
+            hasData = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading report: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ExportReport(ExportFormat format)
+    {
+        if (reportData == null) return;
+
+        isLoading = true;
+        try
+        {
+            if (format == ExportFormat.PDF)
+            {
+                // Generate PDF from service
+                var pdfBytes = await ReportService.GenerateFinalReportPdfAsync(businessId, fromDate, toDate);
+                var fileName = $"FinalReport_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}.pdf";
+                
+                // Download file using JS interop
+                var jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/file-download.js");
+                await jsModule.InvokeVoidAsync("downloadFile", fileName, "application/pdf", Convert.ToBase64String(pdfBytes));
+            }
+            else if (format == ExportFormat.CSV)
+            {
+                // Generate CSV from service
+                var csvContent = await ReportService.GenerateFinalReportCsvAsync(businessId, fromDate, toDate);
+                var fileName = $"FinalReport_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}.csv";
+                var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+                
+                // Download file using JS interop
+                var jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/file-download.js");
+                await jsModule.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(bytes));
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error exporting report: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GenerateCsv()
+    {
+        if (reportData == null) return string.Empty;
+
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("FINAL REPORT");
+        csv.AppendLine($"From,{fromDate:dd.MM.yyyy}");
+        csv.AppendLine($"Till,{toDate:dd.MM.yyyy}");
+        csv.AppendLine();
+        csv.AppendLine("SUMMARY");
+        csv.AppendLine($"Total Invoices,{reportData.TotalInvoices}");
+        csv.AppendLine($"Total Amount,{reportData.TotalAmount:N2}");
+        csv.AppendLine($"Total Tax,{reportData.TotalTax:N2}");
+        csv.AppendLine($"Total Items,{reportData.TotalItems}");
+        csv.AppendLine();
+        csv.AppendLine("INVOICE DETAILS");
+        csv.AppendLine("Invoice Number;Client Name;Date;Item Count;Total Amount");
+
+        foreach (var invoice in reportData.Invoices)
+        {
+            csv.AppendLine($"\"{invoice.InvoiceNumber}\";\"{invoice.ClientName}\";{invoice.InvoiceDate:yyyy-MM-dd};{invoice.ItemCount};{invoice.TotalAmount:N2}");
+        }
+
+        return csv.ToString();
+    }
+
+    public class ReportData
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public int TotalInvoices { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal TotalTax { get; set; }
+        public int TotalItems { get; set; }
+        public List<InvoiceRow> Invoices { get; set; } = new();
+    }
+
+    public class InvoiceRow
+    {
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public string ClientName { get; set; } = string.Empty;
+        public DateTime InvoiceDate { get; set; }
+        public int ItemCount { get; set; }
+        public decimal TotalAmount { get; set; }
+    }
+}
