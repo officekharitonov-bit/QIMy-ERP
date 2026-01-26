@@ -230,14 +230,13 @@
         errorMessage = null;
         try
         {
-            var query = new GetAllClientsQuery();
+            // Фильтрация на уровне Query (оптимизация)
+            var query = new GetAllClientsQuery 
+            { 
+                BusinessId = BusinessCtx.CurrentBusinessId 
+            };
             var result = await Mediator.Send(query);
-
-            // Фильтрация по текущему бизнесу
-            var bizId = BusinessCtx.CurrentBusinessId;
-            clients = bizId.HasValue 
-                ? result.Where(c => c.BusinessId == bizId.Value).ToList()
-                : result.ToList();
+            clients = result.ToList();
         }
         catch (Exception ex)
         {

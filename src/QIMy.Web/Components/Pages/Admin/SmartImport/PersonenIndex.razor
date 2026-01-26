@@ -1,0 +1,343 @@
+@rendermode InteractiveServer
+@page "/Admin/SmartImport/PersonenIndex"
+@using QIMy.Core.DTOs
+@using MediatR
+@using QIMy.Application.Clients.Commands.ImportClients
+@using QIMy.Application.Suppliers.Commands.ImportSuppliers
+@using Microsoft.AspNetCore.Components.Forms
+@using QIMy.Web.Services
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ILogger<PersonenIndex> Logger
+@inject BusinessContext BusinessCtx
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-magic me-2"></i>Personenindex Import - Клиенты + Поставщики</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item"><a href="/Admin/SmartImport">Smart Import</a></li>
+                    <li class="breadcrumb-item active">Personenindex</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Step 1: File Upload -->
+    @if (currentStep == ImportStep.FileSelection)
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Шаг 1: Выбор файла Personenindex (PK)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            <strong>Personenindex Import автоматически:</strong>
+                            <ul class="mb-0">
+                                <li>Читает BMD Personenindex CSV файл</li>
+                                <li>Разделяет клиентов (200000-299999) и поставщиков (300000-399999)</li>
+                                <li>Импортирует обе категории одновременно</li>
+                                <li>Показывает детальную статистику</li>
+                            </ul>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <strong>Формат файла:</strong> PK 2025 - COMPANY NAME.csv<br/>
+                            <strong>Коды:</strong> 2xxxxx = Клиенты (200000-299999), 3xxxxx = Поставщики (300000-399999)
+                        </div>
+
+                        <InputFile OnChange="HandleFileSelection" class="form-control mb-3" accept=".csv" />
+
+                        @if (selectedFileName != null)
+                        {
+                            <div class="alert alert-success">
+                                <i class="bi bi-file-earmark-check me-2"></i>
+                                Выбран файл: <strong>@selectedFileName</strong>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-primary btn-lg" @onclick="AnalyzeAndImport"
+                                disabled="@(selectedFile == null || isLoading)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-upload me-2"></i>
+                                }
+                                Импортировать
+                            </button>
+                            <a href="/Admin/SmartImport" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i>Назад
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">Инструкция</h6>
+                    </div>
+                    <div class="card-body">
+                        <ol class="small">
+                            <li>Выберите CSV файл с Personenindex</li>
+                            <li>Нажмите "Импортировать"</li>
+                            <li>Система автоматически:
+                                <ul>
+                                    <li>Определит клиентов (200000-299999)</li>
+                                    <li>Определит поставщиков (300000-399999)</li>
+                                    <li>Импортирует оба типа</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 2: Results -->
+    @if (currentStep == ImportStep.Completed)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Импорт завершён</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-primary"><i class="bi bi-people me-2"></i>Клиенты</h6>
+                                        <table class="table table-sm mb-0">
+                                            <tr>
+                                                <td>Всего:</td>
+                                                <td class="text-end"><strong>@clientResult?.TotalRows</strong></td>
+                                            </tr>
+                                            <tr class="table-success">
+                                                <td>✅ Успешно:</td>
+                                                <td class="text-end"><strong>@clientResult?.SuccessCount</strong></td>
+                                            </tr>
+                                            <tr class="table-warning">
+                                                <td>⏭️ Пропущено:</td>
+                                                <td class="text-end"><strong>@clientResult?.SkippedCount</strong></td>
+                                            </tr>
+                                            <tr class="table-danger">
+                                                <td>❌ Ошибок:</td>
+                                                <td class="text-end"><strong>@clientResult?.ErrorCount</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-info"><i class="bi bi-building me-2"></i>Поставщики</h6>
+                                        <table class="table table-sm mb-0">
+                                            <tr>
+                                                <td>Всего:</td>
+                                                <td class="text-end"><strong>@supplierResult?.TotalRows</strong></td>
+                                            </tr>
+                                            <tr class="table-success">
+                                                <td>✅ Успешно:</td>
+                                                <td class="text-end"><strong>@supplierResult?.SuccessCount</strong></td>
+                                            </tr>
+                                            <tr class="table-warning">
+                                                <td>⏭️ Дубликатов:</td>
+                                                <td class="text-end"><strong>@supplierResult?.DuplicateCount</strong></td>
+                                            </tr>
+                                            <tr class="table-danger">
+                                                <td>❌ Ошибок:</td>
+                                                <td class="text-end"><strong>@supplierResult?.FailureCount</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (clientResult?.Errors.Any() == true)
+                        {
+                            <div class="alert alert-warning">
+                                <h6>Ошибки импорта клиентов:</h6>
+                                <ul>
+                                    @foreach (var error in clientResult.Errors.Take(10))
+                                    {
+                                        <li><strong>Строка @error.RowNumber:</strong> @error.CompanyName - @error.ErrorMessage</li>
+                                    }
+                                </ul>
+                                @if (clientResult.Errors.Count > 10)
+                                {
+                                    <small class="text-muted">... и ещё @(clientResult.Errors.Count - 10) ошибок</small>
+                                }
+                            </div>
+                        }
+
+                        @if (supplierResult?.Errors.Any() == true)
+                        {
+                            <div class="alert alert-warning">
+                                <h6>Ошибки импорта поставщиков:</h6>
+                                <ul>
+                                    @foreach (var error in supplierResult.Errors.Take(10))
+                                    {
+                                        <li><strong>Строка @error.RowNumber:</strong> @error.CompanyName - @error.ErrorMessage</li>
+                                    }
+                                </ul>
+                                @if (supplierResult.Errors.Count > 10)
+                                {
+                                    <small class="text-muted">... и ещё @(supplierResult.Errors.Count - 10) ошибок</small>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="/AR/Clients" class="btn btn-primary">
+                                <i class="bi bi-people me-2"></i>Перейти к клиентам
+                            </a>
+                            <a href="/ER/Suppliers" class="btn btn-info">
+                                <i class="bi bi-building me-2"></i>Перейти к поставщикам
+                            </a>
+                            <button class="btn btn-secondary" @onclick="Reset">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Импортировать ещё
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private enum ImportStep
+    {
+        FileSelection,
+        Completed
+    }
+
+    private ImportStep currentStep = ImportStep.FileSelection;
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private string? errorMessage;
+    private bool isLoading = false;
+
+    private ImportResult? clientResult;
+    private Application.Suppliers.Commands.ImportSuppliers.ImportSuppliersResult? supplierResult;
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        errorMessage = null;
+    }
+
+    private async Task AnalyzeAndImport()
+    {
+        if (selectedFile == null) return;
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            Logger.LogInformation("Starting Personenindex import from {FileName}", selectedFileName);
+
+            // Read file once
+            using var originalStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await originalStream.CopyToAsync(memoryStream);
+            
+            var fileBytes = memoryStream.ToArray();
+
+            // Import Clients (200000-299999)
+            using (var clientStream = new MemoryStream(fileBytes))
+            {
+                var clientCommand = new ImportClientsCommand
+                {
+                    FileStream = clientStream,
+                    SkipErrors = true,
+                    BusinessId = BusinessCtx.CurrentBusinessId
+                };
+
+                clientResult = await Mediator.Send(clientCommand);
+                Logger.LogInformation("Clients import completed: {Success} success, {Errors} errors",
+                    clientResult.SuccessCount, clientResult.ErrorCount);
+            }
+
+            // Import Suppliers (300000-399999)
+            using (var supplierStream = new MemoryStream(fileBytes))
+            {
+                var supplierCommand = new ImportSuppliersCommand
+                {
+                    FileStream = supplierStream,
+                    FileName = selectedFileName ?? "import.csv",
+                    BusinessId = BusinessCtx.CurrentBusinessId ?? 0
+                };
+
+                var supplierResultWrapper = await Mediator.Send(supplierCommand);
+                
+                if (supplierResultWrapper.IsSuccess && supplierResultWrapper.Value != null)
+                {
+                    supplierResult = supplierResultWrapper.Value;
+                    Logger.LogInformation("Suppliers import completed: {Success} success, {Errors} errors",
+                        supplierResult.SuccessCount, supplierResult.FailureCount);
+                }
+                else
+                {
+                    Logger.LogError("Supplier import failed: {Error}", supplierResultWrapper.Error);
+                    supplierResult = new Application.Suppliers.Commands.ImportSuppliers.ImportSuppliersResult
+                    {
+                        TotalRows = 0,
+                        SuccessCount = 0,
+                        FailureCount = 1,
+                        Errors = new List<Application.Suppliers.Commands.ImportSuppliers.ImportError>
+                        {
+                            new() { ErrorMessage = supplierResultWrapper.Error ?? "Unknown error" }
+                        }
+                    };
+                }
+            }
+
+            currentStep = ImportStep.Completed;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during Personenindex import");
+            errorMessage = $"Ошибка импорта: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Reset()
+    {
+        currentStep = ImportStep.FileSelection;
+        selectedFile = null;
+        selectedFileName = null;
+        clientResult = null;
+        supplierResult = null;
+        errorMessage = null;
+    }
+}

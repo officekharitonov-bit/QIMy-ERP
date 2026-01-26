@@ -11,8 +11,10 @@
 @using MediatR
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
+@using QIMy.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject BusinessContext BusinessCtx
 @rendermode InteractiveServer
 
 <PageTitle>@(IsEditMode ? "Edit Product" : "Create Product")</PageTitle>
@@ -130,6 +132,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await BusinessCtx.InitializeAsync();
+        
         var unitsQuery = new GetAllUnitsQuery();
         var unitsResult = await Mediator.Send(unitsQuery);
         units = unitsResult.OrderBy(x => x.Name).ToList();
@@ -173,7 +177,8 @@
                     UnitId = model.UnitId,
                     TaxRateId = model.TaxRateId,
                     IsService = model.IsService,
-                    StockQuantity = model.IsService ? 0 : model.StockQuantity
+                    StockQuantity = model.IsService ? 0 : model.StockQuantity,
+                    BusinessId = BusinessCtx.CurrentBusinessId
                 };
                 var result = await Mediator.Send(command);
 
@@ -197,7 +202,8 @@
                     UnitId = model.UnitId,
                     TaxRateId = model.TaxRateId,
                     IsService = model.IsService,
-                    StockQuantity = model.IsService ? 0 : model.StockQuantity
+                    StockQuantity = model.IsService ? 0 : model.StockQuantity,
+                    BusinessId = BusinessCtx.CurrentBusinessId
                 };
                 var result = await Mediator.Send(command);
 

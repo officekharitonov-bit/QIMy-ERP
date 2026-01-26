@@ -19,6 +19,7 @@ public record ProductDto
     public string? Notes { get; init; }
     public string? UnitName { get; init; }
     public string? TaxRateName { get; init; }
+    public int? BusinessId { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
 }

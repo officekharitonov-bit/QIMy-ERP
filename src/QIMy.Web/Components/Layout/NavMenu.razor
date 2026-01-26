@@ -23,52 +23,39 @@
                 <!-- AR Module: Sales (Ausgangsrechnungen) -->
                 <div class="nav-item px-3 mt-3">
                     <div class="text-muted small px-3">
-                        <strong>АР - СЧЕТА (ИСХОДЯЩИЕ)</strong>
+                        <strong>AR - СЧЕТА (ИСХОДЯЩИЕ)</strong>
                     </div>
-                </div>
-
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="ar/clients">
-                        <span class="bi bi-people-fill" aria-hidden="true"></span> Клиенты
-                    </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="ar/invoices">
-                        <span class="bi bi-file-text-fill" aria-hidden="true"></span> Счета
+                        <span class="bi bi-file-text-fill" aria-hidden="true"></span> Счета исходящие
                     </NavLink>
-                </div>
-
-                <!-- AG Module: Quotes (Angebote) -->
-                <div class="nav-item px-3 mt-3">
-                    <div class="text-muted small px-3">
-                        <strong>АГ - ПРЕДЛОЖЕНИЯ</strong>
-                    </div>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="ag/quotes">
-                        <span class="bi bi-file-earmark-text" aria-hidden="true"></span> Предложения
+                        <span class="bi bi-file-earmark-text" aria-hidden="true"></span> Проформы
                     </NavLink>
                 </div>
 
                 <!-- ER Module: Purchase Invoices (Eingangsrechnungen) - Coming Soon -->
                 <div class="nav-item px-3 mt-3">
                     <div class="text-muted small px-3">
-                        <strong>ЭР - СЧЕТА (ВХОДЯЩИЕ)</strong>
+                        <strong>ER - СЧЕТА (ВХОДЯЩИЕ)</strong>
                     </div>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="er/suppliers" disabled>
-                        <span class="bi bi-truck" aria-hidden="true"></span> Поставщики
+                    <NavLink class="nav-link" href="er/purchase-invoices" disabled>
+                        <span class="bi bi-receipt" aria-hidden="true"></span> Счета входящие
                         <span class="badge bg-secondary ms-2">Скоро</span>
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="er/purchase-invoices" disabled>
-                        <span class="bi bi-receipt" aria-hidden="true"></span> Входящие счета
+                    <NavLink class="nav-link" href="er/proformas" disabled>
+                        <span class="bi bi-file-earmark-text" aria-hidden="true"></span> Проформы
                         <span class="badge bg-secondary ms-2">Скоро</span>
                     </NavLink>
                 </div>
@@ -104,6 +91,12 @@
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin/reference-data">
                         <span class="bi bi-table" aria-hidden="true"></span> Все справочники
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Admin/SmartImport/PersonenIndex">
+                        <span class="bi bi-magic" aria-hidden="true"></span> Personenindex Import
                     </NavLink>
                 </div>
 

@@ -176,19 +176,19 @@ Email Address          →  Email
 ## Устранение проблем
 
 ### "Обязательных полей не заполнено: 2"
-**Причина:** Не сопоставлены ClientCode и/или CompanyName  
+**Причина:** Не сопоставлены ClientCode и/или CompanyName
 **Решение:** Проверьте column mapping, убедитесь, что эти поля связаны
 
 ### "ClientCode must be a valid number"
-**Причина:** В колонке ClientCode не числовые значения  
+**Причина:** В колонке ClientCode не числовые значения
 **Решение:** Проверьте CSV, удалите нечисловые символы или выберите другую колонку
 
 ### "Showing first 100 rows of 5000 total rows"
-**Причина:** Предпросмотр ограничен 100 строками  
+**Причина:** Предпросмотр ограничен 100 строками
 **Решение:** Это нормально, все 5000 строк будут импортированы при Execute
 
 ### Файл не анализируется
-**Причина:** Неправильная кодировка или формат  
+**Причина:** Неправильная кодировка или формат
 **Решение:** Убедитесь, что файл в формате CSV (не XLS/XLSX), пересохраните с кодировкой Windows-1252
 
 ## Известные ограничения
@@ -226,15 +226,15 @@ IBrowserFile    Headers + Samples    Dictionary<string,   List<DTO>   Database
 ### API
 ```csharp
 // Analyze CSV structure
-(List<string> Headers, Dictionary<string, string> SampleData) 
+(List<string> Headers, Dictionary<string, string> SampleData)
   AnalyzeCsvStructureAsync(Stream fileStream)
 
 // Preview with custom mapping
-List<ClientImportDto> 
+List<ClientImportDto>
   PreviewImportAsync(Stream fileStream, Dictionary<string, string>? columnMapping)
 
 // Execute import
-ImportResult 
+ImportResult
   ImportClientsAsync(Stream fileStream, bool skipErrors)
 ```
 
@@ -246,6 +246,6 @@ ImportResult
 
 ---
 
-**Последнее обновление:** 25 января 2026  
-**Версия:** 1.0.0  
+**Последнее обновление:** 25 января 2026
+**Версия:** 1.0.0
 **Автор:** QIMy Development Team

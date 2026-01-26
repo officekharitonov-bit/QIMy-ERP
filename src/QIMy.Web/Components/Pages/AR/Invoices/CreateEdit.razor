@@ -8,6 +8,7 @@
 @using QIMy.Infrastructure.Services
 @using QIMy.Infrastructure.Services.TaxLogic
 @using Microsoft.JSInterop
+@using QIMy.Web.Services
 @inject IInvoiceService InvoiceService
 @inject IClientService ClientService
 @inject IProductService ProductService
@@ -15,6 +16,7 @@
 @inject PdfInvoiceGeneratorService PdfGenerator
 @inject InvoiceTaxService TaxService
 @inject IJSRuntime JS
+@inject BusinessContext BusinessCtx
 @rendermode InteractiveServer
 
 <PageTitle>@(Id.HasValue ? "Редактировать" : "Создать") счёт - AR Module</PageTitle>
@@ -302,8 +304,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        clients = (await ClientService.GetAllClientsAsync()).ToList();
-        products = (await ProductService.GetAllProductsAsync()).ToList();
+        await BusinessCtx.InitializeAsync();
+        
+        var allClients = (await ClientService.GetAllClientsAsync()).ToList();
+        var allProducts = (await ProductService.GetAllProductsAsync()).ToList();
+        
+        // Фильтр по текущему бизнесу
+        if (BusinessCtx.CurrentBusinessId.HasValue)
+        {
+            clients = allClients.Where(c => c.BusinessId == BusinessCtx.CurrentBusinessId.Value).ToList();
+            products = allProducts.Where(p => p.BusinessId == BusinessCtx.CurrentBusinessId.Value).ToList();
+        }
+        else
+        {
+            clients = allClients;
+            products = allProducts;
+        }
 
         if (Id.HasValue)
         {
@@ -532,6 +548,7 @@
                     Status = (InvoiceStatus)invoiceStatus,
                     SubTotal = subTotal,
                     TotalAmount = totalAmount,
+                    BusinessId = BusinessCtx.CurrentBusinessId,
                     
                     // Apply tax fields
                     InvoiceType = (InvoiceType)invoiceType,

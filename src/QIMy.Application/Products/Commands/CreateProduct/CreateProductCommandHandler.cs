@@ -74,6 +74,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         }
 
         var product = _mapper.Map<Product>(request);
+        product.BusinessId = request.BusinessId;
 
         await _unitOfWork.Products.AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

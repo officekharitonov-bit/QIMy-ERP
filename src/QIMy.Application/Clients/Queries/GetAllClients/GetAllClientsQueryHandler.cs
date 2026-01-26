@@ -31,6 +31,13 @@ public class GetAllClientsQueryHandler : IRequestHandler<GetAllClientsQuery, IEn
 
         var clients = await _unitOfWork.Clients.GetAllAsync(cancellationToken);
 
+        // Фильтрация по бизнесу, если указан
+        if (request.BusinessId.HasValue)
+        {
+            clients = clients.Where(c => c.BusinessId == request.BusinessId.Value).ToList();
+            _logger.LogInformation("Filtered clients by BusinessId={BusinessId}", request.BusinessId.Value);
+        }
+
         var clientDtos = _mapper.Map<IEnumerable<ClientDto>>(clients);
 
         _logger.LogInformation("Retrieved {Count} clients", clientDtos.Count());

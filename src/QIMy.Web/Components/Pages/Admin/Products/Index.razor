@@ -5,9 +5,11 @@
 @using QIMy.Application.Products.Commands.UpdateProduct
 @using QIMy.Application.Products.Queries.GetAllProducts
 @using MediatR
+@using QIMy.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject BusinessContext BusinessCtx
 @rendermode InteractiveServer
 
 <PageTitle>Products</PageTitle>
@@ -106,12 +108,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await BusinessCtx.InitializeAsync();
+        BusinessCtx.Changed += async () =>
+        {
+            await LoadData();
+            StateHasChanged();
+        };
         await LoadData();
     }
 
     private async Task LoadData()
     {
-        var query = new GetAllProductsQuery();
+        // Фильтрация на уровне Query (оптимизация)
+        var query = new GetAllProductsQuery 
+        { 
+            BusinessId = BusinessCtx.CurrentBusinessId 
+        };
         var result = await Mediator.Send(query);
         products = result.OrderBy(x => x.Name).ToList();
     }

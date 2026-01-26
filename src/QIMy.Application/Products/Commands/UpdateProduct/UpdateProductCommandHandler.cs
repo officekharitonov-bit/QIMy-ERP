@@ -35,6 +35,14 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             return Result<ProductDto>.Failure("Product not found.");
         }
 
+        // Проверка безопасности: BusinessId должен совпадать
+        if (request.BusinessId.HasValue && product.BusinessId != request.BusinessId.Value)
+        {
+            _logger.LogWarning("Unauthorized access attempt: Product {ProductId} belongs to BusinessId {ActualBusinessId}, but request is for BusinessId {RequestBusinessId}",
+                request.Id, product.BusinessId, request.BusinessId.Value);
+            return Result<ProductDto>.Failure($"Access denied: Product belongs to another business.");
+        }
+
         // Duplicate check by name/SKU
         var duplicate = await _duplicateDetectionService.CheckProductDuplicateAsync(
             request.Name,
@@ -80,6 +88,10 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         }
 
         _mapper.Map(request, product);
+        if (request.BusinessId.HasValue)
+        {
+            product.BusinessId = request.BusinessId;
+        }
 
         await _unitOfWork.Products.UpdateAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

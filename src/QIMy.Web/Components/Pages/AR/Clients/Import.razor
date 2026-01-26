@@ -5,9 +5,11 @@
 @using MediatR
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
+@using QIMy.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
 @inject ILogger<Import> Logger
+@inject BusinessContext BusinessCtx
 
 <h2>Import Clients</h2>
 
@@ -334,6 +336,11 @@
 
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
 
+    protected override async Task OnInitializedAsync()
+    {
+        await BusinessCtx.InitializeAsync();
+    }
+
     private void HandleFileSelection(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
@@ -451,7 +458,8 @@
             var command = new ImportClientsCommand
             {
                 FileStream = stream,
-                SkipErrors = skipErrors
+                SkipErrors = skipErrors,
+                BusinessId = BusinessCtx.CurrentBusinessId
             };
 
             importResult = await Mediator.Send(command);

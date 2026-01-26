@@ -7,4 +7,5 @@ public record ImportClientsCommand : IRequest<ImportResult>
 {
     public Stream FileStream { get; init; } = null!;
     public bool SkipErrors { get; init; } = true;
+    public int? BusinessId { get; init; }
 }

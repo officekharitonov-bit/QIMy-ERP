@@ -25,6 +25,13 @@ public class GetAllProductsQueryHandler : IRequestHandler<GetAllProductsQuery, I
 
         var products = await _unitOfWork.Products.GetAllAsync(cancellationToken);
 
+        // Фильтрация по бизнесу, если указан
+        if (request.BusinessId.HasValue)
+        {
+            products = products.Where(p => p.BusinessId == request.BusinessId.Value).ToList();
+            _logger.LogInformation("Filtered products by BusinessId={BusinessId}", request.BusinessId.Value);
+        }
+
         var productDtos = new List<ProductDto>();
 
         foreach (var product in products.OrderBy(p => p.Name))

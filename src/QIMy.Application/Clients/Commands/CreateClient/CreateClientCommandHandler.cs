@@ -89,6 +89,7 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
                 Country = request.Country ?? "Österreich",
                 ClientTypeId = request.ClientTypeId,
                 ClientAreaId = request.ClientAreaId,
+                BusinessId = request.BusinessId,
                 CreatedAt = DateTime.UtcNow
             };
 

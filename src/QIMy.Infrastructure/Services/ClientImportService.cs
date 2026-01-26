@@ -155,7 +155,7 @@ public class ClientImportService
         return clients;
     }
 
-    public async Task<ImportResult> ImportClientsAsync(Stream fileStream, bool skipErrors = true, Dictionary<string, string>? columnMapping = null, string encodingName = "utf-8")
+    public async Task<ImportResult> ImportClientsAsync(Stream fileStream, bool skipErrors = true, Dictionary<string, string>? columnMapping = null, string encodingName = "utf-8", int? businessId = null)
     {
         var startTime = DateTime.UtcNow;
         var result = new ImportResult
@@ -256,6 +256,7 @@ public class ClientImportService
                             TaxNumber = null,
                             ClientTypeId = clientType?.Id,
                             ClientAreaId = clientArea?.Id,
+                            BusinessId = businessId,
                             CreatedAt = DateTime.UtcNow,
                             IsDeleted = false
                         };

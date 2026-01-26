@@ -35,6 +35,14 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
             return Result<SupplierDto>.Failure($"Supplier with Id {request.Id} not found.");
         }
 
+        // Проверка безопасности: BusinessId должен совпадать
+        if (supplier.BusinessId != request.BusinessId)
+        {
+            _logger.LogWarning("Unauthorized access attempt: Supplier {SupplierId} belongs to BusinessId {ActualBusinessId}, but request is for BusinessId {RequestBusinessId}",
+                request.Id, supplier.BusinessId, request.BusinessId);
+            return Result<SupplierDto>.Failure("Access denied: Supplier belongs to another business.");
+        }
+
         // Check for duplicate supplier (excluding current supplier)
         var duplicateResult = await _duplicateDetectionService.CheckSupplierDuplicateAsync(
             request.CompanyName,

@@ -14,6 +14,7 @@ public record CreateProductCommand : IRequest<Result<ProductDto>>
     public int? TaxRateId { get; init; }
     public bool IsService { get; init; }
     public int StockQuantity { get; init; }
+    public int? BusinessId { get; init; }
 
     /// <summary>
     /// Первое игнорирование предупреждения о дубликате

@@ -159,6 +159,7 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                         TaxNumber = dto.TaxNumber,
                         ClientAreaId = null,  // TODO: map by country/area code if потребуется
                         ClientTypeId = null,  // TODO: map by type code if потребуется
+                        BusinessId = request.BusinessId,
                         CurrencyId = currencyId,
                         PaymentTermsDays = paymentTermsDays,
                         Notes = dto.Description,
@@ -228,10 +229,14 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
 
     private async Task<List<ClientImportDto>> ParseCsvAsync(Stream stream, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Начало парсинга CSV (кодировка: windows-1252)");
+        // Auto-detect encoding: try UTF-8 with BOM, fallback to Windows-1252
+        var encoding = DetectEncoding(stream);
+        stream.Position = 0; // Reset after detection
+        _logger.LogDebug("Определена кодировка: {EncodingName}", encoding.EncodingName);
+        
         var clients = new List<ClientImportDto>();
 
-        using var reader = new StreamReader(stream, Encoding.GetEncoding("windows-1252"));
+        using var reader = new StreamReader(stream, encoding);
 
         // Skip header
         var header = await reader.ReadLineAsync();
@@ -293,5 +298,34 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
         _logger.LogInformation("Парсинг завершён: распознано {ParsedRows} строк данных (строки {StartRow}-{EndRow})",
             parsedRows, 2, rowNumber - 1);
         return clients;
+    }
+
+    private Encoding DetectEncoding(Stream stream)
+    {
+        // Read first 4 bytes to check for BOM
+        var bom = new byte[4];
+        var bytesRead = stream.Read(bom, 0, 4);
+        stream.Position = 0;
+
+        // Check for UTF-8 BOM (EF BB BF)
+        if (bytesRead >= 3 && bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+        {
+            return Encoding.UTF8;
+        }
+
+        // Check for UTF-16 LE BOM (FF FE)
+        if (bytesRead >= 2 && bom[0] == 0xFF && bom[1] == 0xFE)
+        {
+            return Encoding.Unicode;
+        }
+
+        // Check for UTF-16 BE BOM (FE FF)
+        if (bytesRead >= 2 && bom[0] == 0xFE && bom[1] == 0xFF)
+        {
+            return Encoding.BigEndianUnicode;
+        }
+
+        // Default to Windows-1252 (common for BMD/Austrian accounting software)
+        return Encoding.GetEncoding("windows-1252");
     }
 }

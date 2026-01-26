@@ -45,6 +45,14 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
                 throw new NotFoundException("Client", request.Id);
             }
 
+            // 1.5. Проверка безопасности: BusinessId должен совпадать
+            if (request.BusinessId.HasValue && client.BusinessId != request.BusinessId.Value)
+            {
+                _logger.LogWarning("Unauthorized access attempt: Client {ClientId} belongs to BusinessId {ActualBusinessId}, but request is for BusinessId {RequestBusinessId}",
+                    request.Id, client.BusinessId, request.BusinessId.Value);
+                throw new UnauthorizedBusinessAccessException("Client", request.Id, request.BusinessId.Value, client.BusinessId);
+            }
+
             // 2. Проверка на дубликат по названию/коду
             var duplicate = await _duplicateDetectionService.CheckClientDuplicateAsync(
                 request.CompanyName,
@@ -97,6 +105,10 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
             client.Country = request.Country ?? "Österreich";
             client.ClientTypeId = request.ClientTypeId;
             client.ClientAreaId = request.ClientAreaId;
+            if (request.BusinessId.HasValue)
+            {
+                client.BusinessId = request.BusinessId;
+            }
 
             // 5. Сохраняем
             await _unitOfWork.Clients.UpdateAsync(client, cancellationToken);

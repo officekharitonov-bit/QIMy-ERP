@@ -20,6 +20,7 @@ public record CreateClientCommand : IRequest<Result<ClientDto>>
     public string? Country { get; set; }
     public int? ClientTypeId { get; set; }
     public int? ClientAreaId { get; set; }
+    public int? BusinessId { get; set; }
 
     /// <summary>
     /// Первое игнорирование предупреждения о дубликате (пользователь подтвердил 1 раз)

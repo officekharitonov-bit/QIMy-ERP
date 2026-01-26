@@ -6,8 +6,10 @@
 @using QIMy.Application.Clients.Queries.GetClientById
 @using MediatR
 @using System.ComponentModel.DataAnnotations
+@using QIMy.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject BusinessContext BusinessCtx
 @rendermode InteractiveServer
 
 <PageTitle>@(Id.HasValue ? "Редактировать" : "Создать") клиента - AR Module</PageTitle>
@@ -168,6 +170,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await BusinessCtx.InitializeAsync();
+        
         if (Id.HasValue)
         {
             var query = new GetClientByIdQuery(Id.Value);
@@ -221,7 +225,8 @@
                     PostalCode = formModel.PostalCode,
                     Country = formModel.Country,
                     ClientTypeId = formModel.ClientTypeId,
-                    ClientAreaId = formModel.ClientAreaId
+                    ClientAreaId = formModel.ClientAreaId,
+                    BusinessId = BusinessCtx.CurrentBusinessId
                 };
 
                 var result = await Mediator.Send(command);
@@ -250,7 +255,8 @@
                     PostalCode = formModel.PostalCode,
                     Country = formModel.Country,
                     ClientTypeId = formModel.ClientTypeId,
-                    ClientAreaId = formModel.ClientAreaId
+                    ClientAreaId = formModel.ClientAreaId,
+                    BusinessId = BusinessCtx.CurrentBusinessId
                 };
 
                 var result = await Mediator.Send(command);
