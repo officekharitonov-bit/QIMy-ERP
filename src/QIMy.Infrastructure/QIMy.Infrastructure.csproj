@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\QIMy.Core\QIMy.Core.csproj" />
     <ProjectReference Include="..\QIMy.Application\QIMy.Application.csproj" />
+    <ProjectReference Include="..\QIMy.AI\QIMy.AI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using QIMy.Application.Common.Interfaces;
 using QIMy.Core.DTOs;
+using QIMy.AI.Services;
 
 namespace QIMy.Application.Clients.Commands.ImportClients;
 
@@ -12,13 +13,16 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ImportClientsCommandHandler> _logger;
+    private readonly IAiEncodingDetectionService _aiEncoding;
 
     public ImportClientsCommandHandler(
         IUnitOfWork unitOfWork,
-        ILogger<ImportClientsCommandHandler> logger)
+        ILogger<ImportClientsCommandHandler> logger,
+        IAiEncodingDetectionService aiEncoding)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _aiEncoding = aiEncoding;
     }
 
     public async Task<ImportResult> Handle(ImportClientsCommand request, CancellationToken cancellationToken)
@@ -229,10 +233,10 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
 
     private async Task<List<ClientImportDto>> ParseCsvAsync(Stream stream, CancellationToken cancellationToken)
     {
-        // Auto-detect encoding: try UTF-8 with BOM, fallback to Windows-1252
-        var encoding = DetectEncoding(stream);
+        // 🤖 AI-enhanced encoding detection
+        var encoding = await DetectEncodingAsync(stream);
         stream.Position = 0; // Reset after detection
-        _logger.LogDebug("Определена кодировка: {EncodingName}", encoding.EncodingName);
+        _logger.LogInformation("✅ Кодировка определена: {EncodingName}", encoding.EncodingName);
         
         var clients = new List<ClientImportDto>();
 
@@ -300,7 +304,47 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
         return clients;
     }
 
-    private Encoding DetectEncoding(Stream stream)
+    private async Task<Encoding> DetectEncodingAsync(Stream stream)
+    {
+        _logger.LogInformation("🤖 AI Encoding Detection начат...");
+        
+        try
+        {
+            var detectionResult = await _aiEncoding.DetectEncodingAsync(stream);
+            
+            _logger.LogInformation(
+                "🤖 AI определил кодировку: {Encoding} (Confidence: {Confidence:P}, Method: {Method})",
+                detectionResult.Encoding.EncodingName,
+                detectionResult.Confidence,
+                detectionResult.DetectionMethod);
+            
+            if (detectionResult.Alternatives.Any())
+            {
+                _logger.LogDebug("Альтернативные варианты: {Alternatives}",
+                    string.Join(", ", detectionResult.Alternatives
+                        .Select(a => $"{a.Encoding.EncodingName} ({a.Confidence:P})")));
+            }
+            
+            // Log warning if confidence is low
+            if (detectionResult.Confidence < 0.7m)
+            {
+                _logger.LogWarning(
+                    "⚠️ Низкий confidence score ({Confidence:P}). Рекомендуется проверить результат.",
+                    detectionResult.Confidence);
+            }
+            
+            return detectionResult.Encoding;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка AI encoding detection, использую fallback");
+            
+            // Fallback to old method
+            return DetectEncodingFallback(stream);
+        }
+    }
+    
+    private Encoding DetectEncodingFallback(Stream stream)
     {
         // Read first 4 bytes to check for BOM
         var bom = new byte[4];

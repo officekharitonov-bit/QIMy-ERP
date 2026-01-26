@@ -78,6 +78,12 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<EuCountryData> EuCountryData => Set<EuCountryData>();
 
+    // AI Services
+    public DbSet<AiProcessingLog> AiProcessingLogs => Set<AiProcessingLog>();
+    public DbSet<AiSuggestion> AiSuggestions => Set<AiSuggestion>();
+    public DbSet<AnomalyAlert> AnomalyAlerts => Set<AnomalyAlert>();
+    public DbSet<AiConfiguration> AiConfigurations => Set<AiConfiguration>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -111,6 +117,11 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             .WithMany()
             .HasForeignKey(a => a.DefaultTaxRateId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure AiConfiguration unique constraint
+        modelBuilder.Entity<AiConfiguration>()
+            .HasIndex(a => a.BusinessId)
+            .IsUnique();
 
         // Configure decimal precision
         ConfigureDecimalPrecision(modelBuilder);
@@ -219,5 +230,22 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             .Property(c => c.ActualClosingBalance).HasPrecision(18, 2);
         modelBuilder.Entity<CashBookDay>()
             .Property(c => c.Variance).HasPrecision(18, 2);
+
+        // AI entities
+        modelBuilder.Entity<AiProcessingLog>()
+            .Property(a => a.ConfidenceScore).HasPrecision(5, 4);
+        modelBuilder.Entity<AiProcessingLog>()
+            .Property(a => a.Cost).HasPrecision(10, 4);
+
+        modelBuilder.Entity<AiSuggestion>()
+            .Property(a => a.Confidence).HasPrecision(5, 4);
+
+        modelBuilder.Entity<AnomalyAlert>()
+            .Property(a => a.Severity).HasPrecision(5, 4);
+
+        modelBuilder.Entity<AiConfiguration>()
+            .Property(a => a.AutoApprovalThreshold).HasPrecision(18, 2);
+        modelBuilder.Entity<AiConfiguration>()
+            .Property(a => a.MinConfidenceScore).HasPrecision(5, 4);
     }
 }

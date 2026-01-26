@@ -11,6 +11,7 @@ using QIMy.Infrastructure.Repositories;
 using QIMy.Infrastructure.Services;
 using QIMy.Web.Components;
 using QIMy.Web.Services;
+using QIMy.AI; // AI Services
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,6 +90,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============== DUPLICATE DETECTION SERVICE ==============
 builder.Services.AddScoped<IDuplicateDetectionService, DuplicateDetectionService>();
+
+// ============== AI SERVICES ==============
+builder.Services.AddAiServices();
 
 // ============== OLD SERVICES (Keep for backward compatibility) ==============
 builder.Services.AddScoped<IClientService, ClientService>();
