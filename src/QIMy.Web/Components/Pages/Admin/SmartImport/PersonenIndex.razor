@@ -1,20 +1,24 @@
-@rendermode InteractiveServer
 @page "/Admin/SmartImport/PersonenIndex"
+@rendermode InteractiveServer
 @using QIMy.Core.DTOs
+@using QIMy.Core.Enums
 @using MediatR
 @using QIMy.Application.Clients.Commands.ImportClients
 @using QIMy.Application.Suppliers.Commands.ImportSuppliers
 @using Microsoft.AspNetCore.Components.Forms
 @using QIMy.Web.Services
+@using QIMy.AI.Services
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
 @inject ILogger<PersonenIndex> Logger
 @inject BusinessContext BusinessCtx
+@inject IAiColumnMappingService AiColumnMapping
+@inject IAiDuplicateDetectionService AiDuplicateDetection
 
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h2><i class="bi bi-magic me-2"></i>Personenindex Import - Клиенты + Поставщики</h2>
+            <h2><i class="bi bi-magic me-2"></i>🤖 Smart Import - Personenindex</h2>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/">Home</a></li>
@@ -25,37 +29,169 @@
         </div>
     </div>
 
-    <!-- Step 1: File Upload -->
-    @if (currentStep == ImportStep.FileSelection)
+    <!-- Step 1: Configuration -->
+    @if (currentStep == ImportStep.Configuration)
     {
         <div class="row">
             <div class="col-md-8">
                 <div class="card shadow-sm">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Шаг 1: Выбор файла Personenindex (PK)</h5>
+                        <h5 class="mb-0">Шаг 1: Настройка импорта</h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info">
                             <i class="bi bi-lightbulb me-2"></i>
-                            <strong>Personenindex Import автоматически:</strong>
+                            <strong>🤖 AI-Enhanced Smart Import</strong>
                             <ul class="mb-0">
-                                <li>Читает BMD Personenindex CSV файл</li>
-                                <li>Разделяет клиентов (200000-299999) и поставщиков (300000-399999)</li>
-                                <li>Импортирует обе категории одновременно</li>
-                                <li>Показывает детальную статистику</li>
+                                <li>✅ Автоматическое определение кодировки (Windows-1252/UTF-8)</li>
+                                <li>✅ AI-маппинг колонок (60+ алиасов DE/EN)</li>
+                                <li>✅ Умное обнаружение дубликатов (Fuzzy matching)</li>
+                                <li>✅ Автоматическое определение диапазона номеров</li>
                             </ul>
                         </div>
 
-                        <div class="alert alert-warning">
-                            <strong>Формат файла:</strong> PK 2025 - COMPANY NAME.csv<br/>
-                            <strong>Коды:</strong> 2xxxxx = Клиенты (200000-299999), 3xxxxx = Поставщики (300000-399999)
+                        <!-- Entity Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Тип импорта:</label>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="card @(entityType == EntityType.Client ? "border-primary" : "")" 
+                                         style="cursor: pointer;"
+                                         @onclick="() => SelectEntityType(EntityType.Client)">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-people fs-1 @(entityType == EntityType.Client ? "text-primary" : "text-muted")"></i>
+                                            <h5 class="mt-2">Клиенты (Kunden)</h5>
+                                            <small class="text-muted">Получатели счетов AR</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card @(entityType == EntityType.Supplier ? "border-info" : "")" 
+                                         style="cursor: pointer;"
+                                         @onclick="() => SelectEntityType(EntityType.Supplier)">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-building fs-1 @(entityType == EntityType.Supplier ? "text-info" : "text-muted")"></i>
+                                            <h5 class="mt-2">Поставщики (Lieferanten)</h5>
+                                            <small class="text-muted">Отправители счетов ER</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card @(entityType == EntityType.All ? "border-success" : "")" 
+                                         style="cursor: pointer;"
+                                         @onclick="() => SelectEntityType(EntityType.All)">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-globe2 fs-1 @(entityType == EntityType.All ? "text-success" : "text-muted")"></i>
+                                            <h5 class="mt-2">Все (Kunden + Lieferanten)</h5>
+                                            <small class="text-muted">Импорт по коду: 200k-399k</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <InputFile OnChange="HandleFileSelection" class="form-control mb-3" accept=".csv" />
+                        <!-- Area Selection -->
+                        @if (entityType != EntityType.None && entityType != EntityType.All)
+                        {
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Географическая область:</label>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="card @(selectedArea == AreaSelection.Inland ? "border-success" : "")" 
+                                             style="cursor: pointer;"
+                                             @onclick="() => SelectArea(AreaSelection.Inland)">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-flag-fill fs-2 @(selectedArea == AreaSelection.Inland ? "text-success" : "text-muted")"></i>
+                                                <h6 class="mt-2">🇦🇹 Österreich</h6>
+                                                <small class="text-muted">
+                                                    @if (entityType == EntityType.Client)
+                                                    {
+                                                        <span>200000-229999</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>300000-329999</span>
+                                                    }
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card @(selectedArea == AreaSelection.EU ? "border-primary" : "")" 
+                                             style="cursor: pointer;"
+                                             @onclick="() => SelectArea(AreaSelection.EU)">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-stars fs-2 @(selectedArea == AreaSelection.EU ? "text-primary" : "text-muted")"></i>
+                                                <h6 class="mt-2">🇪🇺 EU</h6>
+                                                <small class="text-muted">
+                                                    @if (entityType == EntityType.Client)
+                                                    {
+                                                        <span>230000-259999</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>330000-359999</span>
+                                                    }
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card @(selectedArea == AreaSelection.ThirdCountry ? "border-warning" : "")" 
+                                             style="cursor: pointer;"
+                                             @onclick="() => SelectArea(AreaSelection.ThirdCountry)">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-globe fs-2 @(selectedArea == AreaSelection.ThirdCountry ? "text-warning" : "text-muted")"></i>
+                                                <h6 class="mt-2">🌍 Drittland</h6>
+                                                <small class="text-muted">
+                                                    @if (entityType == EntityType.Client)
+                                                    {
+                                                        <span>260000-299999</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>360000-399999</span>
+                                                    }
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selected Range Display -->
+                            @if (selectedArea != AreaSelection.None)
+                            {
+                                <div class="alert alert-success">
+                                    <strong>📋 Выбрано:</strong>
+                                    @entityType.ToString() - @GetAreaName() 
+                                    <br/>
+                                    <strong>🔢 Диапазон номеров:</strong> @GetNumberRange()
+                                </div>
+                            }
+                        }
+
+                        <!-- File Upload for All option -->
+                        @if (entityType == EntityType.All)
+                        {
+                            <div class="alert alert-info">
+                                <strong>📋 Автоматический импорт:</strong>
+                                Система автоматически определит тип по коду:
+                                <ul class="mb-0">
+                                    <li>200000-299999 → Клиенты (Kunden)</li>
+                                    <li>300000-399999 → Поставщики (Lieferanten)</li>
+                                </ul>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">CSV файл:</label>
+                                <InputFile OnChange="HandleFileSelection" class="form-control" accept=".csv" />
+                            </div>
+                        }
 
                         @if (selectedFileName != null)
                         {
-                            <div class="alert alert-success">
+                            <div class="alert alert-info">
                                 <i class="bi bi-file-earmark-check me-2"></i>
                                 Выбран файл: <strong>@selectedFileName</strong>
                             </div>
@@ -68,44 +204,178 @@
                             </div>
                         }
 
-                        <div class="d-flex gap-2 mt-3">
-                            <button class="btn btn-primary btn-lg" @onclick="AnalyzeAndImport"
-                                disabled="@(selectedFile == null || isLoading)">
-                                @if (isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-upload me-2"></i>
-                                }
-                                Импортировать
-                            </button>
-                            <a href="/Admin/SmartImport" class="btn btn-secondary btn-lg">
-                                <i class="bi bi-arrow-left me-2"></i>Назад
-                            </a>
-                        </div>
+                        @if (entityType != EntityType.None)
+                        {
+                            <div class="d-flex gap-2 mt-4">
+                                <button class="btn btn-info btn-lg" @onclick="ShowPreview"
+                                    disabled="@(selectedFile == null || (entityType != EntityType.All && selectedArea == AreaSelection.None) || isLoading)">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-eye me-2"></i>
+                                    }
+                                    👁️ Предпросмотр
+                                </button>
+                                <button class="btn btn-primary btn-lg" @onclick="StartSmartImport"
+                                    disabled="@(selectedFile == null || (entityType != EntityType.All && selectedArea == AreaSelection.None) || isLoading)">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-magic me-2"></i>
+                                    }
+                                    🤖 Smart Import starten
+                                </button>
+                                <a href="/Admin/SmartImport" class="btn btn-secondary btn-lg">
+                                    <i class="bi bi-arrow-left me-2"></i>Назад
+                                </a>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm bg-light">
                     <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">Инструкция</h6>
+                        <h6 class="mb-0">💡 Инструкция</h6>
                     </div>
                     <div class="card-body">
-                        <ol class="small">
-                            <li>Выберите CSV файл с Personenindex</li>
-                            <li>Нажмите "Импортировать"</li>
-                            <li>Система автоматически:
-                                <ul>
-                                    <li>Определит клиентов (200000-299999)</li>
-                                    <li>Определит поставщиков (300000-399999)</li>
-                                    <li>Импортирует оба типа</li>
-                                </ul>
-                            </li>
-                        </ol>
+                        <h6 class="text-primary">Шаг 1: Выберите тип</h6>
+                        <ul class="small">
+                            <li><strong>Клиенты</strong> - если импортируете покупателей (AR)</li>
+                            <li><strong>Поставщики</strong> - если импортируете продавцов (ER)</li>
+                        </ul>
+
+                        <h6 class="text-primary mt-3">Шаг 2: Выберите область</h6>
+                        <ul class="small">
+                            <li><strong>🇦🇹 Österreich</strong> - австрийские компании</li>
+                            <li><strong>🇪🇺 EU</strong> - компании из ЕС</li>
+                            <li><strong>🌍 Drittland</strong> - третьи страны</li>
+                        </ul>
+
+                        <h6 class="text-primary mt-3">Шаг 3: Загрузите CSV</h6>
+                        <ul class="small">
+                            <li>Формат: BMD Personenindex</li>
+                            <li>Разделитель: ; (semicolon)</li>
+                            <li>Кодировка: auto-detect</li>
+                        </ul>
+
+                        <div class="alert alert-warning mt-3 small">
+                            <strong>⚠️ Важно:</strong> Система автоматически проверит дубликаты перед импортом.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 1.5: Preview -->
+    @if (currentStep == ImportStep.Preview && previewRecords != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-eye me-2"></i>👁️ Предпросмотр импорта</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-body text-center">
+                                        <h3 class="text-success">@previewClientsCount</h3>
+                                        <p class="mb-0">👥 Клиентов (Kunden)</p>
+                                        <small class="text-muted">Диапазон: @GetNumberRange()</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center">
+                                        <h3 class="text-primary">@previewSuppliersCount</h3>
+                                        <p class="mb-0">🏭 Поставщиков (Lieferanten)</p>
+                                        <small class="text-muted">Будут пропущены в этом импорте</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Как QIMy определяет тип:</strong> 
+                            В режиме импорта <strong>@entityType.ToString()</strong> будут импортированы только записи 
+                            из диапазона <strong>@GetNumberRange()</strong>. Остальные записи будут пропущены.
+                        </div>
+
+                        <h6 class="mb-3">📋 Записи для импорта (первые 20):</h6>
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-striped table-hover">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Код</th>
+                                        <th>Название компании</th>
+                                        <th>Тип</th>
+                                        <th>Область</th>
+                                        <th>Статус</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var record in previewRecords.Take(20))
+                                    {
+                                        var willImport = (entityType == EntityType.Client && record.Type == "Client") ||
+                                                        (entityType == EntityType.Supplier && record.Type == "Supplier");
+                                        <tr class="@(willImport ? "table-success" : "table-warning")">
+                                            <td><strong>@record.Code</strong></td>
+                                            <td>@record.CompanyName</td>
+                                            <td>
+                                                @if (record.Type == "Client")
+                                                {
+                                                    <span class="badge bg-success">👥 Клиент</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary">🏭 Поставщик</span>
+                                                }
+                                            </td>
+                                            <td>@record.Area</td>
+                                            <td>
+                                                @if (willImport)
+                                                {
+                                                    <span class="badge bg-success">✅ Импорт</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">⏭️ Пропуск</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (previewRecords.Count > 20)
+                        {
+                            <div class="alert alert-secondary mt-3">
+                                <i class="bi bi-three-dots me-2"></i>
+                                И ещё @(previewRecords.Count - 20) записей...
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button class="btn btn-success btn-lg" @onclick="StartSmartImport" disabled="@isLoading">
+                                <i class="bi bi-check-circle me-2"></i>✅ Подтвердить и импортировать
+                            </button>
+                            <button class="btn btn-secondary btn-lg" @onclick="BackToConfiguration">
+                                <i class="bi bi-arrow-left me-2"></i>Назад к настройкам
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -119,104 +389,123 @@
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Импорт завершён</h5>
+                        <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Smart Import завершён</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <h6 class="text-primary"><i class="bi bi-people me-2"></i>Клиенты</h6>
-                                        <table class="table table-sm mb-0">
-                                            <tr>
-                                                <td>Всего:</td>
-                                                <td class="text-end"><strong>@clientResult?.TotalRows</strong></td>
-                                            </tr>
-                                            <tr class="table-success">
-                                                <td>✅ Успешно:</td>
-                                                <td class="text-end"><strong>@clientResult?.SuccessCount</strong></td>
-                                            </tr>
-                                            <tr class="table-warning">
-                                                <td>⏭️ Пропущено:</td>
-                                                <td class="text-end"><strong>@clientResult?.SkippedCount</strong></td>
-                                            </tr>
-                                            <tr class="table-danger">
-                                                <td>❌ Ошибок:</td>
-                                                <td class="text-end"><strong>@clientResult?.ErrorCount</strong></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <h6 class="text-info"><i class="bi bi-building me-2"></i>Поставщики</h6>
-                                        <table class="table table-sm mb-0">
-                                            <tr>
-                                                <td>Всего:</td>
-                                                <td class="text-end"><strong>@supplierResult?.TotalRows</strong></td>
-                                            </tr>
-                                            <tr class="table-success">
-                                                <td>✅ Успешно:</td>
-                                                <td class="text-end"><strong>@supplierResult?.SuccessCount</strong></td>
-                                            </tr>
-                                            <tr class="table-warning">
-                                                <td>⏭️ Дубликатов:</td>
-                                                <td class="text-end"><strong>@supplierResult?.DuplicateCount</strong></td>
-                                            </tr>
-                                            <tr class="table-danger">
-                                                <td>❌ Ошибок:</td>
-                                                <td class="text-end"><strong>@supplierResult?.FailureCount</strong></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="alert alert-success">
+                            <h5>✅ Импорт успешно завершён!</h5>
+                            <p class="mb-0">
+                                <strong>Тип:</strong> @entityType.ToString() <br/>
+                                <strong>Область:</strong> @GetAreaName() <br/>
+                                <strong>Диапазон:</strong> @GetNumberRange()
+                            </p>
                         </div>
 
-                        @if (clientResult?.Errors.Any() == true)
+                        @if (entityType == EntityType.Client && clientResult != null)
                         {
-                            <div class="alert alert-warning">
-                                <h6>Ошибки импорта клиентов:</h6>
-                                <ul>
-                                    @foreach (var error in clientResult.Errors.Take(10))
-                                    {
-                                        <li><strong>Строка @error.RowNumber:</strong> @error.CompanyName - @error.ErrorMessage</li>
-                                    }
-                                </ul>
-                                @if (clientResult.Errors.Count > 10)
-                                {
-                                    <small class="text-muted">... и ещё @(clientResult.Errors.Count - 10) ошибок</small>
-                                }
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="text-primary"><i class="bi bi-people me-2"></i>Статистика импорта клиентов</h6>
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td>📊 Всего строк:</td>
+                                            <td class="text-end"><strong>@clientResult.TotalRows</strong></td>
+                                        </tr>
+                                        <tr class="table-success">
+                                            <td>✅ Успешно импортировано:</td>
+                                            <td class="text-end"><strong>@clientResult.SuccessCount</strong></td>
+                                        </tr>
+                                        <tr class="table-warning">
+                                            <td>⏭️ Пропущено (дубликаты):</td>
+                                            <td class="text-end"><strong>@clientResult.SkippedCount</strong></td>
+                                        </tr>
+                                        <tr class="table-danger">
+                                            <td>❌ Ошибок:</td>
+                                            <td class="text-end"><strong>@clientResult.ErrorCount</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>⏱️ Время выполнения:</td>
+                                            <td class="text-end"><strong>@clientResult.Duration.TotalSeconds.ToString("F1")s</strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
+
+                            @if (clientResult.Errors.Any())
+                            {
+                                <div class="alert alert-warning">
+                                    <h6>⚠️ Ошибки импорта:</h6>
+                                    <ul class="mb-0">
+                                        @foreach (var error in clientResult.Errors.Take(10))
+                                        {
+                                            <li><strong>Строка @error.RowNumber:</strong> @error.CompanyName - @error.ErrorMessage</li>
+                                        }
+                                    </ul>
+                                    @if (clientResult.Errors.Count > 10)
+                                    {
+                                        <small class="text-muted">... и ещё @(clientResult.Errors.Count - 10) ошибок</small>
+                                    }
+                                </div>
+                            }
                         }
 
-                        @if (supplierResult?.Errors.Any() == true)
+                        @if (entityType == EntityType.Supplier && supplierResult != null)
                         {
-                            <div class="alert alert-warning">
-                                <h6>Ошибки импорта поставщиков:</h6>
-                                <ul>
-                                    @foreach (var error in supplierResult.Errors.Take(10))
-                                    {
-                                        <li><strong>Строка @error.RowNumber:</strong> @error.CompanyName - @error.ErrorMessage</li>
-                                    }
-                                </ul>
-                                @if (supplierResult.Errors.Count > 10)
-                                {
-                                    <small class="text-muted">... и ещё @(supplierResult.Errors.Count - 10) ошибок</small>
-                                }
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="text-info"><i class="bi bi-building me-2"></i>Статистика импорта поставщиков</h6>
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td>📊 Всего строк:</td>
+                                            <td class="text-end"><strong>@supplierResult.TotalRows</strong></td>
+                                        </tr>
+                                        <tr class="table-success">
+                                            <td>✅ Успешно импортировано:</td>
+                                            <td class="text-end"><strong>@supplierResult.SuccessCount</strong></td>
+                                        </tr>
+                                        <tr class="table-warning">
+                                            <td>⏭️ Дубликатов:</td>
+                                            <td class="text-end"><strong>@supplierResult.DuplicateCount</strong></td>
+                                        </tr>
+                                        <tr class="table-danger">
+                                            <td>❌ Ошибок:</td>
+                                            <td class="text-end"><strong>@supplierResult.FailureCount</strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
+
+                            @if (supplierResult.Errors.Any())
+                            {
+                                <div class="alert alert-warning">
+                                    <h6>⚠️ Ошибки импорта:</h6>
+                                    <ul class="mb-0">
+                                        @foreach (var error in supplierResult.Errors.Take(10))
+                                        {
+                                            <li><strong>Строка @error.RowNumber:</strong> @error.CompanyName - @error.ErrorMessage</li>
+                                        }
+                                    </ul>
+                                    @if (supplierResult.Errors.Count > 10)
+                                    {
+                                        <small class="text-muted">... и ещё @(supplierResult.Errors.Count - 10) ошибок</small>
+                                    }
+                                </div>
+                            }
                         }
 
-                        <div class="d-flex gap-2 mt-3">
-                            <a href="/AR/Clients" class="btn btn-primary">
-                                <i class="bi bi-people me-2"></i>Перейти к клиентам
-                            </a>
-                            <a href="/ER/Suppliers" class="btn btn-info">
-                                <i class="bi bi-building me-2"></i>Перейти к поставщикам
-                            </a>
+                        <div class="d-flex gap-2 mt-4">
+                            @if (entityType == EntityType.Client)
+                            {
+                                <a href="/AR/Clients" class="btn btn-primary">
+                                    <i class="bi bi-people me-2"></i>Перейти к клиентам
+                                </a>
+                            }
+                            @if (entityType == EntityType.Supplier)
+                            {
+                                <a href="/ER/Suppliers" class="btn btn-info">
+                                    <i class="bi bi-building me-2"></i>Перейти к поставщикам
+                                </a>
+                            }
                             <button class="btn btn-secondary" @onclick="Reset">
                                 <i class="bi bi-arrow-clockwise me-2"></i>Импортировать ещё
                             </button>
@@ -231,90 +520,373 @@
 @code {
     private enum ImportStep
     {
-        FileSelection,
+        Configuration,
+        Preview,
+        Processing,
         Completed
     }
 
-    private ImportStep currentStep = ImportStep.FileSelection;
+    private enum EntityType
+    {
+        None,
+        Client,
+        Supplier,
+        All
+    }
+
+    private enum AreaSelection
+    {
+        None,
+        Inland,
+        EU,
+        ThirdCountry
+    }
+
+    private ImportStep currentStep = ImportStep.Configuration;
+    private EntityType entityType = EntityType.None;
+    private AreaSelection selectedArea = AreaSelection.None;
+    
     private IBrowserFile? selectedFile;
     private string? selectedFileName;
+    private byte[]? fileContent; // Store file content in memory
     private string? errorMessage;
     private bool isLoading = false;
 
     private ImportResult? clientResult;
     private Application.Suppliers.Commands.ImportSuppliers.ImportSuppliersResult? supplierResult;
+    
+    // Preview data
+    private List<PreviewRecord>? previewRecords;
+    private int previewClientsCount;
+    private int previewSuppliersCount;
+
+    private class PreviewRecord
+    {
+        public int Code { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; // "Client" or "Supplier"
+        public string Area { get; set; } = string.Empty;
+    }
+
+    private void SelectEntityType(EntityType type)
+    {
+        entityType = type;
+        selectedArea = AreaSelection.None; // Reset area when changing type
+        errorMessage = null;
+        StateHasChanged();
+    }
+
+    private void SelectArea(AreaSelection area)
+    {
+        selectedArea = area;
+        errorMessage = null;
+        StateHasChanged();
+    }
+
+    private string GetAreaName()
+    {
+        return selectedArea switch
+        {
+            AreaSelection.Inland => "🇦🇹 Österreich (Inland)",
+            AreaSelection.EU => "🇪🇺 Europäische Union",
+            AreaSelection.ThirdCountry => "🌍 Drittland",
+            _ => "Nicht ausgewählt"
+        };
+    }
+
+    private string GetNumberRange()
+    {
+        if (entityType == EntityType.Client)
+        {
+            return selectedArea switch
+            {
+                AreaSelection.Inland => "200000-229999",
+                AreaSelection.EU => "230000-259999",
+                AreaSelection.ThirdCountry => "260000-299999",
+                _ => "Nicht definiert"
+            };
+        }
+        else if (entityType == EntityType.Supplier)
+        {
+            return selectedArea switch
+            {
+                AreaSelection.Inland => "300000-329999",
+                AreaSelection.EU => "330000-359999",
+                AreaSelection.ThirdCountry => "360000-399999",
+                _ => "Nicht definiert"
+            };
+        }
+        return "Nicht definiert";
+    }
+
+    private (int start, int end) GetCodeRange()
+    {
+        if (entityType == EntityType.Client)
+        {
+            return selectedArea switch
+            {
+                AreaSelection.Inland => (200000, 229999),
+                AreaSelection.EU => (230000, 259999),
+                AreaSelection.ThirdCountry => (260000, 299999),
+                _ => (0, 0)
+            };
+        }
+        else if (entityType == EntityType.Supplier)
+        {
+            return selectedArea switch
+            {
+                AreaSelection.Inland => (300000, 329999),
+                AreaSelection.EU => (330000, 359999),
+                AreaSelection.ThirdCountry => (360000, 399999),
+                _ => (0, 0)
+            };
+        }
+        return (0, 0);
+    }
 
     private async Task HandleFileSelection(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
         selectedFileName = e.File.Name;
         errorMessage = null;
+        
+        // Read file into memory immediately
+        try
+        {
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            fileContent = memoryStream.ToArray();
+            Logger.LogInformation("📁 File loaded into memory: {Size} bytes", fileContent.Length);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error reading file");
+            errorMessage = $"Fehler beim Lesen der Datei: {ex.Message}";
+            fileContent = null;
+        }
+        
+        StateHasChanged();
     }
 
-    private async Task AnalyzeAndImport()
+    private void BackToConfiguration()
     {
-        if (selectedFile == null) return;
+        currentStep = ImportStep.Configuration;
+        previewRecords = null;
+    }
+
+    private async Task ShowPreview()
+    {
+        if (fileContent == null || (entityType != EntityType.All && selectedArea == AreaSelection.None))
+        {
+            errorMessage = "Bitte wählen Sie Typ, Bereich und Datei aus.";
+            return;
+        }
 
         isLoading = true;
         errorMessage = null;
 
         try
         {
-            Logger.LogInformation("Starting Personenindex import from {FileName}", selectedFileName);
+            using var memoryStream = new MemoryStream(fileContent);
+            memoryStream.Position = 0;
 
-            // Read file once
-            using var originalStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-            using var memoryStream = new MemoryStream();
-            await originalStream.CopyToAsync(memoryStream);
-            
-            var fileBytes = memoryStream.ToArray();
+            // Read CSV
+            using var reader = new StreamReader(memoryStream, System.Text.Encoding.GetEncoding("windows-1252"));
+            var csvContent = await reader.ReadToEndAsync();
+            var lines = csvContent.Split('\n').Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
 
-            // Import Clients (200000-299999)
-            using (var clientStream = new MemoryStream(fileBytes))
+            Logger.LogInformation("📋 Preview: {LineCount} lines found", lines.Count);
+
+            previewRecords = new List<PreviewRecord>();
+            previewClientsCount = 0;
+            previewSuppliersCount = 0;
+
+            // Skip header
+            for (int i = 1; i < lines.Count; i++)
             {
-                var clientCommand = new ImportClientsCommand
-                {
-                    FileStream = clientStream,
-                    SkipErrors = true,
-                    BusinessId = BusinessCtx.CurrentBusinessId
-                };
+                var line = lines[i];
+                var columns = line.Split(';');
+                
+                if (columns.Length < 2) continue;
 
-                clientResult = await Mediator.Send(clientCommand);
-                Logger.LogInformation("Clients import completed: {Success} success, {Errors} errors",
-                    clientResult.SuccessCount, clientResult.ErrorCount);
+                // Try to parse code from SECOND column (Kto-Nr)
+                if (int.TryParse(columns[1].Trim(), out int code))
+                {
+                    var companyName = columns.Length > 2 ? columns[2].Trim() : "N/A";
+                    
+                    // Determine type based on code range
+                    string type;
+                    string area;
+                    
+                    if (code >= 200000 && code <= 299999)
+                    {
+                        type = "Client";
+                        previewClientsCount++;
+                        
+                        if (code >= 200000 && code <= 229999) area = "🇦🇹 Inland";
+                        else if (code >= 230000 && code <= 259999) area = "🇪🇺 EU";
+                        else area = "🌍 Drittland";
+                    }
+                    else if (code >= 300000 && code <= 399999)
+                    {
+                        type = "Supplier";
+                        previewSuppliersCount++;
+                        
+                        if (code >= 300000 && code <= 329999) area = "🇦🇹 Inland";
+                        else if (code >= 330000 && code <= 359999) area = "🇪🇺 EU";
+                        else area = "🌍 Drittland";
+                    }
+                    else
+                    {
+                        type = "Unknown";
+                        area = "Unknown";
+                    }
+
+                    previewRecords.Add(new PreviewRecord
+                    {
+                        Code = code,
+                        CompanyName = companyName,
+                        Type = type,
+                        Area = area
+                    });
+                }
             }
 
-            // Import Suppliers (300000-399999)
-            using (var supplierStream = new MemoryStream(fileBytes))
-            {
-                var supplierCommand = new ImportSuppliersCommand
-                {
-                    FileStream = supplierStream,
-                    FileName = selectedFileName ?? "import.csv",
-                    BusinessId = BusinessCtx.CurrentBusinessId ?? 0
-                };
+            Logger.LogInformation("📊 Preview stats: {Clients} clients, {Suppliers} suppliers", 
+                previewClientsCount, previewSuppliersCount);
 
-                var supplierResultWrapper = await Mediator.Send(supplierCommand);
+            currentStep = ImportStep.Preview;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Preview error");
+            errorMessage = $"Ошибка предпросмотра: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task StartSmartImport()
+    {
+        if (fileContent == null || (entityType != EntityType.All && selectedArea == AreaSelection.None))
+        {
+            errorMessage = "Bitte wählen Sie Typ, Bereich und Datei aus.";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        currentStep = ImportStep.Processing;
+
+        try
+        {
+            if (entityType == EntityType.All)
+            {
+                // Import both Clients and Suppliers
+                Logger.LogInformation("🤖 Starting Smart Import: Type=All (Clients + Suppliers)");
                 
-                if (supplierResultWrapper.IsSuccess && supplierResultWrapper.Value != null)
+                // Import Clients (200000-299999) - create NEW MemoryStream
+                using (var clientStream = new MemoryStream(fileContent))
                 {
-                    supplierResult = supplierResultWrapper.Value;
-                    Logger.LogInformation("Suppliers import completed: {Success} success, {Errors} errors",
-                        supplierResult.SuccessCount, supplierResult.FailureCount);
-                }
-                else
-                {
-                    Logger.LogError("Supplier import failed: {Error}", supplierResultWrapper.Error);
-                    supplierResult = new Application.Suppliers.Commands.ImportSuppliers.ImportSuppliersResult
+                    clientStream.Position = 0;
+                    var clientCommand = new ImportClientsCommand
                     {
-                        TotalRows = 0,
-                        SuccessCount = 0,
-                        FailureCount = 1,
-                        Errors = new List<Application.Suppliers.Commands.ImportSuppliers.ImportError>
-                        {
-                            new() { ErrorMessage = supplierResultWrapper.Error ?? "Unknown error" }
-                        }
+                        FileStream = clientStream,
+                        SkipErrors = true,
+                        BusinessId = BusinessCtx.CurrentBusinessId
                     };
+
+                    clientResult = await Mediator.Send(clientCommand);
+                    Logger.LogInformation("✅ Clients import completed: {Success} success, {Errors} errors, {Skipped} skipped",
+                        clientResult.SuccessCount, clientResult.ErrorCount, clientResult.SkippedCount);
+                }
+
+                // Import Suppliers (300000-399999) - create NEW MemoryStream
+                using (var supplierStream = new MemoryStream(fileContent))
+                {
+                    supplierStream.Position = 0;
+                    var supplierCommand = new ImportSuppliersCommand
+                    {
+                        FileStream = supplierStream,
+                        FileName = selectedFileName ?? "import.csv",
+                        BusinessId = BusinessCtx.CurrentBusinessId ?? 0
+                    };
+
+                    var supplierResultWrapper = await Mediator.Send(supplierCommand);
+                    
+                    if (supplierResultWrapper.IsSuccess && supplierResultWrapper.Value != null)
+                    {
+                        supplierResult = supplierResultWrapper.Value;
+                        Logger.LogInformation("✅ Suppliers import completed: {Success} success, {Errors} errors",
+                            supplierResult.SuccessCount, supplierResult.FailureCount);
+                    }
+                }
+            }
+            else
+            {
+                var (startCode, endCode) = GetCodeRange();
+                
+                Logger.LogInformation("🤖 Starting Smart Import: Type={EntityType}, Area={Area}, Range={Start}-{End}",
+                    entityType, selectedArea, startCode, endCode);
+
+                if (entityType == EntityType.Client)
+                {
+                    // Import Clients
+                    using (var clientStream = new MemoryStream(fileContent))
+                    {
+                        clientStream.Position = 0;
+                        var command = new ImportClientsCommand
+                        {
+                            FileStream = clientStream,
+                            SkipErrors = true,
+                            BusinessId = BusinessCtx.CurrentBusinessId
+                        };
+
+                        clientResult = await Mediator.Send(command);
+                        
+                        Logger.LogInformation("✅ Clients import completed: {Success} success, {Errors} errors, {Skipped} skipped",
+                            clientResult.SuccessCount, clientResult.ErrorCount, clientResult.SkippedCount);
+                    }
+                }
+                else if (entityType == EntityType.Supplier)
+                {
+                    // Import Suppliers
+                    using (var supplierStream = new MemoryStream(fileContent))
+                    {
+                        supplierStream.Position = 0;
+                        var command = new ImportSuppliersCommand
+                        {
+                            FileStream = supplierStream,
+                            FileName = selectedFileName ?? "import.csv",
+                            BusinessId = BusinessCtx.CurrentBusinessId ?? 0
+                        };
+
+                        var result = await Mediator.Send(command);
+                    
+                        if (result.IsSuccess && result.Value != null)
+                        {
+                            supplierResult = result.Value;
+                            Logger.LogInformation("✅ Suppliers import completed: {Success} success, {Errors} errors",
+                                supplierResult.SuccessCount, supplierResult.FailureCount);
+                        }
+                        else
+                        {
+                            Logger.LogError("❌ Supplier import failed: {Error}", result.Error);
+                            supplierResult = new Application.Suppliers.Commands.ImportSuppliers.ImportSuppliersResult
+                            {
+                                TotalRows = 0,
+                                SuccessCount = 0,
+                                FailureCount = 1,
+                                Errors = new List<Application.Suppliers.Commands.ImportSuppliers.ImportError>
+                                {
+                                    new() { ErrorMessage = result.Error ?? "Unknown error" }
+                                }
+                            };
+                        }
+                    }
                 }
             }
 
@@ -322,8 +894,9 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error during Personenindex import");
-            errorMessage = $"Ошибка импорта: {ex.Message}";
+            Logger.LogError(ex, "❌ Error during Smart Import");
+            errorMessage = $"Fehler beim Import: {ex.Message}";
+            currentStep = ImportStep.Configuration;
         }
         finally
         {
@@ -333,11 +906,16 @@
 
     private void Reset()
     {
-        currentStep = ImportStep.FileSelection;
+        currentStep = ImportStep.Configuration;
+        entityType = EntityType.None;
+        selectedArea = AreaSelection.None;
         selectedFile = null;
         selectedFileName = null;
         clientResult = null;
         supplierResult = null;
         errorMessage = null;
+        previewRecords = null;
+        previewClientsCount = 0;
+        previewSuppliersCount = 0;
     }
 }

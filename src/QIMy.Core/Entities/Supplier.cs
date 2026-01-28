@@ -6,6 +6,7 @@ namespace QIMy.Core.Entities;
 public class Supplier : BaseEntity
 {
     public int? BusinessId { get; set; }
+    public int SupplierCode { get; set; } // 300000-399999
     public string CompanyName { get; set; } = string.Empty;
     public string? ContactPerson { get; set; }
     public string? Email { get; set; }

@@ -9,6 +9,8 @@ public static class DependencyInjection
     {
         // AI Services
         services.AddScoped<IAiEncodingDetectionService, AiEncodingDetectionService>();
+        services.AddScoped<IAiColumnMappingService, AiColumnMappingService>();
+        services.AddScoped<IAiDuplicateDetectionService, AiDuplicateDetectionService>();
         
         // TODO: Add more AI services as they are implemented
         // services.AddScoped<IAiOcrService, AiOcrService>();

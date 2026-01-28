@@ -2,6 +2,7 @@
 @inject BusinessContext BusinessCtx
 @inject NavigationManager Nav
 @rendermode InteractiveServer
+@implements IDisposable
 
 <div class="d-flex align-items-center gap-2">
     <span class="text-muted small">Фирма:</span>
@@ -33,6 +34,20 @@
         await BusinessCtx.InitializeAsync();
         businesses = await BusinessCtx.GetUserBusinessesAsync();
         selectedId = BusinessCtx.CurrentBusinessId ?? (businesses.Count > 0 ? businesses[0].Id : (int?)null);
+        
+        // Subscribe to business changes from other components
+        BusinessCtx.Changed += OnBusinessContextChanged;
+    }
+
+    private void OnBusinessContextChanged()
+    {
+        selectedId = BusinessCtx.CurrentBusinessId;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        BusinessCtx.Changed -= OnBusinessContextChanged;
     }
 
     private async Task OnBusinessChanged(ChangeEventArgs e)
@@ -41,7 +56,9 @@
         {
             selectedId = id;
             await BusinessCtx.SetBusinessAsync(id);
-            StateHasChanged();
+            
+            // Force page reload to clear all cached data
+            Nav.NavigateTo(Nav.Uri, forceLoad: true);
         }
     }
 

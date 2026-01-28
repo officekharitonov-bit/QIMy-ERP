@@ -54,6 +54,27 @@ public class ImportSuppliersCommandHandler : IRequestHandler<ImportSuppliersComm
 
                 try
                 {
+                    // Parse Supplier Code
+                    if (!int.TryParse(record.SupplierCode, out var supplierCode))
+                    {
+                        result.Errors.Add(new ImportError
+                        {
+                            RowNumber = rowNumber,
+                            CompanyName = record.CompanyName ?? "",
+                            ErrorMessage = $"Invalid supplier code: '{record.SupplierCode}'"
+                        });
+                        result.FailureCount++;
+                        continue;
+                    }
+
+                    // 🚫 FILTER: Skip client codes (200000-299999)
+                    if (supplierCode >= 200000 && supplierCode <= 299999)
+                    {
+                        _logger.LogDebug("⏩ Строка {RowNumber}: Код {SupplierCode} - это клиент, пропускаем",
+                            rowNumber, supplierCode);
+                        continue; // Don't count as error, just skip
+                    }
+
                     // Basic validation
                     if (string.IsNullOrWhiteSpace(record.CompanyName))
                     {
@@ -89,6 +110,7 @@ public class ImportSuppliersCommandHandler : IRequestHandler<ImportSuppliersComm
                     var supplier = new Supplier
                     {
                         BusinessId = request.BusinessId,
+                        SupplierCode = supplierCode, // NOW SET!
                         CompanyName = record.CompanyName,
                         ContactPerson = record.ContactPerson,
                         Email = record.Email,
@@ -96,7 +118,7 @@ public class ImportSuppliersCommandHandler : IRequestHandler<ImportSuppliersComm
                         Address = record.Address,
                         City = record.City,
                         PostalCode = record.PostalCode,
-                        Country = record.Country,
+                        Country = record.Country ?? "Österreich",
                         TaxNumber = record.TaxNumber,
                         VatNumber = record.VatNumber,
                         BankAccount = record.BankAccount,
@@ -145,6 +167,7 @@ public class ImportSuppliersCommandHandler : IRequestHandler<ImportSuppliersComm
 
 public class SupplierCsvRecord
 {
+    public string SupplierCode { get; set; } = string.Empty; // Kto-Nr (Column 1)
     public string CompanyName { get; set; } = string.Empty;
     public string? ContactPerson { get; set; }
     public string? Email { get; set; }
@@ -162,16 +185,17 @@ public sealed class SupplierCsvMap : ClassMap<SupplierCsvRecord>
 {
     public SupplierCsvMap()
     {
-        Map(m => m.CompanyName).Name("CompanyName", "Company", "Name", "Firma");
-        Map(m => m.ContactPerson).Name("ContactPerson", "Contact", "Kontakt");
-        Map(m => m.Email).Name("Email", "E-Mail");
-        Map(m => m.Phone).Name("Phone", "Telefon", "Tel");
-        Map(m => m.Address).Name("Address", "Adresse");
-        Map(m => m.City).Name("City", "Stadt", "Ort");
-        Map(m => m.PostalCode).Name("PostalCode", "PLZ", "Zip");
-        Map(m => m.Country).Name("Country", "Land");
-        Map(m => m.TaxNumber).Name("TaxNumber", "Steuernummer", "TaxNo");
-        Map(m => m.VatNumber).Name("VatNumber", "UID", "VAT", "USt-IdNr");
-        Map(m => m.BankAccount).Name("BankAccount", "IBAN", "Bank");
+        Map(m => m.SupplierCode).Index(1); // Column 1: Kto-Nr
+        Map(m => m.CompanyName).Index(2); // Column 2: Nachname
+        Map(m => m.ContactPerson).Name("ContactPerson", "Contact", "Kontakt").Optional();
+        Map(m => m.Email).Name("Email", "E-Mail").Optional();
+        Map(m => m.Phone).Name("Phone", "Telefon", "Tel").Optional();
+        Map(m => m.Address).Name("Address", "Adresse").Optional();
+        Map(m => m.City).Name("City", "Stadt", "Ort").Optional();
+        Map(m => m.PostalCode).Name("PostalCode", "PLZ", "Zip").Optional();
+        Map(m => m.Country).Index(3); // Column 3: Land
+        Map(m => m.TaxNumber).Name("TaxNumber", "Steuernummer", "TaxNo").Optional();
+        Map(m => m.VatNumber).Name("VatNumber", "UID", "VAT", "USt-IdNr").Optional();
+        Map(m => m.BankAccount).Name("BankAccount", "IBAN", "Bank").Optional();
     }
 }

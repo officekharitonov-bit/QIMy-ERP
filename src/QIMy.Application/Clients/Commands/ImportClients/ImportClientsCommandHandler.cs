@@ -107,6 +107,15 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                     continue;
                 }
 
+                // 🚫 FILTER: Skip supplier codes (300000-399999)
+                if (clientCode >= 300000 && clientCode <= 399999)
+                {
+                    _logger.LogDebug("⏩ Строка {RowNumber}: Код {ClientCode} - это поставщик, пропускаем",
+                        dto.RowNumber, clientCode);
+                    result.SkippedCount++;
+                    continue;
+                }
+
                 // Check for duplicates in current import
                 if (existingCodes.Contains(clientCode))
                 {
