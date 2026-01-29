@@ -21,6 +21,15 @@
             </h3>
         </div>
         <div class="col-auto">
+            @if (selectedSuppliers.Any())
+            {
+                <button type="button" class="btn btn-danger me-2" @onclick="DeleteSelected">
+                    <i class="bi bi-trash me-1"></i> Удалить (@selectedSuppliers.Count)
+                </button>
+                <button type="button" class="btn btn-secondary me-2" @onclick="() => selectedSuppliers.Clear()">
+                    <i class="bi bi-x-circle me-1"></i> Отменить
+                </button>
+            }
             <a href="/er/suppliers/import" class="btn btn-info me-2">
                 <i class="bi bi-upload"></i> Импорт CSV
             </a>
@@ -56,6 +65,10 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                checked="@(suppliers.Any() && selectedSuppliers.Count == suppliers.Count)" />
+                        </th>
                         <th>ID</th>
                         <th>Название</th>
                         <th>Контакт</th>
@@ -69,7 +82,12 @@
                 <tbody>
                     @foreach (var supplier in suppliers)
                     {
-                        <tr>
+                        <tr class="@(selectedSuppliers.Contains(supplier.Id) ? "table-active" : "")">
+                            <td>
+                                <input type="checkbox" class="form-check-input"
+                                    checked="@selectedSuppliers.Contains(supplier.Id)"
+                                    @onchange="() => ToggleSelect(supplier.Id)" />
+                            </td>
                             <td><code>@supplier.Id</code></td>
                             <td>
                                 <strong>@supplier.CompanyName</strong>
@@ -127,6 +145,7 @@
     private List<SupplierDto> suppliers = new();
     private bool isLoading = true;
     private string? errorMessage;
+    private HashSet<int> selectedSuppliers = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -182,6 +201,45 @@
             {
                 await JS.InvokeVoidAsync("alert", $"Ошибка удаления: {result.Error}");
             }
+        }
+    }
+
+    private void ToggleSelect(int id)
+    {
+        if (selectedSuppliers.Contains(id))
+            selectedSuppliers.Remove(id);
+        else
+            selectedSuppliers.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool?)e.Value == true)
+            selectedSuppliers = suppliers.Select(s => s.Id).ToHashSet();
+        else
+            selectedSuppliers.Clear();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (!selectedSuppliers.Any()) return;
+
+        if (await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить {selectedSuppliers.Count} поставщик(ов)?"))
+        {
+            var errors = new List<string>();
+            foreach (var id in selectedSuppliers.ToList())
+            {
+                var command = new DeleteSupplierCommand(id);
+                var result = await Mediator.Send(command);
+                if (!result.IsSuccess)
+                    errors.Add($"ID {id}: {result.Error}");
+            }
+
+            selectedSuppliers.Clear();
+            await LoadSuppliers();
+
+            if (errors.Any())
+                errorMessage = $"Удалено с ошибками:\n{string.Join("\n", errors)}";
         }
     }
 }

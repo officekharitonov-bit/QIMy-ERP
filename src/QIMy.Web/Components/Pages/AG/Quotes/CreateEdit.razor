@@ -65,7 +65,8 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Номер предложения</label>
-                            <input type="text" class="form-control" @bind="quoteNumber" placeholder="Оставьте пустым для автогенерации" />
+                            <input type="text" class="form-control" @bind="quoteNumber"
+                                placeholder="Оставьте пустым для автогенерации" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Статус</label>
@@ -115,25 +116,31 @@
                                     {
                                         <tr>
                                             <td>
-                                                <select class="form-select form-select-sm" @onchange="(ChangeEventArgs e) => SelectProduct(item, Convert.ToInt32(e.Value ?? 0))">
+                                                <select class="form-select form-select-sm"
+                                                    @onchange="(ChangeEventArgs e) => SelectProduct(item, Convert.ToInt32(e.Value ?? 0))">
                                                     <option value="0">-- Выберите услугу --</option>
                                                     @foreach (var product in products)
                                                     {
                                                         <option value="@product.Id" selected="@(item.ProductId == product.Id)">
-                                                            @product.Name @(string.IsNullOrEmpty(product.SKU) ? "" : $"({product.SKU})")
+                                                            @product.Name @(string.IsNullOrEmpty(product.SKU) ? "" :
+                                                            $"({product.SKU})")
                                                         </option>
                                                     }
                                                 </select>
-                                                <input type="text" class="form-control form-control-sm mt-1" @bind="item.Description" placeholder="Описание (опционально)" />
+                                                <input type="text" class="form-control form-control-sm mt-1"
+                                                    @bind="item.Description" placeholder="Описание (опционально)" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" @bind="item.Quantity" step="0.01" />
+                                                <input type="number" class="form-control form-control-sm text-end"
+                                                    @bind="item.Quantity" step="0.01" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" @bind="item.UnitPrice" step="0.01" />
+                                                <input type="number" class="form-control form-control-sm text-end"
+                                                    @bind="item.UnitPrice" step="0.01" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" @bind="item.TaxRatePercent" step="0.01" />
+                                                <input type="number" class="form-control form-control-sm text-end"
+                                                    @bind="item.TaxRatePercent" step="0.01" />
                                             </td>
                                             <td class="text-end">
                                                 <strong>@CalculateItemTotal(item).ToString("N2") €</strong>

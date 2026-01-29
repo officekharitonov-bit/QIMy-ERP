@@ -23,7 +23,7 @@ public class GetAllAccountsQueryHandler : IRequestHandler<GetAllAccountsQuery, I
     {
         _logger.LogInformation("Getting all accounts");
 
-        var accounts = await _unitOfWork.Accounts.GetAllAsync(cancellationToken);
+        var accounts = await _unitOfWork.Accounts.GetAllWithIncludesAsync(cancellationToken);
 
         var accountDtos = new List<AccountDto>();
 

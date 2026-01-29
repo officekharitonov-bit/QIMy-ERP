@@ -5,7 +5,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 
-var cs = Environment.GetEnvironmentVariable("QIMy_Azure_ConnectionString") ?? 
+var cs = Environment.GetEnvironmentVariable("QIMy_Azure_ConnectionString") ??
          "Server=tcp:qimy-accounting.database.windows.net,1433;Database=QImyDB;User ID=qimyadmin;Password=P@ssw0rd2024!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
 
 var options = new DbContextOptionsBuilder<DbContext>()
@@ -17,12 +17,12 @@ using var context = new DbContext(options);
 Console.WriteLine("\n🔍 Checking client 230008 across all businesses:\n");
 
 var sql = @"
-SELECT 
-    c.Id, 
-    c.BusinessId, 
+SELECT
+    c.Id,
+    c.BusinessId,
     b.CompanyName as BusinessName,
-    c.ClientCode, 
-    c.CompanyName as ClientName, 
+    c.ClientCode,
+    c.CompanyName as ClientName,
     c.VatNumber,
     c.CreatedAt
 FROM Clients c

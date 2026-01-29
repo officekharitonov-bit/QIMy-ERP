@@ -4,12 +4,15 @@
 @using QIMy.Application.Products.Commands.CreateProduct
 @using QIMy.Application.Products.Commands.UpdateProduct
 @using QIMy.Application.Products.Queries.GetAllProducts
+@using QIMy.AI.Services
 @using MediatR
 @using QIMy.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject BusinessContext BusinessCtx
+@inject IAiEncodingDetectionService AiEncoding
+@inject ILogger<Index> Logger
 @rendermode InteractiveServer
 
 <PageTitle>Products</PageTitle>
@@ -33,6 +36,12 @@
                 Update existing (match by SKU)
             </label>
         </div>
+        @if (selectedProducts.Any())
+        {
+            <button class="btn btn-danger ms-auto" @onclick="DeleteSelected">
+                <i class="bi bi-trash"></i> Удалить выбранные (@selectedProducts.Count)
+            </button>
+        }
     </div>
     <div class="px-3 pb-2 text-muted">
         Формат CSV: <code>SKU;Name;Description;Price;UnitId;TaxRateId;IsService;StockQuantity</code>
@@ -55,6 +64,10 @@ else
         <table class="table table-striped table-hover">
             <thead class="table-dark">
                 <tr>
+                    <th style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                            checked="@(products.Any() && selectedProducts.Count == products.Count)" />
+                    </th>
                     <th>SKU</th>
                     <th>Name</th>
                     <th>Description</th>
@@ -70,6 +83,10 @@ else
                 @foreach (var product in products)
                 {
                     <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input" checked="@selectedProducts.Contains(product.Id)"
+                                @onchange="() => ToggleSelect(product.Id)" />
+                        </td>
                         <td><strong>@product.SKU</strong></td>
                         <td>@product.Name</td>
                         <td>@product.Description</td>
@@ -105,6 +122,7 @@ else
 @code {
     private List<ProductDto>? products;
     private bool updateExisting = true;
+    private HashSet<int> selectedProducts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,6 +144,45 @@ else
         };
         var result = await Mediator.Send(query);
         products = result.OrderBy(x => x.Name).ToList();
+    }
+
+    private void ToggleSelect(int id)
+    {
+        if (selectedProducts.Contains(id))
+            selectedProducts.Remove(id);
+        else
+            selectedProducts.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool?)e.Value == true)
+            selectedProducts = products!.Select(p => p.Id).ToHashSet();
+        else
+            selectedProducts.Clear();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (!selectedProducts.Any()) return;
+
+        if (await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить {selectedProducts.Count} товар(ов)?"))
+        {
+            var errors = new List<string>();
+            foreach (var id in selectedProducts.ToList())
+            {
+                var command = new DeleteProductCommand(id);
+                var result = await Mediator.Send(command);
+                if (!result.IsSuccess)
+                    errors.Add($"ID {id}: {result.Error}");
+            }
+
+            selectedProducts.Clear();
+            await LoadData();
+
+            if (errors.Any())
+                await JS.InvokeVoidAsync("alert", $"Удалено с ошибками:\n{string.Join("\n", errors)}");
+        }
     }
 
     private async Task DeleteProduct(int id)
@@ -169,7 +226,9 @@ else
             sb.AppendLine($"{sku};{name};{desc};{price};{unitId};{taxId};{isService};{stock}");
         }
 
-        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        // Add UTF-8 BOM for proper encoding detection
+        var utf8WithBom = new System.Text.UTF8Encoding(true);
+        var bytes = utf8WithBom.GetBytes(sb.ToString());
         var base64 = Convert.ToBase64String(bytes);
         var fileName = $"products-{DateTime.UtcNow:yyyyMMddHHmmss}.csv";
         await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
@@ -182,8 +241,18 @@ else
             var file = e.File;
             if (file == null) return;
 
-            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            using var reader = new StreamReader(stream);
+            // BrowserFileStream doesn't support Position, so copy to MemoryStream first
+            using var browserStream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            // 🤖 AI-enhanced encoding detection
+            var encoding = await DetectEncodingAsync(memoryStream);
+            memoryStream.Position = 0; // Reset after detection
+            Logger.LogInformation("✅ Кодировка определена: {EncodingName}", encoding.EncodingName);
+
+            using var reader = new StreamReader(memoryStream, encoding);
             var content = await reader.ReadToEndAsync();
             if (string.IsNullOrWhiteSpace(content)) return;
 
@@ -207,20 +276,25 @@ else
                 // optional
                 int? unitId = null; if (parts.Length > 4 && int.TryParse(parts[4].Trim(), out var u)) unitId = u;
                 int? taxRateId = null; if (parts.Length > 5 && int.TryParse(parts[5].Trim(), out var t)) taxRateId = t;
-                bool isService = false; if (parts.Length > 6) isService = parts[6].Trim() == "1" || parts[6].Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+                bool isService = false; if (parts.Length > 6) isService = parts[6].Trim() == "1" || parts[6].Trim().Equals("true",
+                StringComparison.OrdinalIgnoreCase);
                 int stock = 0; if (parts.Length > 7 && int.TryParse(parts[7].Trim(), out var s)) stock = s;
 
-                if (!decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var price))
+                if (!decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var price))
                 {
                     // try RU/DE cultures
-                    if (!decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, new System.Globalization.CultureInfo("ru-RU"), out price))
-                        decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, new System.Globalization.CultureInfo("de-DE"), out price);
+                    if (!decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, new System.Globalization.CultureInfo("ru-RU"),
+                    out price))
+                        decimal.TryParse(priceStr, System.Globalization.NumberStyles.Float, new System.Globalization.CultureInfo("de-DE"), out
+                        price);
                 }
 
                 if (updateExisting)
                 {
                     // Try find existing by SKU in loaded list first
-                    var existing = products?.FirstOrDefault(p => string.Equals(p.SKU ?? string.Empty, sku, StringComparison.OrdinalIgnoreCase));
+                    var existing = products?.FirstOrDefault(p => string.Equals(p.SKU ?? string.Empty, sku,
+                    StringComparison.OrdinalIgnoreCase));
                     if (existing != null)
                     {
                         var cmd = new UpdateProductCommand
@@ -280,5 +354,114 @@ else
         {
             await JS.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
         }
+    }
+
+    private async Task<System.Text.Encoding> DetectEncodingAsync(Stream stream)
+    {
+        Logger.LogInformation("🤖 AI Encoding Detection начат...");
+
+        try
+        {
+            var detectionResult = await AiEncoding.DetectEncodingAsync(stream);
+
+            Logger.LogInformation(
+            "🤖 AI определил кодировку: {Encoding} (Confidence: {Confidence:P}, Method: {Method})",
+            detectionResult.Encoding.EncodingName,
+            detectionResult.Confidence,
+            detectionResult.DetectionMethod);
+
+            if (detectionResult.Alternatives.Any())
+            {
+                Logger.LogDebug("Альтернативные варианты: {Alternatives}",
+                string.Join(", ", detectionResult.Alternatives
+                .Select(a => $"{a.Encoding.EncodingName} ({a.Confidence:P})")));
+            }
+
+            // Log warning if confidence is low
+            if (detectionResult.Confidence < 0.7m)
+            {
+                Logger.LogWarning(
+                "⚠️ Низкий confidence score ({Confidence:P}). Рекомендуется проверить результат.",
+                detectionResult.Confidence);
+            }
+
+            return detectionResult.Encoding;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка AI encoding detection, использую fallback");
+
+            // Fallback to old method
+            return await DetectEncodingFallbackAsync(stream);
+        }
+    }
+
+    private async Task<System.Text.Encoding> DetectEncodingFallbackAsync(Stream stream)
+    {
+        // For BrowserFileStream, copy to memory first since Position is not supported
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+
+        // Read first 256 bytes for analysis
+        var buffer = new byte[256];
+        var bytesRead = await memoryStream.ReadAsync(buffer, 0, buffer.Length);
+        memoryStream.Position = 0;
+
+        if (bytesRead < 4) return System.Text.Encoding.UTF8;
+
+        // Check for UTF-8 BOM (EF BB BF)
+        if (bytesRead >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
+        {
+            return System.Text.Encoding.UTF8;
+        }
+
+        // Check for UTF-16 LE BOM (FF FE)
+        if (bytesRead >= 2 && buffer[0] == 0xFF && buffer[1] == 0xFE)
+        {
+            return System.Text.Encoding.Unicode;
+        }
+
+        // Check for UTF-16 BE BOM (FE FF)
+        if (bytesRead >= 2 && buffer[0] == 0xFE && buffer[1] == 0xFF)
+        {
+            return System.Text.Encoding.BigEndianUnicode;
+        }
+
+        // Heuristic: Check for UTF-16 LE without BOM
+        // In UTF-16 LE, ASCII characters have pattern: [char] [00]
+        // Check if every second byte is 0x00 for first ~100 chars
+        int nullCount = 0;
+        int evenPositions = 0;
+        for (int i = 1; i < Math.Min(bytesRead, 200); i += 2)
+        {
+            evenPositions++;
+            if (buffer[i] == 0x00) nullCount++;
+        }
+        // If >80% of even positions are null bytes, it's likely UTF-16 LE
+        if (evenPositions > 0 && (double)nullCount / evenPositions > 0.8)
+        {
+            Logger.LogInformation("🔍 Detected UTF-16 LE without BOM (heuristic: {Ratio:P0})", (double)nullCount / evenPositions);
+            return System.Text.Encoding.Unicode;
+        }
+
+        // Heuristic: Check for UTF-16 BE without BOM
+        // In UTF-16 BE, ASCII characters have pattern: [00] [char]
+        nullCount = 0;
+        int oddPositions = 0;
+        for (int i = 0; i < Math.Min(bytesRead, 200); i += 2)
+        {
+            oddPositions++;
+            if (buffer[i] == 0x00) nullCount++;
+        }
+        // If >80% of odd positions are null bytes, it's likely UTF-16 BE
+        if (oddPositions > 0 && (double)nullCount / oddPositions > 0.8)
+        {
+            Logger.LogInformation("🔍 Detected UTF-16 BE without BOM (heuristic: {Ratio:P0})", (double)nullCount / oddPositions);
+            return System.Text.Encoding.BigEndianUnicode;
+        }
+
+        // Default to Windows-1252 (common for BMD/Austrian accounting software)
+        return System.Text.Encoding.GetEncoding("windows-1252");
     }
 }

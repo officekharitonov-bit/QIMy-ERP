@@ -11,6 +11,12 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Скидки</h2>
         <div>
+            @if (selectedIds.Any())
+            {
+                <button class="btn btn-danger me-2" @onclick="DeleteSelected">
+                    <i class="bi bi-trash"></i> Удалить выбранные (@selectedIds.Count)
+                </button>
+            }
             <a href="/admin/discounts/edit/0" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Добавить скидку
             </a>
@@ -36,6 +42,10 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th style="width: 50px;">
+                                    <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                        checked="@(selectedIds.Any() && selectedIds.Count == discounts.Count)" />
+                                </th>
                                 <th>Название</th>
                                 <th>Процент</th>
                                 <th>По умолчанию</th>
@@ -46,6 +56,11 @@
                             @foreach (var discount in discounts)
                             {
                                 <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input"
+                                            checked="@selectedIds.Contains(discount.Id)"
+                                            @onchange="() => ToggleSelect(discount.Id)" />
+                                    </td>
                                     <td>@discount.Name</td>
                                     <td>@discount.Percentage.ToString("0.##")%</td>
                                     <td>
@@ -77,6 +92,7 @@
 @code {
     private List<Discount> discounts = new();
     private bool isLoading = true;
+    private HashSet<int> selectedIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,12 +102,51 @@
     private async Task LoadData()
     {
         isLoading = true;
+        selectedIds.Clear();
         discounts = await DbContext.Discounts
         .Where(d => !d.IsDeleted)
         .OrderByDescending(d => d.IsDefault)
         .ThenBy(d => d.Name)
         .ToListAsync();
         isLoading = false;
+    }
+
+    private void ToggleSelect(int id)
+    {
+        if (selectedIds.Contains(id))
+            selectedIds.Remove(id);
+        else
+            selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool?)e.Value == true)
+            selectedIds = discounts.Select(d => d.Id).ToHashSet();
+        else
+            selectedIds.Clear();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (!selectedIds.Any()) return;
+
+        int deleted = 0;
+        foreach (var id in selectedIds.ToList())
+        {
+            var discount = await DbContext.Discounts.FindAsync(id);
+            if (discount != null)
+            {
+                discount.IsDeleted = true;
+                discount.UpdatedAt = DateTime.UtcNow;
+                deleted++;
+            }
+        }
+        if (deleted > 0)
+        {
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
     }
 
     private async Task DeleteDiscount(int id)

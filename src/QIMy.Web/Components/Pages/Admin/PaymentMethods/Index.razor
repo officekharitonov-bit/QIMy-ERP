@@ -1,20 +1,45 @@
 @page "/admin/payment-methods"
 @using QIMy.Infrastructure.Data
 @using Microsoft.EntityFrameworkCore
+@using QIMy.Core.Entities
+@using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
+@using QIMy.Web.Components.Shared
 @inject ApplicationDbContext Context
 @inject NavigationManager Navigation
+@inject BusinessContext BusinessContext
+@inject TemplateImportService ImportService
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Payment Methods</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>💳 Payment Methods</h3>
-    <a href="/admin/payment-methods/create" class="btn btn-success">➕ Добавить</a>
+    <div>
+        @if (selectedIds.Any())
+        {
+            <button class="btn btn-danger me-2" @onclick="DeleteSelected">
+                <i class="bi bi-trash"></i> Удалить выбранные (@selectedIds.Count)
+            </button>
+        }
+        @if (BusinessContext.CurrentBusinessId != 1)
+        {
+            <button class="btn btn-success me-2" @onclick="ShowTemplateSelector">
+                <i class="bi bi-download"></i> Из шаблона
+            </button>
+        }
+        <a href="/admin/payment-methods/create" class="btn btn-success">➕ Добавить</a>
+    </div>
 </div>
 
 <table class="table table-striped">
     <thead>
         <tr>
+            <th style="width: 50px;">
+                <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                    checked="@(selectedIds.Any() && selectedIds.Count == paymentMethods.Count)" />
+            </th>
             <th>Name</th>
             <th>Default</th>
             <th>Actions</th>
@@ -24,6 +49,10 @@
         @foreach (var item in paymentMethods)
         {
             <tr>
+                <td>
+                    <input type="checkbox" class="form-check-input" checked="@selectedIds.Contains(item.Id)"
+                        @onchange="() => ToggleSelect(item.Id)" />
+                </td>
                 <td>@item.Name</td>
                 <td>
                     @if (item.IsDefault)
@@ -40,8 +69,20 @@
     </tbody>
 </table>
 
+<TemplateSelector T="PaymentMethod" @ref="templateSelector" Items="@availableTemplateItems"
+    OnAddSelected="ImportFromTemplate" ColumnsDefinition="@paymentMethodColumns" />
+
 @code {
     private List<QIMy.Core.Entities.PaymentMethod> paymentMethods = new();
+    private HashSet<int> selectedIds = new();
+
+    private TemplateSelector<PaymentMethod>? templateSelector;
+    private List<PaymentMethod> availableTemplateItems = new();
+    private List<TemplateSelector<PaymentMethod>.ColumnDefinition<PaymentMethod>> paymentMethodColumns = new()
+{
+new() { Header = "Name", ValueGetter = x => x.Name ?? "" },
+new() { Header = "Default", ValueGetter = x => x.IsDefault ? "✓" : "" }
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -50,11 +91,50 @@
 
     private async Task LoadData()
     {
+        selectedIds.Clear();
         paymentMethods = await Context.PaymentMethods
         .Where(p => !p.IsDeleted)
         .OrderByDescending(p => p.IsDefault)
         .ThenBy(p => p.Name)
         .ToListAsync();
+    }
+
+    private void ToggleSelect(int id)
+    {
+        if (selectedIds.Contains(id))
+            selectedIds.Remove(id);
+        else
+            selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool?)e.Value == true)
+            selectedIds = paymentMethods.Select(p => p.Id).ToHashSet();
+        else
+            selectedIds.Clear();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (!selectedIds.Any()) return;
+
+        int deleted = 0;
+        foreach (var id in selectedIds.ToList())
+        {
+            var item = await Context.PaymentMethods.FindAsync(id);
+            if (item != null)
+            {
+                item.IsDeleted = true;
+                item.UpdatedAt = DateTime.UtcNow;
+                deleted++;
+            }
+        }
+        if (deleted > 0)
+        {
+            await Context.SaveChangesAsync();
+            await LoadData();
+        }
     }
 
     private async Task Delete(int id)
@@ -66,6 +146,31 @@
             item.UpdatedAt = DateTime.UtcNow;
             await Context.SaveChangesAsync();
             await LoadData();
+        }
+    }
+
+    private async Task ShowTemplateSelector()
+    {
+        availableTemplateItems = await
+        ImportService.GetAvailablePaymentMethodsAsync(BusinessContext.CurrentBusinessId ?? 0);
+        if (templateSelector != null)
+        {
+            await templateSelector.Show();
+        }
+    }
+
+    private async Task ImportFromTemplate(int[] selectedIds)
+    {
+        try
+        {
+            var result = await ImportService.AddPaymentMethodsFromTemplateAsync(BusinessContext.CurrentBusinessId ?? 0,
+            selectedIds);
+            await JS.InvokeVoidAsync("alert", $"Успешно импортировано {result} методов оплаты из шаблона");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
         }
     }
 }

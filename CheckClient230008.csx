@@ -8,7 +8,7 @@ using QIMy.Infrastructure.Data;
 using QIMy.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-var cs = Environment.GetEnvironmentVariable("QIMy_Azure_ConnectionString") ?? 
+var cs = Environment.GetEnvironmentVariable("QIMy_Azure_ConnectionString") ??
          "Server=tcp:qimy-accounting.database.windows.net,1433;Database=QImyDB;User ID=qimyadmin;Password=P@ssw0rd2024!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
 
 var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -44,7 +44,7 @@ if (clients.Count > 1)
 {
     Console.WriteLine($"⚠️  ПРОБЛЕМА: Клиент существует в {clients.Count} бизнесах!");
     Console.WriteLine("   При импорте BusinessId не был правильно установлен.");
-    
+
     Console.WriteLine("\n🔧 Businesses in system:");
     var businesses = await context.Businesses.ToListAsync();
     foreach (var b in businesses)

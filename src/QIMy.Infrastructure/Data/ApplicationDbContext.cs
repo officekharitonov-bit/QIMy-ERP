@@ -267,11 +267,18 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
                     $"Cross-business write attempt detected. CurrentBusinessId={currentBusinessId.Value}, EntityBusinessId={entry.Entity.BusinessId}, Entity={entry.Entity.GetType().Name}");
             }
 
-            // Prevent changing tenant ownership.
+            // Prevent changing tenant ownership (except for soft deletes).
             if (entry.State == EntityState.Modified)
             {
                 var businessIdProperty = entry.Property(nameof(IMustHaveBusiness.BusinessId));
-                if (businessIdProperty.IsModified)
+
+                // Check if entity has IsDeleted property and if it's being set to true
+                var isDeletedProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "IsDeleted");
+                bool isBeingDeleted = isDeletedProperty != null &&
+                                     isDeletedProperty.CurrentValue is bool deletedValue &&
+                                     deletedValue == true;
+
+                if (businessIdProperty.IsModified && !isBeingDeleted)
                 {
                     throw new InvalidOperationException(
                         $"Changing BusinessId is not allowed. Entity: {entry.Entity.GetType().Name}");

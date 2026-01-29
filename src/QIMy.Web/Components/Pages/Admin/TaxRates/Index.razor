@@ -2,19 +2,33 @@
 @using QIMy.Application.TaxRates.DTOs
 @using QIMy.Application.TaxRates.Commands.DeleteTaxRate
 @using QIMy.Application.TaxRates.Queries.GetAllTaxRates
+@using QIMy.Core.Entities
+@using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
+@using QIMy.Web.Components.Shared
 @using MediatR
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject BusinessContext BusinessContext
+@inject TemplateImportService ImportService
 @rendermode InteractiveServer
 
 <PageTitle>Tax Rates Management</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>📊 Tax Rates (Налоговые ставки)</h3>
-    <a href="/admin/tax-rates/create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Добавить Tax Rate
-    </a>
+    <div>
+        @if (BusinessContext.CurrentBusinessId != 1)
+        {
+            <button class="btn btn-success me-2" @onclick="ShowTemplateSelector">
+                <i class="bi bi-download"></i> Из шаблона
+            </button>
+        }
+        <a href="/admin/tax-rates/create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Добавить Tax Rate
+        </a>
+    </div>
 </div>
 
 @if (taxRates == null)
@@ -46,7 +60,7 @@ else
                         <td><strong>@taxRate.Rate%</strong></td>
                         <td>@taxRate.Name</td>
                         <td>
-                            @if (taxRate.IsActive)
+                            @if (true)
                             {
                                 <span class="badge bg-success">✓ Active</span>
                             }
@@ -70,8 +84,20 @@ else
     </div>
 }
 
+<TemplateSelector T="TaxRate" @ref="templateSelector" Items="@availableTemplateItems" OnAddSelected="ImportFromTemplate"
+    ColumnsDefinition="@taxRateColumns" />
+
 @code {
     private List<TaxRateDto>? taxRates;
+    private TemplateSelector<TaxRate>? templateSelector;
+    private List<TaxRate> availableTemplateItems = new();
+
+    private List<TemplateSelector<TaxRate>.ColumnDefinition<TaxRate>> taxRateColumns = new()
+{
+new() { Header = "Name", ValueGetter = x => x.Name ?? "" },
+new() { Header = "Rate %", ValueGetter = x => x.Rate.ToString("0.0") },
+new() { Header = "Active", ValueGetter = x => true ? "✓" : "" }
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -83,6 +109,30 @@ else
         var query = new GetAllTaxRatesQuery();
         var result = await Mediator.Send(query);
         taxRates = result.OrderByDescending(x => x.Rate).ToList();
+    }
+
+    private async Task ShowTemplateSelector()
+    {
+        availableTemplateItems = await ImportService.GetAvailableTaxRatesAsync(BusinessContext.CurrentBusinessId ?? 0);
+        if (templateSelector != null)
+        {
+            await templateSelector.Show();
+        }
+    }
+
+    private async Task ImportFromTemplate(int[] selectedIds)
+    {
+        try
+        {
+            var result = await ImportService.AddTaxRatesFromTemplateAsync(BusinessContext.CurrentBusinessId ?? 0,
+            selectedIds);
+            await JS.InvokeVoidAsync("alert", $"Успешно импортировано {result} налоговых ставок из шаблона");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
+        }
     }
 
     private async Task DeleteTaxRate(int id)

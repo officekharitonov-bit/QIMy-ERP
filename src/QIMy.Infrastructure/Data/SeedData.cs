@@ -13,9 +13,9 @@ public static class SeedData
         {
             business = new Business
             {
-                Name = "Default Company",
-                LegalName = "Default Company Ltd",
-                Email = "info@defaultcompany.com"
+                Name = "Шаблон",
+                LegalName = "Шаблон (Template)",
+                Email = "template@qimy.com"
             };
             await context.Businesses.AddAsync(business);
             await context.SaveChangesAsync();
@@ -30,7 +30,13 @@ public static class SeedData
             {
                 new ClientArea { Name = "Inländisch", Code = "1", Description = "Inland - Austria", BusinessId = businessId },
                 new ClientArea { Name = "EU", Code = "2", Description = "European Union", BusinessId = businessId },
-                new ClientArea { Name = "Ausländisch", Code = "3", Description = "Third Countries (Export)", BusinessId = businessId }
+                new ClientArea { Name = "Ausländisch", Code = "3", Description = "Third Countries (Export)", BusinessId = businessId },
+                new ClientArea { Name = "Deutschland", Code = "DE", Description = "Germany", BusinessId = businessId },
+                new ClientArea { Name = "Schweiz", Code = "CH", Description = "Switzerland", BusinessId = businessId },
+                new ClientArea { Name = "Großbritannien", Code = "GB", Description = "Great Britain", BusinessId = businessId },
+                new ClientArea { Name = "Benelux", Code = "BENELUX", Description = "Belgium, Netherlands, Luxembourg", BusinessId = businessId },
+                new ClientArea { Name = "Nordische Länder", Code = "NORDIC", Description = "Scandinavia region", BusinessId = businessId },
+                new ClientArea { Name = "Osteuropa", Code = "EASTEU", Description = "Poland, Czech Republic, Hungary", BusinessId = businessId }
             };
             await context.ClientAreas.AddRangeAsync(clientAreas);
             await context.SaveChangesAsync();
@@ -42,7 +48,12 @@ public static class SeedData
             var clientTypes = new[]
             {
                 new ClientType { Name = "B2B", Code = "1", Description = "Business to Business", BusinessId = businessId },
-                new ClientType { Name = "B2C", Code = "2", Description = "Business to Consumer", BusinessId = businessId }
+                new ClientType { Name = "B2C", Code = "2", Description = "Business to Consumer", BusinessId = businessId },
+                new ClientType { Name = "Regierung", Code = "GOV", Description = "Government agencies", BusinessId = businessId },
+                new ClientType { Name = "NGO", Code = "NGO", Description = "Non-profit organizations", BusinessId = businessId },
+                new ClientType { Name = "Einzelhandel", Code = "RETAIL", Description = "Retail customers", BusinessId = businessId },
+                new ClientType { Name = "Großhandel", Code = "WHSALE", Description = "Wholesale buyers", BusinessId = businessId },
+                new ClientType { Name = "Wiederverkäufer", Code = "RESELLER", Description = "Authorized resellers", BusinessId = businessId }
             };
             await context.ClientTypes.AddRangeAsync(clientTypes);
             await context.SaveChangesAsync();
@@ -122,7 +133,7 @@ public static class SeedData
         var reducedTaxRate13 = await context.TaxRates.IgnoreQueryFilters().FirstOrDefaultAsync(tr => tr.Rate == 13m);
         var zeroTaxRate = await context.TaxRates.IgnoreQueryFilters().FirstOrDefaultAsync(tr => tr.Rate == 0m);
 
-        if (!await context.Accounts.IgnoreQueryFilters().AnyAsync() && domesticArea != null)
+        if (!await context.Accounts.IgnoreQueryFilters().AnyAsync() && domesticArea != null && standardTaxRate != null)
         {
             var accounts = new[]
             {
@@ -225,11 +236,19 @@ public static class SeedData
             {
                 new Unit { Name = "Stück", ShortName = "Stk", BusinessId = businessId },
                 new Unit { Name = "KG", ShortName = "kg", BusinessId = businessId },
-                new Unit { Name = "Meter", ShortName = "m", BusinessId = businessId },
-                new Unit { Name = "Liter", ShortName = "l", BusinessId = businessId },
                 new Unit { Name = "Karton", ShortName = "Karton", BusinessId = businessId },
-                new Unit { Name = "Std", ShortName = "h", BusinessId = businessId },
-                new Unit { Name = "Pauschalbetrag", ShortName = "Pauschal", BusinessId = businessId }
+                new Unit { Name = "Liter", ShortName = "l", BusinessId = businessId },
+                new Unit { Name = "Meter", ShortName = "m", BusinessId = businessId },
+                new Unit { Name = "Pauschalbetrag", ShortName = "Pauschal", BusinessId = businessId },
+                new Unit { Name = "Tonne", ShortName = "t", BusinessId = businessId },
+                new Unit { Name = "Quadratmeter", ShortName = "m²", BusinessId = businessId },
+                new Unit { Name = "Kubikmeter", ShortName = "m³", BusinessId = businessId },
+                new Unit { Name = "Stunden", ShortName = "h", BusinessId = businessId },
+                new Unit { Name = "Tage", ShortName = "day", BusinessId = businessId },
+                new Unit { Name = "Box", ShortName = "box", BusinessId = businessId },
+                new Unit { Name = "Palette", ShortName = "pal", BusinessId = businessId },
+                new Unit { Name = "Set", ShortName = "set", BusinessId = businessId },
+                new Unit { Name = "Pieces", ShortName = "pcs", BusinessId = businessId }
             };
             await context.Units.AddRangeAsync(units);
             await context.SaveChangesAsync();
@@ -240,51 +259,21 @@ public static class SeedData
         {
             var currencies = new[]
             {
-                new Currency
-                {
-                    Code = "EUR",
-                    Name = "Euro",
-                    Symbol = "€",
-                    ExchangeRate = 1.0m,
-                    IsDefault = true,
-                    BusinessId = businessId
-                },
-                new Currency
-                {
-                    Code = "USD",
-                    Name = "US Dollar",
-                    Symbol = "$",
-                    ExchangeRate = 1.1m,
-                    IsDefault = false,
-                    BusinessId = businessId
-                },
-                new Currency
-                {
-                    Code = "RUB",
-                    Name = "Russian Ruble",
-                    Symbol = "₽",
-                    ExchangeRate = 0.01m,
-                    IsDefault = false,
-                    BusinessId = businessId
-                },
-                new Currency
-                {
-                    Code = "CHF",
-                    Name = "Swiss Franc",
-                    Symbol = "CHF",
-                    ExchangeRate = 1.05m,
-                    IsDefault = false,
-                    BusinessId = businessId
-                },
-                new Currency
-                {
-                    Code = "GBP",
-                    Name = "British Pound",
-                    Symbol = "£",
-                    ExchangeRate = 1.17m,
-                    IsDefault = false,
-                    BusinessId = businessId
-                }
+                new Currency { Code = "EUR", Name = "Euro", Symbol = "€", ExchangeRate = 1.0m, IsDefault = true, BusinessId = businessId },
+                new Currency { Code = "USD", Name = "US Dollar", Symbol = "$", ExchangeRate = 1.1m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "CHF", Name = "Swiss Franc", Symbol = "CHF", ExchangeRate = 1.05m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "GBP", Name = "British Pound", Symbol = "£", ExchangeRate = 1.17m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "RUB", Name = "Russian Ruble", Symbol = "₽", ExchangeRate = 0.01m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "PLN", Name = "Polish Zloty", Symbol = "zł", ExchangeRate = 0.25m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "CZK", Name = "Czech Koruna", Symbol = "Kč", ExchangeRate = 0.045m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "HUF", Name = "Hungarian Forint", Symbol = "Ft", ExchangeRate = 0.0028m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "SEK", Name = "Swedish Krona", Symbol = "kr", ExchangeRate = 0.1m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "NOK", Name = "Norwegian Krone", Symbol = "kr", ExchangeRate = 0.095m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "DKK", Name = "Danish Krone", Symbol = "kr", ExchangeRate = 0.135m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "JPY", Name = "Japanese Yen", Symbol = "¥", ExchangeRate = 0.0075m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "CNY", Name = "Chinese Yuan", Symbol = "¥", ExchangeRate = 0.15m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "AUD", Name = "Australian Dollar", Symbol = "A$", ExchangeRate = 0.72m, IsDefault = false, BusinessId = businessId },
+                new Currency { Code = "CAD", Name = "Canadian Dollar", Symbol = "C$", ExchangeRate = 0.8m, IsDefault = false, BusinessId = businessId }
             };
             await context.Currencies.AddRangeAsync(currencies);
             await context.SaveChangesAsync();
@@ -298,9 +287,14 @@ public static class SeedData
                 new PaymentMethod { Name = "Überweisung", IsDefault = true, BusinessId = businessId },
                 new PaymentMethod { Name = "Barzahlung", IsDefault = false, BusinessId = businessId },
                 new PaymentMethod { Name = "Kreditkarte", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Debitkarte", IsDefault = false, BusinessId = businessId },
                 new PaymentMethod { Name = "PayPal", IsDefault = false, BusinessId = businessId },
-                new PaymentMethod { Name = "Lastschrift", IsDefault = false, BusinessId = businessId },
-                new PaymentMethod { Name = "Scheck", IsDefault = false, BusinessId = businessId }
+                new PaymentMethod { Name = "Lastschrift (SEPA)", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Scheck", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Rechnung (30 Tage)", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Rechnung (14 Tage)", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Vorkasse", IsDefault = false, BusinessId = businessId },
+                new PaymentMethod { Name = "Nachnahme", IsDefault = false, BusinessId = businessId }
             };
             await context.PaymentMethods.AddRangeAsync(paymentMethods);
             await context.SaveChangesAsync();
@@ -315,12 +309,12 @@ public static class SeedData
     /// </summary>
     private static async Task SeedClientsAsync(ApplicationDbContext context, int businessId)
     {
-        if (await context.Clients.AnyAsync(c => !c.IsDeleted))
+        if (await context.Clients.IgnoreQueryFilters().AnyAsync(c => !c.IsDeleted))
             return;
 
-        var b2bType = await context.ClientTypes.FirstOrDefaultAsync(ct => ct.Name == "B2B");
-        var b2cType = await context.ClientTypes.FirstOrDefaultAsync(ct => ct.Name == "B2C");
-        var domesticArea = await context.ClientAreas.FirstOrDefaultAsync(ca => ca.Code == "1");
+        var b2bType = await context.ClientTypes.IgnoreQueryFilters().FirstOrDefaultAsync(ct => ct.Name == "B2B");
+        var b2cType = await context.ClientTypes.IgnoreQueryFilters().FirstOrDefaultAsync(ct => ct.Name == "B2C");
+        var domesticArea = await context.ClientAreas.IgnoreQueryFilters().FirstOrDefaultAsync(ca => ca.Code == "1");
 
         var clients = new List<Client>
         {

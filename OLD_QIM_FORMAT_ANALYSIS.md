@@ -1,6 +1,6 @@
 # OLD QIM FORMAT ANALYSIS - Import/Export Compatibility
 
-**Дата**: 29 января 2026  
+**Дата**: 29 января 2026
 **Цель**: Обеспечить совместимость QIMy с форматами старого QIM для импорта/экспорта инвойсов
 
 ---
@@ -88,7 +88,7 @@ INVOICE {InvoiceType}{InvoiceNumber} {ClientCompanyName} {ClientVatNumber}.pdf
 
 ### PDF Содержание (предполагаемое):
 1. **Header**: Логотип, реквизиты BKHA GmbH
-2. **Invoice Info**: 
+2. **Invoice Info**:
    - Invoice Number: AR2026010001
    - Invoice Date: 14.01.2026
    - Due Date: (Payment Terms дней)
@@ -97,11 +97,11 @@ INVOICE {InvoiceType}{InvoiceNumber} {ClientCompanyName} {ClientVatNumber}.pdf
    - Address
    - VAT Number: SK2120677625
 4. **Line Items**: Описание услуг/товаров
-5. **Summary**: 
+5. **Summary**:
    - Subtotal (Netto)
    - VAT 0% (innergemeinschaftliche Lieferung)
    - Total (Brutto): 16,000.00 EUR
-6. **Footer**: 
+6. **Footer**:
    - Bank details
    - Tax notes (UID-Nr, etc.)
    - Payment terms
@@ -139,7 +139,7 @@ INVOICE {InvoiceType}{InvoiceNumber} {ClientCompanyName} {ClientVatNumber}.pdf
 public class BmdInvoiceImportService
 {
     public async Task<BmdImportResult> ImportFromBmdCsvAsync(
-        Stream csvStream, 
+        Stream csvStream,
         int businessId)
     {
         // 1. Parse CSV with German format
@@ -163,7 +163,7 @@ public class BmdInvoiceImportService
 **Новый метод**:
 ```csharp
 public static byte[] GeneratePdfWithBmdNaming(
-    Invoice invoice, 
+    Invoice invoice,
     string outputPath)
 {
     var pdfBytes = GeneratePdf(invoice);
@@ -279,5 +279,5 @@ public static byte[] GeneratePdfWithBmdNaming(
 
 ---
 
-**Status**: 📋 ANALYSIS COMPLETE  
+**Status**: 📋 ANALYSIS COMPLETE
 **Next Step**: Implement CSV export enhancements and PDF naming convention

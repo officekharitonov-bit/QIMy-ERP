@@ -166,12 +166,12 @@ public class FinalReportService
             .ToListAsync();
 
         var business = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == businessId);
-        
+
         // German culture for number and date formatting
         var germanCulture = CultureInfo.GetCultureInfo("de-DE");
-        
+
         var csv = new StringBuilder();
-        
+
         // BMD NTCS header (29 fields)
         csv.AppendLine("satzart;konto;gkonto;buchdatum;belegdatum;belegnr;betrag;steuer;text;buchtyp;buchsymbol;filiale;prozent;steuercode;buchcode;fwbetrag;fwsteuer;waehrung;periode;gegenbuchkz;verbuchkz;ausz-belegnr;ausz-betrag;extid;extid;verbuchstatus;uidnr;dokumente");
 
@@ -183,41 +183,41 @@ public class FinalReportService
             var vatNumber = invoice.Client?.VatNumber ?? "";
             var invoiceNumber = invoice.InvoiceNumber ?? "";
             var currencyCode = invoice.Currency?.Code ?? "EUR";
-            
+
             // Determine revenue account (gkonto) from first invoice item
             var firstItem = invoice.Items.FirstOrDefault();
             var revenueAccount = firstItem?.Tax?.Account?.AccountNumber ?? "4000";
-            
+
             // Determine steuercode (tax code) based on invoice type
             var steuercode = GetSteuercodeForInvoiceType(invoice);
-            
+
             // Calculate amounts
             var subTotal = invoice.SubTotal; // Net amount (Netto)
             var taxAmount = invoice.TaxAmount;
             var totalAmount = invoice.TotalAmount; // Gross amount (Brutto)
-            
+
             // Tax percentage (from first item or invoice)
             var taxPercent = invoice.Proz ?? 20.0m;
-            
+
             // Format dates as German format (dd.MM.yyyy)
             var buchdatum = invoice.InvoiceDate.ToString("dd.MM.yyyy", germanCulture);
             var belegdatum = invoice.InvoiceDate.ToString("dd.MM.yyyy", germanCulture);
-            
+
             // Format numbers as German format (comma as decimal separator)
             var betragStr = subTotal.ToString("N2", germanCulture);
             var steuerStr = taxAmount.ToString("N2", germanCulture);
             var fwbetragStr = ""; // Foreign currency amount (empty if EUR)
             var fwsteuerStr = ""; // Foreign currency tax (empty if EUR)
-            
+
             // Period (month as 2 digits)
             var periode = invoice.InvoiceDate.ToString("MM", CultureInfo.InvariantCulture);
-            
+
             // Invoice type symbol (AR = Ausgangsrechnung)
             var buchsymbol = "AR";
-            
+
             // Text field: Full invoice description
             var text = $"INVOICE {buchsymbol}{invoiceNumber} {clientName}, {vatNumber}";
-            
+
             // Build CSV row (29 fields)
             csv.Append("0;"); // satzart (always 0)
             csv.Append($"{clientCode};"); // konto (client account number)
@@ -251,7 +251,7 @@ public class FinalReportService
 
         return csv.ToString();
     }
-    
+
     /// <summary>
     /// Determine Austrian tax code (Steuercode) based on invoice type
     /// </summary>

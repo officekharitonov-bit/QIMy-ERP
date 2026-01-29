@@ -1,0 +1,202 @@
+@typeparam T where T : class
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clipboard-check"></i> Выбрать из шаблона - @Title
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (Items == null || !Items.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Все записи уже добавлены из шаблона
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Поиск -->
+                        <div class="mb-3">
+                            <input type="text" class="form-control" placeholder="🔍 Поиск..." @bind="searchQuery"
+                                @bind:event="oninput" />
+                        </div>
+
+                        <!-- Список с чекбоксами -->
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-hover table-sm">
+                                <thead class="sticky-top bg-white">
+                                    <tr>
+                                        <th style="width: 50px;">
+                                            <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                                checked="@(selectedIds.Count == FilteredItems.Count())" />
+                                        </th>
+                                        @if (ColumnsDefinition != null)
+                                        {
+                                            @foreach (var column in ColumnsDefinition)
+                                            {
+                                                <th>@column.Header</th>
+                                            }
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in FilteredItems)
+                                    {
+                                        var itemId = GetItemId(item);
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" class="form-check-input"
+                                                    checked="@selectedIds.Contains(itemId)"
+                                                    @onchange="@(() => ToggleItem(itemId))" />
+                                            </td>
+                                            @if (ColumnsDefinition != null)
+                                            {
+                                                @foreach (var column in ColumnsDefinition)
+                                                {
+                                                    <td>@column.ValueGetter(item)</td>
+                                                }
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-muted small mt-2">
+                            Найдено: @FilteredItems.Count() из @Items.Count | Выбрано: @selectedIds.Count
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Close">
+                        Отмена
+                    </button>
+                    <button type="button" class="btn btn-success" @onclick="AddSelected"
+                        disabled="@(selectedIds.Count == 0 || isAdding)">
+                        @if (isAdding)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-plus-circle"></i> Добавить выбранные (@selectedIds.Count)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Справочник";
+    [Parameter] public List<T>? Items { get; set; }
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<int[]> OnAddSelected { get; set; }
+    [Parameter] public Func<T, int> GetItemId { get; set; } = null!;
+    [Parameter] public List<ColumnDefinition<T>>? ColumnsDefinition { get; set; }
+
+    private string searchQuery = string.Empty;
+    private HashSet<int> selectedIds = new();
+    private bool isLoading = false;
+    private bool isAdding = false;
+
+    private IEnumerable<T> FilteredItems
+    {
+        get
+        {
+            if (Items == null) return Enumerable.Empty<T>();
+            if (string.IsNullOrWhiteSpace(searchQuery)) return Items;
+
+            var query = searchQuery.ToLower();
+            return Items.Where(item =>
+            {
+                if (ColumnsDefinition == null) return false;
+                return ColumnsDefinition.Any(col =>
+    {
+                var value = col.ValueGetter(item)?.ToString() ?? "";
+                return value.ToLower().Contains(query);
+            });
+            });
+        }
+    }
+
+    private void ToggleItem(int id)
+    {
+        if (selectedIds.Contains(id))
+            selectedIds.Remove(id);
+        else
+            selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool)(e.Value ?? false))
+        {
+            // Выбрать все отфильтрованные
+            foreach (var item in FilteredItems)
+            {
+                selectedIds.Add(GetItemId(item));
+            }
+        }
+        else
+        {
+            // Снять все отфильтрованные
+            foreach (var item in FilteredItems)
+            {
+                selectedIds.Remove(GetItemId(item));
+            }
+        }
+    }
+
+    private async Task AddSelected()
+    {
+        if (selectedIds.Count == 0) return;
+
+        isAdding = true;
+        StateHasChanged();
+
+        try
+        {
+            await OnAddSelected.InvokeAsync(selectedIds.ToArray());
+            selectedIds.Clear();
+            await Close();
+        }
+        finally
+        {
+            isAdding = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        selectedIds.Clear();
+        searchQuery = string.Empty;
+        await OnClose.InvokeAsync();
+    }
+
+    public async Task Show()
+    {
+        IsVisible = true;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    public class ColumnDefinition<TItem>
+    {
+        public string Header { get; set; } = string.Empty;
+        public Func<TItem, object?> ValueGetter { get; set; } = null!;
+    }
+}

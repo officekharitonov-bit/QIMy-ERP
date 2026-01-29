@@ -16,6 +16,12 @@
             </h3>
         </div>
         <div class="col-auto">
+            @if (selectedIds.Any())
+            {
+                <button class="btn btn-danger me-2" @onclick="DeleteSelected">
+                    <i class="bi bi-trash"></i> Удалить выбранные (@selectedIds.Count)
+                </button>
+            }
             <a href="/ag/quotes/create" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Новое предложение
             </a>
@@ -42,6 +48,10 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                checked="@(selectedIds.Any() && selectedIds.Count == quotes.Take(50).Count())" />
+                        </th>
                         <th>Номер</th>
                         <th>Дата</th>
                         <th>Клиент</th>
@@ -55,6 +65,10 @@
                     @foreach (var q in quotes.Take(50))
                     {
                         <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input" checked="@selectedIds.Contains(q.Id)"
+                                    @onchange="() => ToggleSelect(q.Id)" />
+                            </td>
                             <td><strong>@q.QuoteNumber</strong></td>
                             <td>@q.QuoteDate.ToString("dd.MM.yyyy")</td>
                             <td>@(q.Client != null ? q.Client.CompanyName : "")</td>
@@ -109,6 +123,7 @@
 @code {
     private List<Quote> quotes = new();
     private bool isLoading = true;
+    private HashSet<int> selectedIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +139,7 @@
     private async Task LoadQuotes()
     {
         isLoading = true;
+        selectedIds.Clear();
         try
         {
             var all = (await QuoteService.GetAllQuotesAsync()).ToList();
@@ -137,6 +153,49 @@
         {
             isLoading = false;
         }
+    }
+
+    private void ToggleSelect(int id)
+    {
+        if (selectedIds.Contains(id))
+            selectedIds.Remove(id);
+        else
+            selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool?)e.Value == true)
+            selectedIds = quotes.Take(50).Select(q => q.Id).ToHashSet();
+        else
+            selectedIds.Clear();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (!selectedIds.Any()) return;
+
+        if (!await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить {selectedIds.Count} предложений?"))
+            return;
+
+        int deleted = 0;
+        int errors = 0;
+
+        foreach (var id in selectedIds.ToList())
+        {
+            try
+            {
+                await QuoteService.DeleteQuoteAsync(id);
+                deleted++;
+            }
+            catch
+            {
+                errors++;
+            }
+        }
+
+        await JS.InvokeVoidAsync("alert", $"Удалено: {deleted}, Ошибок: {errors}");
+        await LoadQuotes();
     }
 
     private async Task DeleteQuote(int id)

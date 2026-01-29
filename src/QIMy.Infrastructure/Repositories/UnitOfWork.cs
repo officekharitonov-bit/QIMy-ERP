@@ -13,7 +13,7 @@ public class UnitOfWork : IUnitOfWork
 
     // Lazy initialization для репозиториев
     private IRepository<TaxRate>? _taxRates;
-    private IRepository<Account>? _accounts;
+    private IAccountRepository? _accounts;
     private IRepository<Currency>? _currencies;
     private IRepository<PaymentMethod>? _paymentMethods;
     private IRepository<Unit>? _units;
@@ -55,8 +55,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<TaxRate> TaxRates =>
         _taxRates ??= new Repository<TaxRate>(_context);
 
-    public IRepository<Account> Accounts =>
-        _accounts ??= new Repository<Account>(_context);
+    public IAccountRepository Accounts =>
+        _accounts ??= new AccountRepository(_context);
 
     public IRepository<Currency> Currencies =>
         _currencies ??= new Repository<Currency>(_context);

@@ -11,6 +11,12 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Банковские счета</h2>
         <div>
+            @if (selectedIds.Any())
+            {
+                <button class="btn btn-danger me-2" @onclick="DeleteSelected">
+                    <i class="bi bi-trash"></i> Удалить выбранные (@selectedIds.Count)
+                </button>
+            }
             <a href="/admin/bank-accounts/edit/0" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Добавить счет
             </a>
@@ -36,6 +42,10 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th style="width: 50px;">
+                                    <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                        checked="@(selectedIds.Any() && selectedIds.Count == bankAccounts.Count)" />
+                                </th>
                                 <th>Банк</th>
                                 <th>IBAN</th>
                                 <th>BIC</th>
@@ -49,6 +59,11 @@
                             @foreach (var account in bankAccounts)
                             {
                                 <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input"
+                                            checked="@selectedIds.Contains(account.Id)"
+                                            @onchange="() => ToggleSelect(account.Id)" />
+                                    </td>
                                     <td>@account.BankName</td>
                                     <td>@account.IBAN</td>
                                     <td>@account.BIC</td>
@@ -83,6 +98,7 @@
 @code {
     private List<BankAccount> bankAccounts = new();
     private bool isLoading = true;
+    private HashSet<int> selectedIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,6 +108,7 @@
     private async Task LoadData()
     {
         isLoading = true;
+        selectedIds.Clear();
         bankAccounts = await DbContext.BankAccounts
         .Include(b => b.Business)
         .Include(b => b.DefaultCurrency)
@@ -100,6 +117,44 @@
         .ThenBy(b => b.BankName)
         .ToListAsync();
         isLoading = false;
+    }
+
+    private void ToggleSelect(int id)
+    {
+        if (selectedIds.Contains(id))
+            selectedIds.Remove(id);
+        else
+            selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool?)e.Value == true)
+            selectedIds = bankAccounts.Select(b => b.Id).ToHashSet();
+        else
+            selectedIds.Clear();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (!selectedIds.Any()) return;
+
+        int deleted = 0;
+        foreach (var id in selectedIds.ToList())
+        {
+            var account = await DbContext.BankAccounts.FindAsync(id);
+            if (account != null)
+            {
+                account.IsDeleted = true;
+                account.UpdatedAt = DateTime.UtcNow;
+                deleted++;
+            }
+        }
+        if (deleted > 0)
+        {
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
     }
 
     private async Task DeleteAccount(int id)

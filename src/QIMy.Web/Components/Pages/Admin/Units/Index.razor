@@ -3,18 +3,33 @@
 @using QIMy.Application.Units.Commands.DeleteUnit
 @using QIMy.Application.Units.Queries.GetAllUnits
 @using MediatR
+@using QIMy.Core.Entities
+@using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
+@using QIMy.Web.Components.Shared
+@using UnitEntity = QIMy.Core.Entities.Unit
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject BusinessContext BusinessContext
+@inject TemplateImportService ImportService
 @rendermode InteractiveServer
 
 <PageTitle>Units</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>📏 Units (Единицы измерения)</h3>
-    <a href="/admin/units/create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Добавить Unit
-    </a>
+    <div>
+        @if (BusinessContext.CurrentBusinessId != 1)
+        {
+            <button class="btn btn-success me-2" @onclick="ShowTemplateSelector">
+                <i class="bi bi-download"></i> Из шаблона
+            </button>
+        }
+        <a href="/admin/units/create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Добавить Unit
+        </a>
+    </div>
 </div>
 
 @if (units == null)
@@ -70,8 +85,20 @@ else
     </div>
 }
 
+<TemplateSelector T="UnitEntity" @ref="templateSelector" Items="@availableTemplateItems"
+    OnAddSelected="ImportFromTemplate" ColumnsDefinition="@unitColumns" />
+
 @code {
     private List<UnitDto>? units;
+
+    private TemplateSelector<UnitEntity>? templateSelector;
+    private List<UnitEntity> availableTemplateItems = new();
+    private List<TemplateSelector<UnitEntity>.ColumnDefinition<UnitEntity>> unitColumns = new()
+{
+new() { Header = "Short Name", ValueGetter = x => x.ShortName ?? "" },
+new() { Header = "Name", ValueGetter = x => x.Name ?? "" },
+new() { Header = "Default", ValueGetter = x => x.IsDefault ? "✓" : "" }
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,6 +127,30 @@ else
             {
                 await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Error}");
             }
+        }
+    }
+
+    private async Task ShowTemplateSelector()
+    {
+        availableTemplateItems = await ImportService.GetAvailableUnitsAsync(BusinessContext.CurrentBusinessId ?? 0);
+        if (templateSelector != null)
+        {
+            await templateSelector.Show();
+        }
+    }
+
+    private async Task ImportFromTemplate(int[] selectedIds)
+    {
+        try
+        {
+            var result = await ImportService.AddUnitsFromTemplateAsync(BusinessContext.CurrentBusinessId ?? 0,
+            selectedIds);
+            await JS.InvokeVoidAsync("alert", $"Успешно импортировано {result} единиц из шаблона");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
         }
     }
 }

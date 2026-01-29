@@ -31,7 +31,7 @@ public class BmdInvoiceImportService
     public async Task<BmdImportResult> ImportFromCsvAsync(Stream csvStream, int businessId)
     {
         var result = new BmdImportResult();
-        
+
         try
         {
             // Enable async reads for the stream
@@ -74,7 +74,7 @@ public class BmdInvoiceImportService
                 }
             }
 
-            _logger.LogInformation("Import completed: {Success} successful, {Errors} errors", 
+            _logger.LogInformation("Import completed: {Success} successful, {Errors} errors",
                 result.SuccessCount, result.ErrorCount);
 
             return result;
@@ -94,7 +94,7 @@ public class BmdInvoiceImportService
     {
         // Split by semicolon
         var fields = line.Split(';');
-        
+
         // BMD NTCS can have 28 or 29 fields (sometimes extid appears twice)
         if (fields.Length < 27)
         {
@@ -104,7 +104,7 @@ public class BmdInvoiceImportService
 
         // Extract fields (using safe indexing)
         string GetField(int index) => index < fields.Length ? fields[index].Trim() : string.Empty;
-        
+
         var clientCode = GetField(1); // konto
         var revenueAccount = GetField(2); // gkonto
         var buchDatum = GetField(3); // buchdatum
@@ -172,7 +172,7 @@ public class BmdInvoiceImportService
         // Check if invoice already exists
         var existingInvoice = await _context.Invoices
             .FirstOrDefaultAsync(i => i.InvoiceNumber == invoiceNumber && i.BusinessId == businessId);
-        
+
         if (existingInvoice != null)
         {
             _logger.LogDebug("Invoice {InvoiceNumber} already exists, skipping", invoiceNumber);
@@ -242,7 +242,7 @@ public class BmdInvoiceImportService
 
         // Create placeholder client
         _logger.LogInformation("Creating placeholder client with code {ClientCode}", clientCode);
-        
+
         var newClient = new Client
         {
             BusinessId = businessId,
@@ -285,7 +285,7 @@ public class BmdInvoiceImportService
 
         _context.Invoices.AddRange(invoices);
         var count = await _context.SaveChangesAsync();
-        
+
         _logger.LogInformation("Saved {Count} imported invoices", count);
         return count;
     }

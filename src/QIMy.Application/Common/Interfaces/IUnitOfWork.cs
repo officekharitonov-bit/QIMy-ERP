@@ -9,7 +9,7 @@ public interface IUnitOfWork : IDisposable
 {
     // Reference Data Repositories
     IRepository<TaxRate> TaxRates { get; }
-    IRepository<Account> Accounts { get; }
+    IAccountRepository Accounts { get; }
     IRepository<Currency> Currencies { get; }
     IRepository<PaymentMethod> PaymentMethods { get; }
     IRepository<Unit> Units { get; }

@@ -1,10 +1,34 @@
 @page "/admin/reference-data"
 @using QIMy.Infrastructure.Data
+@using QIMy.Infrastructure.Services
+@using QIMy.Core.Entities
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
+@using QIMy.Web.Services
 @inject ApplicationDbContext Context
+@inject BusinessTemplateService TemplateService
+@inject TemplateImportService ImportService
+@inject IJSRuntime JSRuntime
+@inject BusinessContext BusinessContext
 @rendermode InteractiveServer
 
 <PageTitle>Reference Data</PageTitle>
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @successMessage
+        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>📊 Справочные данные</h3>
@@ -24,8 +48,16 @@
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-3">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Client Areas</strong>
+                @if (BusinessContext.CurrentBusinessId != 1)
+                {
+                    <div class="btn-group">
+                        <button class="btn btn-success btn-sm" @onclick="() => ShowTemplateSelector<ClientArea>()">
+                            <i class="bi bi-clipboard-check"></i> Из шаблона
+                        </button>
+                    </div>
+                }
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -51,8 +83,14 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Client Types</strong>
+                @if (BusinessContext.CurrentBusinessId != 1)
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => ShowTemplateSelector<ClientType>()">
+                        <i class="bi bi-clipboard-check"></i> Из шаблона
+                    </button>
+                }
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -80,7 +118,15 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Tax Rates</strong>
-                <a href="/admin/tax-rates/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                <div>
+                    @if (BusinessContext.CurrentBusinessId != 1)
+                    {
+                        <button class="btn btn-sm btn-success me-2" @onclick="() => ShowTemplateSelector<TaxRate>()">
+                            <i class="bi bi-clipboard-check"></i> Из шаблона
+                        </button>
+                    }
+                    <a href="/admin/tax-rates/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                </div>
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -116,7 +162,15 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Accounts (Erlöskonten)</strong>
-                <a href="/admin/accounts/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                <div>
+                    @if (BusinessContext.CurrentBusinessId != 1)
+                    {
+                        <button class="btn btn-sm btn-success me-2" @onclick="() => ShowTemplateSelector<Account>()">
+                            <i class="bi bi-download"></i> Из шаблона
+                        </button>
+                    }
+                    <a href="/admin/accounts/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                </div>
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -146,8 +200,14 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Units</strong>
+                @if (BusinessContext.CurrentBusinessId != 1)
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => ShowTemplateSelector<Unit>()">
+                        <i class="bi bi-download"></i> Из шаблона
+                    </button>
+                }
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -173,7 +233,15 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Currencies</strong>
-                <a href="/admin/currencies/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                <div>
+                    @if (BusinessContext.CurrentBusinessId != 1)
+                    {
+                        <button class="btn btn-sm btn-success me-2" @onclick="() => ShowTemplateSelector<Currency>()">
+                            <i class="bi bi-download"></i> Из шаблона
+                        </button>
+                    }
+                    <a href="/admin/currencies/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                </div>
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -211,7 +279,15 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Payment Methods</strong>
-                <a href="/admin/payment-methods/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                <div>
+                    @if (BusinessContext.CurrentBusinessId != 1)
+                    {
+                        <button class="btn btn-sm btn-success me-2" @onclick="() => ShowTemplateSelector<PaymentMethod>()">
+                            <i class="bi bi-download"></i> Из шаблона
+                        </button>
+                    }
+                    <a href="/admin/payment-methods/create" class="btn btn-sm btn-success">➕ Добавить</a>
+                </div>
             </div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -242,6 +318,35 @@
     </div>
 </div>
 
+@* Template Selector Modals *@
+<TemplateSelector T="Currency" Title="Валюты" Items="@availableCurrencies" IsVisible="@showCurrencySelector"
+    GetItemId="@(c => c.Id)" OnClose="@(() => showCurrencySelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<Currency>(ids))" ColumnsDefinition="@CurrencyColumns" />
+
+<TemplateSelector T="TaxRate" Title="Налоговые ставки" Items="@availableTaxRates" IsVisible="@showTaxRateSelector"
+    GetItemId="@(t => t.Id)" OnClose="@(() => showTaxRateSelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<TaxRate>(ids))" ColumnsDefinition="@TaxRateColumns" />
+
+<TemplateSelector T="ClientArea" Title="Области клиентов" Items="@availableClientAreas"
+    IsVisible="@showClientAreaSelector" GetItemId="@(a => a.Id)" OnClose="@(() => showClientAreaSelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<ClientArea>(ids))" ColumnsDefinition="@ClientAreaColumns" />
+
+<TemplateSelector T="ClientType" Title="Типы клиентов" Items="@availableClientTypes" IsVisible="@showClientTypeSelector"
+    GetItemId="@(t => t.Id)" OnClose="@(() => showClientTypeSelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<ClientType>(ids))" ColumnsDefinition="@ClientTypeColumns" />
+
+<TemplateSelector T="Account" Title="Счета" Items="@availableAccounts" IsVisible="@showAccountSelector"
+    GetItemId="@(a => a.Id)" OnClose="@(() => showAccountSelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<Account>(ids))" ColumnsDefinition="@AccountColumns" />
+
+<TemplateSelector T="Unit" Title="Единицы измерения" Items="@availableUnits" IsVisible="@showUnitSelector"
+    GetItemId="@(u => u.Id)" OnClose="@(() => showUnitSelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<Unit>(ids))" ColumnsDefinition="@UnitColumns" />
+
+<TemplateSelector T="PaymentMethod" Title="Способы оплаты" Items="@availablePaymentMethods"
+    IsVisible="@showPaymentMethodSelector" GetItemId="@(p => p.Id)" OnClose="@(() => showPaymentMethodSelector = false)"
+    OnAddSelected="@(ids => AddSelectedFromTemplate<PaymentMethod>(ids))" ColumnsDefinition="@PaymentMethodColumns" />
+
 @code {
     private List<QIMy.Core.Entities.ClientArea> clientAreas = new();
     private List<QIMy.Core.Entities.ClientType> clientTypes = new();
@@ -251,24 +356,32 @@
     private List<QIMy.Core.Entities.Currency> currencies = new();
     private List<QIMy.Core.Entities.PaymentMethod> paymentMethods = new();
 
+    private bool isLoading = false;
+    private string? successMessage;
+    private string? errorMessage;
+
     protected override async Task OnInitializedAsync()
     {
-        clientAreas = await Context.ClientAreas.OrderBy(x => x.Code).ToListAsync();
-        clientTypes = await Context.ClientTypes.OrderBy(x => x.Code).ToListAsync();
+        // Admin page - show all reference data regardless of business context
+        clientAreas = await Context.ClientAreas.IgnoreQueryFilters().Where(x => !x.IsDeleted).OrderBy(x =>
+        x.Code).ToListAsync();
+        clientTypes = await Context.ClientTypes.IgnoreQueryFilters().Where(x => !x.IsDeleted).OrderBy(x =>
+        x.Code).ToListAsync();
 
         // SQLite doesn't support ORDER BY on decimal, so we order in memory
-        var allTaxRates = await Context.TaxRates.Where(t => !t.IsDeleted).ToListAsync();
+        var allTaxRates = await Context.TaxRates.IgnoreQueryFilters().Where(t => !t.IsDeleted).ToListAsync();
         taxRates = allTaxRates.OrderByDescending(x => x.Rate).ToList();
 
-        var allAccounts = await Context.Accounts.Where(a => !a.IsDeleted).ToListAsync();
+        var allAccounts = await Context.Accounts.IgnoreQueryFilters().Where(a => !a.IsDeleted).ToListAsync();
         accounts = allAccounts.OrderBy(x => x.AccountNumber).ToList();
 
-        units = await Context.Units.OrderBy(x => x.Name).ToListAsync();
+        units = await Context.Units.IgnoreQueryFilters().Where(x => !x.IsDeleted).OrderBy(x => x.Name).ToListAsync();
 
-        var allCurrencies = await Context.Currencies.Where(c => !c.IsDeleted).ToListAsync();
+        var allCurrencies = await Context.Currencies.IgnoreQueryFilters().Where(c => !c.IsDeleted).ToListAsync();
         currencies = allCurrencies.OrderByDescending(x => x.IsDefault).ThenBy(x => x.Code).ToList();
 
-        paymentMethods = await Context.PaymentMethods.Where(p => !p.IsDeleted).OrderByDescending(x => x.IsDefault).ThenBy(x =>
+        paymentMethods = await Context.PaymentMethods.IgnoreQueryFilters().Where(p => !p.IsDeleted).OrderByDescending(x =>
+        x.IsDefault).ThenBy(x =>
         x.Name).ToListAsync();
     }
 
@@ -315,4 +428,468 @@
             await OnInitializedAsync();
         }
     }
+
+    private async Task CopyAllFromTemplate()
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Копировать ВСЕ справочники из шаблона? Существующие данные не будут удалены."))
+            return;
+
+        try
+        {
+            isLoading = true;
+            successMessage = null;
+            errorMessage = null;
+
+            var templateId = await TemplateService.GetTemplateBusinessIdAsync();
+            if (!templateId.HasValue)
+            {
+                errorMessage = "❌ Шаблонный бизнес не найден!";
+                return;
+            }
+
+            // Get current business ID from any entity in context
+            var currentBusinessId = await Context.TaxRates.IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted)
+            .Select(x => x.BusinessId)
+            .FirstOrDefaultAsync();
+
+            if (currentBusinessId == 0)
+                currentBusinessId = 1; // Fallback to first business
+
+            await TemplateService.CopyReferenceDataAsync(templateId.Value, currentBusinessId);
+
+            await OnInitializedAsync();
+            successMessage = "✅ Все справочники успешно скопированы из шаблона!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"❌ Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CopyClientAreasFromTemplate()
+    {
+        await CopySingleReferenceData("Client Areas", async (sourceId, targetId) =>
+        {
+            var sourceAreas = await Context.ClientAreas.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var area in sourceAreas)
+            {
+                var exists = await Context.ClientAreas.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.Code == area.Code && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.ClientAreas.Add(new QIMy.Core.Entities.ClientArea
+                    {
+                        Code = area.Code,
+                        Name = area.Name,
+                        Description = area.Description,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopyClientTypesFromTemplate()
+    {
+        await CopySingleReferenceData("Client Types", async (sourceId, targetId) =>
+        {
+            var sourceTypes = await Context.ClientTypes.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var type in sourceTypes)
+            {
+                var exists = await Context.ClientTypes.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.Code == type.Code && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.ClientTypes.Add(new QIMy.Core.Entities.ClientType
+                    {
+                        Code = type.Code,
+                        Name = type.Name,
+                        Description = type.Description,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopyTaxRatesFromTemplate()
+    {
+        await CopySingleReferenceData("Tax Rates", async (sourceId, targetId) =>
+        {
+            var sourceTaxRates = await Context.TaxRates.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var rate in sourceTaxRates)
+            {
+                var exists = await Context.TaxRates.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.Rate == rate.Rate && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.TaxRates.Add(new QIMy.Core.Entities.TaxRate
+                    {
+                        Rate = rate.Rate,
+                        Name = rate.Name,
+                        IsDefault = rate.IsDefault,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopyAccountsFromTemplate()
+    {
+        await CopySingleReferenceData("Accounts", async (sourceId, targetId) =>
+        {
+            var sourceAccounts = await Context.Accounts.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var account in sourceAccounts)
+            {
+                var exists = await Context.Accounts.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.AccountNumber == account.AccountNumber && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.Accounts.Add(new QIMy.Core.Entities.Account
+                    {
+                        AccountNumber = account.AccountNumber,
+                        Name = account.Name,
+                        AccountCode = account.AccountCode,
+                        IsForServices = account.IsForServices,
+                        Comment = account.Comment,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopyUnitsFromTemplate()
+    {
+        await CopySingleReferenceData("Units", async (sourceId, targetId) =>
+        {
+            var sourceUnits = await Context.Units.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var unit in sourceUnits)
+            {
+                var exists = await Context.Units.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.ShortName == unit.ShortName && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.Units.Add(new QIMy.Core.Entities.Unit
+                    {
+                        ShortName = unit.ShortName,
+                        Name = unit.Name,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopyCurrenciesFromTemplate()
+    {
+        await CopySingleReferenceData("Currencies", async (sourceId, targetId) =>
+        {
+            var sourceCurrencies = await Context.Currencies.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var currency in sourceCurrencies)
+            {
+                var exists = await Context.Currencies.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.Code == currency.Code && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.Currencies.Add(new QIMy.Core.Entities.Currency
+                    {
+                        Code = currency.Code,
+                        Name = currency.Name,
+                        Symbol = currency.Symbol,
+                        ExchangeRate = currency.ExchangeRate,
+                        IsDefault = currency.IsDefault,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopyPaymentMethodsFromTemplate()
+    {
+        await CopySingleReferenceData("Payment Methods", async (sourceId, targetId) =>
+        {
+            var sourceMethods = await Context.PaymentMethods.IgnoreQueryFilters()
+    .Where(x => !x.IsDeleted && x.BusinessId == sourceId).ToListAsync();
+
+            foreach (var method in sourceMethods)
+            {
+                var exists = await Context.PaymentMethods.IgnoreQueryFilters()
+        .AnyAsync(x => x.BusinessId == targetId && x.Name == method.Name && !x.IsDeleted);
+
+                if (!exists)
+                {
+                    Context.PaymentMethods.Add(new QIMy.Core.Entities.PaymentMethod
+                    {
+                        Name = method.Name,
+                        IsDefault = method.IsDefault,
+                        BusinessId = targetId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await Context.SaveChangesAsync();
+        });
+    }
+
+    private async Task CopySingleReferenceData(string dataName, Func<int, int, Task> copyAction)
+    {
+        try
+        {
+            isLoading = true;
+            successMessage = null;
+            errorMessage = null;
+
+            var templateId = await TemplateService.GetTemplateBusinessIdAsync();
+            if (!templateId.HasValue)
+            {
+                errorMessage = "❌ Шаблонный бизнес не найден!";
+                return;
+            }
+
+            // Get current business ID from any entity in context
+            var currentBusinessId = await Context.TaxRates.IgnoreQueryFilters()
+            .Where(x => !x.IsDeleted)
+            .Select(x => x.BusinessId)
+            .FirstOrDefaultAsync();
+
+            if (currentBusinessId == 0)
+                currentBusinessId = 1; // Fallback to first business
+
+            await copyAction(templateId.Value, currentBusinessId);
+
+            await OnInitializedAsync();
+            successMessage = $"✅ {dataName} успешно скопированы из шаблона!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"❌ Ошибка копирования {dataName}: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // ============== NEW TEMPLATE SELECTOR METHODS ==============
+
+    private bool showCurrencySelector = false;
+    private bool showTaxRateSelector = false;
+    private bool showClientAreaSelector = false;
+    private bool showClientTypeSelector = false;
+    private bool showAccountSelector = false;
+    private bool showUnitSelector = false;
+    private bool showPaymentMethodSelector = false;
+
+    private List<Currency>? availableCurrencies;
+    private List<TaxRate>? availableTaxRates;
+    private List<ClientArea>? availableClientAreas;
+    private List<ClientType>? availableClientTypes;
+    private List<Account>? availableAccounts;
+    private List<Unit>? availableUnits;
+    private List<PaymentMethod>? availablePaymentMethods;
+
+    private async Task ShowTemplateSelector<T>() where T : class
+    {
+        try
+        {
+            isLoading = true;
+            var currentBusinessId = await GetCurrentBusinessId();
+
+            if (typeof(T) == typeof(Currency))
+            {
+                availableCurrencies = await ImportService.GetAvailableCurrenciesAsync(currentBusinessId);
+                showCurrencySelector = true;
+            }
+            else if (typeof(T) == typeof(TaxRate))
+            {
+                availableTaxRates = await ImportService.GetAvailableTaxRatesAsync(currentBusinessId);
+                showTaxRateSelector = true;
+            }
+            else if (typeof(T) == typeof(ClientArea))
+            {
+                availableClientAreas = await ImportService.GetAvailableClientAreasAsync(currentBusinessId);
+                showClientAreaSelector = true;
+            }
+            else if (typeof(T) == typeof(ClientType))
+            {
+                availableClientTypes = await ImportService.GetAvailableClientTypesAsync(currentBusinessId);
+                showClientTypeSelector = true;
+            }
+            else if (typeof(T) == typeof(Account))
+            {
+                availableAccounts = await ImportService.GetAvailableAccountsAsync(currentBusinessId);
+                showAccountSelector = true;
+            }
+            else if (typeof(T) == typeof(Unit))
+            {
+                availableUnits = await ImportService.GetAvailableUnitsAsync(currentBusinessId);
+                showUnitSelector = true;
+            }
+            else if (typeof(T) == typeof(PaymentMethod))
+            {
+                availablePaymentMethods = await ImportService.GetAvailablePaymentMethodsAsync(currentBusinessId);
+                showPaymentMethodSelector = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"❌ Ошибка загрузки данных: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task AddSelectedFromTemplate<T>(int[] selectedIds) where T : class
+    {
+        try
+        {
+            isLoading = true;
+            var currentBusinessId = await GetCurrentBusinessId();
+            int added = 0;
+
+            if (typeof(T) == typeof(Currency))
+            {
+                added = await ImportService.AddCurrenciesFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+            else if (typeof(T) == typeof(TaxRate))
+            {
+                added = await ImportService.AddTaxRatesFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+            else if (typeof(T) == typeof(ClientArea))
+            {
+                added = await ImportService.AddClientAreasFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+            else if (typeof(T) == typeof(ClientType))
+            {
+                added = await ImportService.AddClientTypesFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+            else if (typeof(T) == typeof(Account))
+            {
+                added = await ImportService.AddAccountsFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+            else if (typeof(T) == typeof(Unit))
+            {
+                added = await ImportService.AddUnitsFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+            else if (typeof(T) == typeof(PaymentMethod))
+            {
+                added = await ImportService.AddPaymentMethodsFromTemplateAsync(currentBusinessId, selectedIds);
+            }
+
+            await OnInitializedAsync();
+            successMessage = $"✅ Успешно добавлено записей: {added}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"❌ Ошибка добавления: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task<int> GetCurrentBusinessId()
+    {
+        var currentBusinessId = await Context.TaxRates.IgnoreQueryFilters()
+        .Where(x => !x.IsDeleted)
+        .Select(x => x.BusinessId)
+        .FirstOrDefaultAsync();
+
+        return currentBusinessId == 0 ? 1 : currentBusinessId;
+    }
+
+    // Column definitions for TemplateSelector
+    private List<TemplateSelector<Currency>.ColumnDefinition<Currency>> CurrencyColumns => new()
+{
+new() { Header = "Код", ValueGetter = c => c.Code },
+new() { Header = "Название", ValueGetter = c => c.Name },
+new() { Header = "Символ", ValueGetter = c => c.Symbol },
+new() { Header = "Курс", ValueGetter = c => c.ExchangeRate.ToString() }
+};
+
+    private List<TemplateSelector<TaxRate>.ColumnDefinition<TaxRate>> TaxRateColumns => new()
+{
+new() { Header = "Название", ValueGetter = t => t.Name },
+new() { Header = "Ставка (%)", ValueGetter = t => t.Rate }
+};
+
+    private List<TemplateSelector<ClientArea>.ColumnDefinition<ClientArea>> ClientAreaColumns => new()
+{
+new() { Header = "Код", ValueGetter = a => a.Code },
+new() { Header = "Название", ValueGetter = a => a.Name },
+new() { Header = "Описание", ValueGetter = a => a.Description ?? "" }
+};
+
+    private List<TemplateSelector<ClientType>.ColumnDefinition<ClientType>> ClientTypeColumns => new()
+{
+new() { Header = "Код", ValueGetter = t => t.Code },
+new() { Header = "Название", ValueGetter = t => t.Name },
+new() { Header = "Описание", ValueGetter = t => t.Description ?? "" }
+};
+
+    private List<TemplateSelector<Account>.ColumnDefinition<Account>> AccountColumns => new()
+{
+new() { Header = "Номер", ValueGetter = a => a.AccountNumber },
+new() { Header = "Название", ValueGetter = a => a.Name },
+new() { Header = "Код", ValueGetter = a => a.AccountCode }
+};
+
+    private List<TemplateSelector<Unit>.ColumnDefinition<Unit>> UnitColumns => new()
+{
+new() { Header = "Краткое название", ValueGetter = u => u.ShortName },
+new() { Header = "Полное название", ValueGetter = u => u.Name }
+};
+
+    private List<TemplateSelector<PaymentMethod>.ColumnDefinition<PaymentMethod>> PaymentMethodColumns => new()
+{
+new() { Header = "Название", ValueGetter = p => p.Name }
+};
 }

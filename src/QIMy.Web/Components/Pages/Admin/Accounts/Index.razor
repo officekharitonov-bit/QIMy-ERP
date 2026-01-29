@@ -4,9 +4,15 @@
 @using QIMy.Application.Accounts.Commands.DeleteAccount
 @using QIMy.Application.Accounts.DTOs
 @using QIMy.Application.Accounts.Queries.GetAllAccounts
+@using QIMy.Core.Entities
+@using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
+@using QIMy.Web.Components.Shared
 @inject IMediator Mediator
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject BusinessContext BusinessContext
+@inject TemplateImportService ImportService
 @rendermode InteractiveServer
 
 <PageTitle>Accounts Management</PageTitle>
@@ -14,6 +20,12 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>💰 Accounts (Erlöskonten)</h3>
     <div>
+        @if (BusinessContext.CurrentBusinessId != 1)
+        {
+            <button class="btn btn-success me-2" @onclick="ShowTemplateSelector">
+                <i class="bi bi-download"></i> Из шаблона
+            </button>
+        }
         <a href="/admin/accounts/import" class="btn btn-info me-2">
             <i class="bi bi-upload"></i> Импорт Sachkonten
         </a>
@@ -86,10 +98,22 @@ else
     </div>
 }
 
+<TemplateSelector T="Account" @ref="templateSelector" Items="@availableTemplateItems" OnAddSelected="ImportFromTemplate"
+    ColumnsDefinition="@accountColumns" />
+
 @code {
     private List<AccountDto> accounts = new();
     private bool isLoading = true;
     private string? errorMessage;
+
+    private TemplateSelector<Account>? templateSelector;
+    private List<Account> availableTemplateItems = new();
+    private List<TemplateSelector<Account>.ColumnDefinition<Account>> accountColumns = new()
+{
+new() { Header = "Account Number", ValueGetter = x => x.AccountNumber ?? "" },
+new() { Header = "Name", ValueGetter = x => x.Name ?? "" },
+new() { Header = "Code", ValueGetter = x => x.AccountCode ?? "" }
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -145,5 +169,29 @@ else
     private bool confirm(string message)
     {
         return true;
+    }
+
+    private async Task ShowTemplateSelector()
+    {
+        availableTemplateItems = await ImportService.GetAvailableAccountsAsync(BusinessContext.CurrentBusinessId ?? 0);
+        if (templateSelector != null)
+        {
+            await templateSelector.Show();
+        }
+    }
+
+    private async Task ImportFromTemplate(int[] selectedIds)
+    {
+        try
+        {
+            var result = await ImportService.AddAccountsFromTemplateAsync(BusinessContext.CurrentBusinessId ?? 0,
+            selectedIds);
+            await JSRuntime.InvokeVoidAsync("alert", $"Успешно импортировано {result} счетов из шаблона");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
+        }
     }
 }

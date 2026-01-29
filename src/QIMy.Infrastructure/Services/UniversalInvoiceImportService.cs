@@ -17,7 +17,7 @@ public class UniversalInvoiceImportService
     private readonly ILogger<UniversalInvoiceImportService> _logger;
     private readonly CultureInfo _germanCulture;
     private readonly CultureInfo _englishCulture;
-    
+
     // Field mappings detected from CSV headers
     private Dictionary<string, int> _fieldMap = new();
     private string _detectedFormat = "Unknown";
@@ -80,7 +80,7 @@ public class UniversalInvoiceImportService
                 }
             }
 
-            _logger.LogInformation("Import completed: {Success} successful, {Errors} errors (Format: {Format})", 
+            _logger.LogInformation("Import completed: {Success} successful, {Errors} errors (Format: {Format})",
                 result.SuccessCount, result.ErrorCount, _detectedFormat);
 
             return result;
@@ -92,7 +92,7 @@ public class UniversalInvoiceImportService
             return result;
         }
     }
-    
+
     /// <summary>
     /// Detect CSV format and build field mapping from headers
     /// </summary>
@@ -100,11 +100,11 @@ public class UniversalInvoiceImportService
     {
         var headers = headerLine.ToLower().Split(';').Select(h => h.Trim()).ToArray();
         _fieldMap.Clear();
-        
+
         for (int i = 0; i < headers.Length; i++)
         {
             var header = headers[i];
-            
+
             // Map common field names from different systems
             switch (header)
             {
@@ -117,7 +117,7 @@ public class UniversalInvoiceImportService
                 case "kundennummer":
                     _fieldMap["client_code"] = i;
                     break;
-                    
+
                 // Invoice number
                 case "belegnr":
                 case "invoice_number":
@@ -126,7 +126,7 @@ public class UniversalInvoiceImportService
                 case "number":
                     _fieldMap["invoice_number"] = i;
                     break;
-                    
+
                 // Dates
                 case "belegdatum":
                 case "rechnungsdatum":
@@ -135,12 +135,12 @@ public class UniversalInvoiceImportService
                 case "datum":
                     _fieldMap["invoice_date"] = i;
                     break;
-                    
+
                 case "buchdatum":
                 case "booking_date":
                     _fieldMap["booking_date"] = i;
                     break;
-                    
+
                 // Amounts
                 case "betrag":
                 case "netto":
@@ -150,7 +150,7 @@ public class UniversalInvoiceImportService
                 case "nettobetrag":
                     _fieldMap["net_amount"] = i;
                     break;
-                    
+
                 case "steuer":
                 case "tax":
                 case "vat":
@@ -158,7 +158,7 @@ public class UniversalInvoiceImportService
                 case "tax_amount":
                     _fieldMap["tax_amount"] = i;
                     break;
-                    
+
                 case "brutto":
                 case "total":
                 case "total_amount":
@@ -166,7 +166,7 @@ public class UniversalInvoiceImportService
                 case "bruttobetrag":
                     _fieldMap["total_amount"] = i;
                     break;
-                    
+
                 // Description/Text
                 case "text":
                 case "description":
@@ -175,14 +175,14 @@ public class UniversalInvoiceImportService
                 case "memo":
                     _fieldMap["description"] = i;
                     break;
-                    
+
                 // Tax code/rate
                 case "steuercode":
                 case "tax_code":
                 case "vat_code":
                     _fieldMap["tax_code"] = i;
                     break;
-                    
+
                 case "prozent":
                 case "tax_rate":
                 case "vat_rate":
@@ -190,7 +190,7 @@ public class UniversalInvoiceImportService
                 case "rate":
                     _fieldMap["tax_rate"] = i;
                     break;
-                    
+
                 // VAT number
                 case "uidnr":
                 case "vat_number":
@@ -199,14 +199,14 @@ public class UniversalInvoiceImportService
                 case "vat_id":
                     _fieldMap["vat_number"] = i;
                     break;
-                    
+
                 // Currency
                 case "waehrung":
                 case "currency":
                 case "währung":
                     _fieldMap["currency"] = i;
                     break;
-                    
+
                 // Type indicators
                 case "buchtyp":
                 case "type":
@@ -214,12 +214,12 @@ public class UniversalInvoiceImportService
                 case "doc_type":
                     _fieldMap["doc_type"] = i;
                     break;
-                    
+
                 case "buchsymbol":
                 case "symbol":
                     _fieldMap["doc_symbol"] = i;
                     break;
-                    
+
                 // Revenue/GL account
                 case "gkonto":
                 case "revenue_account":
@@ -229,7 +229,7 @@ public class UniversalInvoiceImportService
                     break;
             }
         }
-        
+
         // Detect format based on field combination
         if (_fieldMap.ContainsKey("buchtyp") && _fieldMap.ContainsKey("steuercode") && _fieldMap.ContainsKey("gkonto"))
         {
@@ -243,7 +243,7 @@ public class UniversalInvoiceImportService
         {
             return "Generic CSV";
         }
-        
+
         return "Unknown Format";
     }
 
@@ -253,11 +253,11 @@ public class UniversalInvoiceImportService
     private async Task<Invoice?> ParseCsvLine(string line, int businessId, int lineNumber)
     {
         var fields = line.Split(';');
-        
+
         // Helper to safely get field value
-        string GetField(string fieldName) => 
-            _fieldMap.ContainsKey(fieldName) && _fieldMap[fieldName] < fields.Length 
-                ? fields[_fieldMap[fieldName]].Trim() 
+        string GetField(string fieldName) =>
+            _fieldMap.ContainsKey(fieldName) && _fieldMap[fieldName] < fields.Length
+                ? fields[_fieldMap[fieldName]].Trim()
                 : string.Empty;
 
         // For BMD NTCS: Only import AR invoices (buchtyp=1)
@@ -332,7 +332,7 @@ public class UniversalInvoiceImportService
         // Check for duplicate
         var exists = await _context.Invoices
             .AnyAsync(i => i.InvoiceNumber == invoiceNumber && i.BusinessId == businessId && !i.IsDeleted);
-        
+
         if (exists)
         {
             _logger.LogDebug("Skipping duplicate invoice: {InvoiceNumber}", invoiceNumber);
@@ -343,7 +343,7 @@ public class UniversalInvoiceImportService
         var currency = await _context.Currencies
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(c => c.Code == "EUR" && !c.IsDeleted);
-        
+
         if (currency == null)
         {
             _logger.LogError("❌ EUR currency not found in database!");
@@ -393,7 +393,7 @@ public class UniversalInvoiceImportService
         {
             var byCode = await _context.Clients
                 .FirstOrDefaultAsync(c => c.ClientCode == clientCodeInt.Value && c.BusinessId == businessId && !c.IsDeleted);
-            
+
             if (byCode != null)
                 return byCode;
         }
@@ -403,7 +403,7 @@ public class UniversalInvoiceImportService
         {
             var byVat = await _context.Clients
                 .FirstOrDefaultAsync(c => c.VatNumber == vatNumber && c.BusinessId == businessId && !c.IsDeleted);
-            
+
             if (byVat != null)
             {
                 // Update client code if missing
@@ -429,9 +429,9 @@ public class UniversalInvoiceImportService
 
         _context.Clients.Add(newClient);
         await _context.SaveChangesAsync();
-        
+
         _logger.LogInformation("Created placeholder client: {Code} / {VatNumber}", clientCode, vatNumber);
-        
+
         return newClient;
     }
 
@@ -468,15 +468,15 @@ public class UniversalInvoiceImportService
         {
             _context.Invoices.AddRange(invoices);
             await _context.SaveChangesAsync();
-            
+
             _logger.LogInformation("✅ Saved {Count} invoices to database", invoices.Count);
-            
+
             return invoices.Count;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error saving invoices: {Message}. Inner: {Inner}", 
-                ex.Message, 
+            _logger.LogError(ex, "❌ Error saving invoices: {Message}. Inner: {Inner}",
+                ex.Message,
                 ex.InnerException?.Message ?? "N/A");
             throw;
         }

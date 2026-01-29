@@ -18,11 +18,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Enable Windows-1252 and other code pages used by CSV imports
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+// Get connection string for database configuration
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var isDevelopment = builder.Environment.IsDevelopment();
+
 // Add Database (Azure SQL)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (builder.Environment.IsDevelopment())
+    if (isDevelopment)
     {
         options.UseSqlite(connectionString);
     }
@@ -30,6 +33,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
         options.UseSqlServer(connectionString);
     }
+});
+
+// Add DbContext Factory for components that need to create multiple contexts
+// Use Transient to avoid DI scope issues
+builder.Services.AddTransient<IDbContextFactory<ApplicationDbContext>>(sp =>
+{
+    return new DbContextFactoryWrapper(connectionString!, isDevelopment, sp);
 });
 
 // Multi-tenant accessor (used by EF Core global filters + SaveChanges guardrails)
@@ -113,6 +123,8 @@ builder.Services.AddScoped<BmdInvoiceImportService>();
 builder.Services.AddScoped<UniversalInvoiceImportService>(); // Universal CSV importer
 builder.Services.AddScoped<AustrianInvoicePdfService>();
 builder.Services.AddScoped<NumberingService>();
+builder.Services.AddScoped<BusinessTemplateService>(); // Service for copying reference data from template business
+builder.Services.AddScoped<TemplateImportService>(); // Service for selective import from template
 
 // ============== NEW DOCUMENT TYPE SERVICES ==============
 builder.Services.AddScoped<IQuoteService, QuoteService>();
@@ -194,6 +206,11 @@ try
 catch (Exception ex)
 {
     Console.WriteLine($"Error seeding data: {ex.Message}");
+    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+    if (ex.InnerException != null)
+    {
+        Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+    }
 }
 
 // Seed default businesses and link admin user to them for multi-business selector
@@ -213,10 +230,14 @@ try
     {
         var businessNames = new[] { "AKHA GmbH", "BKHA GmbH", "Mag. Kharitonov Egor" };
         var businesses = new List<Business>();
+        var businessTemplateService = scope.ServiceProvider.GetRequiredService<BusinessTemplateService>();
+        var templateBusinessId = await businessTemplateService.GetTemplateBusinessIdAsync();
 
         foreach (var name in businessNames)
         {
             var biz = await context.Businesses.FirstOrDefaultAsync(b => b.Name == name && !b.IsDeleted);
+            var isNewBusiness = false;
+
             if (biz == null)
             {
                 biz = new Business
@@ -227,8 +248,23 @@ try
                     IsDeleted = false
                 };
                 context.Businesses.Add(biz);
+                isNewBusiness = true;
             }
             businesses.Add(biz);
+
+            // Сохраняем чтобы получить Id нового бизнеса
+            if (isNewBusiness)
+            {
+                await context.SaveChangesAsync();
+
+                // Копируем справочники из шаблонного бизнеса
+                if (templateBusinessId.HasValue && templateBusinessId.Value != biz.Id)
+                {
+                    Console.WriteLine($"📋 Копирование справочников из шаблонного бизнеса (ID={templateBusinessId.Value}) в '{name}' (ID={biz.Id})...");
+                    await businessTemplateService.CopyReferenceDataAsync(templateBusinessId.Value, biz.Id);
+                    Console.WriteLine($"✅ Справочники скопированы для '{name}'");
+                }
+            }
         }
 
         await context.SaveChangesAsync();
@@ -301,10 +337,10 @@ try
                 ["ClientAreas"] = await BackfillAsync(context.ClientAreas),
                 ["ClientTypes"] = await BackfillAsync(context.ClientTypes),
                 ["Units"] = await BackfillAsync(context.Units),
-                ["PaymentMethods"] = await BackfillAsync(context.PaymentMethods),
                 ["Discounts"] = await BackfillAsync(context.Discounts),
-                ["TaxRates"] = await BackfillAsync(context.TaxRates),
+                ["PaymentMethods"] = await BackfillAsync(context.PaymentMethods),
                 ["Taxes"] = await BackfillAsync(context.Taxes),
+                ["TaxRates"] = await BackfillAsync(context.TaxRates),
                 ["NumberingConfigs"] = await BackfillAsync(context.NumberingConfigs),
 
                 ["BankAccounts"] = await BackfillAsync(context.BankAccounts),

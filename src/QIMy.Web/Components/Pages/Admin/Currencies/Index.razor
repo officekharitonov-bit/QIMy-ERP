@@ -3,18 +3,32 @@
 @using QIMy.Application.Currencies.Commands.DeleteCurrency
 @using QIMy.Application.Currencies.Queries.GetAllCurrencies
 @using MediatR
+@using QIMy.Core.Entities
+@using QIMy.Infrastructure.Services
+@using QIMy.Web.Services
+@using QIMy.Web.Components.Shared
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject BusinessContext BusinessContext
+@inject TemplateImportService ImportService
 @rendermode InteractiveServer
 
 <PageTitle>Currencies</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>💱 Currencies (Валюты)</h3>
-    <a href="/admin/currencies/create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Добавить Currency
-    </a>
+    <div>
+        @if (BusinessContext.CurrentBusinessId != 1)
+        {
+            <button class="btn btn-success me-2" @onclick="ShowTemplateSelector">
+                <i class="bi bi-download"></i> Из шаблона
+            </button>
+        }
+        <a href="/admin/currencies/create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Добавить Currency
+        </a>
+    </div>
 </div>
 
 @if (currencies == null)
@@ -74,8 +88,22 @@ else
     </div>
 }
 
+<TemplateSelector T="Currency" @ref="templateSelector" Items="@availableTemplateItems"
+    OnAddSelected="ImportFromTemplate" ColumnsDefinition="@currencyColumns" />
+
 @code {
     private List<CurrencyDto>? currencies;
+
+    private TemplateSelector<Currency>? templateSelector;
+    private List<Currency> availableTemplateItems = new();
+    private List<TemplateSelector<Currency>.ColumnDefinition<Currency>> currencyColumns = new()
+{
+new() { Header = "Code", ValueGetter = x => x.Code ?? "" },
+new() { Header = "Name", ValueGetter = x => x.Name ?? "" },
+new() { Header = "Symbol", ValueGetter = x => x.Symbol ?? "" },
+new() { Header = "Rate", ValueGetter = x => x.ExchangeRate.ToString("F4") },
+new() { Header = "Default", ValueGetter = x => x.IsDefault ? "✓" : "" }
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -104,6 +132,30 @@ else
             {
                 await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Error}");
             }
+        }
+    }
+
+    private async Task ShowTemplateSelector()
+    {
+        availableTemplateItems = await ImportService.GetAvailableCurrenciesAsync(BusinessContext.CurrentBusinessId ?? 0);
+        if (templateSelector != null)
+        {
+            await templateSelector.Show();
+        }
+    }
+
+    private async Task ImportFromTemplate(int[] selectedIds)
+    {
+        try
+        {
+            var result = await ImportService.AddCurrenciesFromTemplateAsync(BusinessContext.CurrentBusinessId ?? 0,
+            selectedIds);
+            await JS.InvokeVoidAsync("alert", $"Успешно импортировано {result} валют из шаблона");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка импорта: {ex.Message}");
         }
     }
 }

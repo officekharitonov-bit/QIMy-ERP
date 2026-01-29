@@ -9,15 +9,12 @@ public class AiEncodingDetectionService : IAiEncodingDetectionService
 {
     public async Task<EncodingDetectionResult> DetectEncodingAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        // Read sample for analysis
-        var buffer = new byte[Math.Min(8192, stream.Length)];
-        stream.Position = 0;
-        var bytesRead = await stream.ReadAsync(buffer, cancellationToken);
-        var sample = buffer[..bytesRead];
+        // For streams that don't support seeking (like BrowserFileStream), copy to memory first
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream, cancellationToken);
+        var buffer = memoryStream.ToArray();
 
-        stream.Position = 0; // Reset for later use
-
-        return await DetectEncodingAsync(sample, cancellationToken);
+        return await DetectEncodingAsync(buffer, cancellationToken);
     }
 
     public Task<EncodingDetectionResult> DetectEncodingAsync(byte[] data, CancellationToken cancellationToken = default)
