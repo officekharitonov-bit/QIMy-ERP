@@ -1,10 +1,12 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Cash Entry (Кассовая операция)
 /// Записи о приходе/расходе наличных в кассе
 /// </summary>
-public class CashEntry : BaseEntity
+public class CashEntry : BaseEntity, IMustHaveBusiness
 {
     /// <summary>
     /// Бизнес, к которому относится запись
@@ -123,7 +125,7 @@ public class CashEntry : BaseEntity
 /// Касса (Cash Box)
 /// Представляет физическую кассу или кассовый счет
 /// </summary>
-public class CashBox : BaseEntity
+public class CashBox : BaseEntity, IMustHaveBusiness
 {
     /// <summary>
     /// Бизнес, к которому относится касса

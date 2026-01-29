@@ -11,7 +11,7 @@ Console.WriteLine("=== Creating Sample Invoices ===\n");
 var connection = new SqliteConnection(connectionString);
 connection.Open();
 
-// First, get business 
+// First, get business
 var command = connection.CreateCommand();
 command.CommandText = "SELECT Id FROM Businesses LIMIT 1;";
 var businessId = (long?)command.ExecuteScalar() ?? 1;
@@ -35,7 +35,7 @@ Console.WriteLine($"Using BusinessId: {businessId}, CurrencyId: {currencyId}\n")
 
 // Get clients
 command.CommandText = @"
-    SELECT Id, CompanyName, Country FROM Clients 
+    SELECT Id, CompanyName, Country FROM Clients
     WHERE IsDeleted = 0
     ORDER BY CompanyName
     LIMIT 3;
@@ -56,13 +56,13 @@ var now = DateTime.UtcNow;
 for (int i = 0; i < clients.Count; i++)
 {
     var (clientId, clientName, country) = clients[i];
-    var invoiceNumber = $"2026{(i+1):D3}";
+    var invoiceNumber = $"2026{(i + 1):D3}";
     var invoiceDate = new DateTime(2026, 1, 15 + i);
     var dueDate = new DateTime(2026, 2, 15 + i);
     var subTotal = (decimal)((i + 1) * 60);
     var taxAmount = (decimal)((i + 1) * 12);
     var totalAmount = subTotal + taxAmount;
-    
+
     command = connection.CreateCommand();
     command.CommandText = @"
         INSERT INTO Invoices (
@@ -75,7 +75,7 @@ for (int i = 0; i < clients.Count; i++)
             @created, @updated, @notes, 0
         );
     ";
-    
+
     command.Parameters.AddWithValue("@number", invoiceNumber);
     command.Parameters.AddWithValue("@date", invoiceDate.ToString("yyyy-MM-dd"));
     command.Parameters.AddWithValue("@due", dueDate.ToString("yyyy-MM-dd"));
@@ -88,7 +88,7 @@ for (int i = 0; i < clients.Count; i++)
     command.Parameters.AddWithValue("@created", now.ToString("o"));
     command.Parameters.AddWithValue("@updated", now.ToString("o"));
     command.Parameters.AddWithValue("@notes", $"Sample invoice for {clientName}");
-    
+
     command.ExecuteNonQuery();
     Console.WriteLine($"✓ Invoice {invoiceNumber} - €{totalAmount} for {clientName} ({country})");
 }

@@ -69,14 +69,16 @@ $correct = 0
 foreach ($code in $officialRates.Keys | Sort-Object) {
     $official = $officialRates[$code]
     $inExcel = $excelData[$code]
-    
+
     if ($inExcel -eq $null) {
         Write-Host "MISSING: $code" -ForegroundColor Yellow
         $errors++
-    } elseif ($inExcel -ne $official) {
+    }
+    elseif ($inExcel -ne $official) {
         Write-Host "ERROR: $code - Excel=$inExcel%, Official=$official%" -ForegroundColor Red
         $errors++
-    } else {
+    }
+    else {
         $correct++
     }
 }

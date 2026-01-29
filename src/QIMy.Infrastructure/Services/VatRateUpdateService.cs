@@ -239,11 +239,11 @@ public class VatRateUpdateService : BackgroundService
             });
 
             changesCount++;
-            _logger.LogWarning("🔄 Rate changed: {CountryCode} {RateType} from {OldRate}% to {NewRate}%", 
+            _logger.LogWarning("🔄 Rate changed: {CountryCode} {RateType} from {OldRate}% to {NewRate}%",
                 countryCode, rateType, currentRate.Rate, newRate);
             return 1;
         }
-        
+
         // Rate unchanged, no action needed
         return 0;
     }

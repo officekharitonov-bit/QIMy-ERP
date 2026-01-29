@@ -82,7 +82,7 @@ public class VatRateChangeLog : BaseEntity
 - **GetVatRateQuery**: Получить ставку для страны на определенную дату
   - Поддержка исторических запросов (AsOfDate)
   - Используется для расчета старых счетов
-  
+
 - **GetAllVatRatesQuery**: Получить все ставки
   - Фильтр по стране
   - Фильтр по активности (текущие/исторические)
@@ -134,18 +134,18 @@ builder.Services.AddHostedService<VatRateUpdateService>();
   - EffectiveUntil (DateTime, nullable)
   - Source (string)
   - Notes (string, nullable)
-  
+
 - Создана таблица VatRateChangeLogs
 
 #### SeedData.cs - Обновлен
 ```csharp
 // Только Австрия при инициализации (для совместимости)
-new TaxRate 
-{ 
+new TaxRate
+{
     CountryCode = "AT",
     CountryName = "Austria",
-    Name = "Standard VAT (AT)", 
-    Rate = 20m, 
+    Name = "Standard VAT (AT)",
+    Rate = 20m,
     RateType = TaxRateType.Standard,
     EffectiveFrom = now,
     EffectiveUntil = null,
@@ -180,18 +180,18 @@ new TaxRate
 ### Использование в коде:
 ```csharp
 // В Invoice/InvoiceItem calculation:
-var query = new GetVatRateQuery 
-{ 
-    CountryCode = "AT", 
-    RateType = "Standard" 
+var query = new GetVatRateQuery
+{
+    CountryCode = "AT",
+    RateType = "Standard"
 };
 var result = await _mediator.Send(query);
 var vatRate = result.Value.Rate; // 20.00
 
 // Для исторических счетов:
-var queryHistorical = new GetVatRateQuery 
-{ 
-    CountryCode = "DE", 
+var queryHistorical = new GetVatRateQuery
+{
+    CountryCode = "DE",
     AsOfDate = new DateTime(2020, 7, 1) // Когда ставка была 16%
 };
 var resultHistorical = await _mediator.Send(queryHistorical);
@@ -255,10 +255,10 @@ var result = await _mediator.Send(query);
 
 ### 3. Получить историческую ставку:
 ```csharp
-var query = new GetVatRateQuery 
-{ 
-    CountryCode = "DE", 
-    AsOfDate = new DateTime(2020, 7, 1) 
+var query = new GetVatRateQuery
+{
+    CountryCode = "DE",
+    AsOfDate = new DateTime(2020, 7, 1)
 };
 var result = await _mediator.Send(query);
 // result.Value.Rate = 16.00 (временная ставка COVID-19)
@@ -266,7 +266,7 @@ var result = await _mediator.Send(query);
 
 ### 4. Проверить изменения ставок:
 ```sql
-SELECT * FROM VatRateChangeLogs 
+SELECT * FROM VatRateChangeLogs
 WHERE ChangeDate >= '2026-01-01'
 ORDER BY ChangeDate DESC;
 ```

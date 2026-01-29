@@ -1,6 +1,6 @@
 # 🎉 Tax Logic Engine - Интеграция завершена!
 
-**Дата:** 25 января 2026  
+**Дата:** 25 января 2026
 **Статус:** ✅ Готово к использованию
 
 ---
@@ -134,9 +134,9 @@ private void OnClientChanged()
 {
     var client = clients.FirstOrDefault(c => c.Id == selectedClientId);
     var tempInvoice = new Invoice();
-    
+
     TaxService.ApplyTaxLogic(tempInvoice, client, false, true);
-    
+
     steuercode = tempInvoice.Steuercode;
     konto = tempInvoice.Konto;
     proz = tempInvoice.Proz;
@@ -176,7 +176,7 @@ dotnet run --project src\QIMy.Web\QIMy.Web.csproj
 ### 1. **sellerIsSmallBusiness** (TODO)
 Сейчас захардкожено `false` в коде:
 ```csharp
-TaxService.ApplyTaxLogic(tempInvoice, client, 
+TaxService.ApplyTaxLogic(tempInvoice, client,
     sellerIsSmallBusiness: false, // TODO: получить из настроек компании
     isGoodsSupply: true);
 ```
@@ -252,6 +252,6 @@ dotnet run --project TestTaxEngine/TestTaxEngine.csproj
 
 ---
 
-**Создано:** 25 января 2026  
-**Версия:** 1.0.0  
+**Создано:** 25 января 2026
+**Версия:** 1.0.0
 **Статус:** ✅ Интеграция завершена

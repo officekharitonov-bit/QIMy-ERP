@@ -73,8 +73,13 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             }
         }
 
+        if (!request.BusinessId.HasValue || request.BusinessId.Value <= 0)
+        {
+            return Result<ProductDto>.Failure("BusinessId is required.");
+        }
+
         var product = _mapper.Map<Product>(request);
-        product.BusinessId = request.BusinessId;
+        product.BusinessId = request.BusinessId.Value;
 
         await _unitOfWork.Products.AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -18,7 +18,7 @@ var businessId = (long?)command.ExecuteScalar() ?? 1;
 Console.WriteLine($"Using BusinessId: {businessId}");
 
 command.CommandText = @"
-    SELECT Id, CompanyName, Country FROM Clients 
+    SELECT Id, CompanyName, Country FROM Clients
     WHERE IsDeleted = 0
     ORDER BY CompanyName
     LIMIT 3;
@@ -39,16 +39,16 @@ var now = DateTime.UtcNow;
 for (int i = 0; i < clients.Count; i++)
 {
     var (clientId, clientName, country) = clients[i];
-    var invoiceNumber = $"2026{(i+1):D3}";
+    var invoiceNumber = $"2026{(i + 1):D3}";
     var invoiceDate = new DateTime(2026, 1, 15 + i);
     var dueDate = new DateTime(2026, 2, 15 + i);
     var amount = (i + 1) * 60m;
     var tax = (i + 1) * 12m;
     var gross = (i + 1) * 72m;
-    
+
     // Determine invoice type based on country
     var invoiceType = country == "Austria" ? "Domestic" : "IntraEU";
-    
+
     command = connection.CreateCommand();
     command.CommandText = @"
         INSERT INTO Invoices (
@@ -61,7 +61,7 @@ for (int i = 0; i < clients.Count; i++)
             @created, @updated, @notes
         );
     ";
-    
+
     command.Parameters.AddWithValue("@number", invoiceNumber);
     command.Parameters.AddWithValue("@date", invoiceDate.ToString("yyyy-MM-dd"));
     command.Parameters.AddWithValue("@due", dueDate.ToString("yyyy-MM-dd"));
@@ -74,7 +74,7 @@ for (int i = 0; i < clients.Count; i++)
     command.Parameters.AddWithValue("@created", now.ToString("o"));
     command.Parameters.AddWithValue("@updated", now.ToString("o"));
     command.Parameters.AddWithValue("@notes", $"Sample invoice for {clientName}");
-    
+
     command.ExecuteNonQuery();
     Console.WriteLine($"✓ Invoice {invoiceNumber} created for {clientName} ({country})");
 }

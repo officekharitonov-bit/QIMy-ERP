@@ -1,11 +1,13 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Product/Service entity
 /// </summary>
-public class Product : BaseEntity
+public class Product : BaseEntity, IMustHaveBusiness
 {
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? SKU { get; set; }
@@ -20,7 +22,7 @@ public class Product : BaseEntity
     public string? TareUnit { get; set; }
     public decimal? UnitsInTare { get; set; }
     public string? Notes { get; set; }
-    
+
     // Navigation properties
     public Business? Business { get; set; }
     public Unit? Unit { get; set; }

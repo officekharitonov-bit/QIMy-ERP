@@ -1,7 +1,7 @@
 # Session Log - 26 января 2026: Document Management System Planning
 
-**Дата:** 26.01.2026  
-**Тип сессии:** Архитектурное планирование  
+**Дата:** 26.01.2026
+**Тип сессии:** Архитектурное планирование
 **Статус:** Отложено для будущей реализации
 
 ---
@@ -41,7 +41,7 @@
 #### 1. Database Schema
 ```sql
 -- Основная таблица документов
-Documents (Id, FileName, ContentType, FileSizeBytes, FileData/StoragePath, 
+Documents (Id, FileName, ContentType, FileSizeBytes, FileData/StoragePath,
            DocumentType, ExtractedText, ExtractedDataJson, BusinessId)
 
 -- Связь документов с сущностями (полиморфная)

@@ -22,7 +22,7 @@ This is a detailed, step-by-step roadmap to take QIMy from 35% completion to MVP
 
 **File:** `src/QIMy.Infrastructure/Services/InvoiceService.cs`
 
-**Current Status:** 
+**Current Status:**
 - Hotfix applied on 23.01 to auto-generate `InvoiceNumber` and default `CurrencyId`
 - **Action needed:** Test that the fix works end-to-end
 
@@ -78,7 +78,7 @@ sqlcmd -S "qimy-sql-server.database.windows.net" `
        -Q "SELECT COUNT(*) AS CurrencyCount FROM Currencies;"
 ```
 
-**Expected Output:** 
+**Expected Output:**
 - If `CurrencyCount = 0` → Need to seed
 - If `CurrencyCount > 0` → Skip to STEP 3
 
@@ -96,29 +96,29 @@ public static class SeedData
         {
             var currencies = new[]
             {
-                new Currency 
-                { 
-                    Code = "EUR", 
-                    Name = "Euro", 
-                    Symbol = "€", 
-                    ExchangeRate = 1.0m, 
-                    IsDefault = true 
+                new Currency
+                {
+                    Code = "EUR",
+                    Name = "Euro",
+                    Symbol = "€",
+                    ExchangeRate = 1.0m,
+                    IsDefault = true
                 },
-                new Currency 
-                { 
-                    Code = "USD", 
-                    Name = "US Dollar", 
-                    Symbol = "$", 
-                    ExchangeRate = 1.10m, 
-                    IsDefault = false 
+                new Currency
+                {
+                    Code = "USD",
+                    Name = "US Dollar",
+                    Symbol = "$",
+                    ExchangeRate = 1.10m,
+                    IsDefault = false
                 },
-                new Currency 
-                { 
-                    Code = "CHF", 
-                    Name = "Swiss Franc", 
-                    Symbol = "CHF", 
-                    ExchangeRate = 0.95m, 
-                    IsDefault = false 
+                new Currency
+                {
+                    Code = "CHF",
+                    Name = "Swiss Franc",
+                    Symbol = "CHF",
+                    ExchangeRate = 0.95m,
+                    IsDefault = false
                 }
             };
             context.Currencies.AddRange(currencies);
@@ -330,43 +330,43 @@ public class ExpenseInvoice : BaseEntity
     // Invoice identification
     public string ExpenseNumber { get; set; } = string.Empty;      // ER-2026-00001
     public string? VendorInvoiceNumber { get; set; }               // External invoice reference
-    
+
     // Dates
     public DateTime InvoiceDate { get; set; }                       // When vendor issued invoice
     public DateTime ReceiptDate { get; set; } = DateTime.UtcNow;   // When we received it
     public DateTime DueDate { get; set; }
-    
+
     // Business context
     public int SupplierId { get; set; }
     public int CurrencyId { get; set; }
     public int? CostCenterId { get; set; }                         // For allocation
     public string? Department { get; set; }                        // Which department ordered
-    
+
     // Amounts
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; } = 0;
-    
+
     // Approval workflow
     public ExpenseStatus Status { get; set; } = ExpenseStatus.Draft;
     public DateTime? SubmittedDate { get; set; }
     public DateTime? ApprovedDate { get; set; }
     public string? ApprovedBy { get; set; }                        // UserId
-    
+
     // Document & OCR
     public string? DocumentUrl { get; set; }                       // Azure Blob Storage path
     public string? OcrExtractedData { get; set; }                  // Raw JSON from OCR
     public bool IsOcrParsed { get; set; } = false;                // Whether auto-extracted
-    
+
     // Matching (3-way match: PO → Receipt → Invoice)
     public int? PoId { get; set; }                                 // Purchase Order reference
     public DateTime? GoodsReceiptDate { get; set; }                // When goods arrived
     public bool IsMatched { get; set; } = false;                   // All 3 matched
-    
+
     public string? Notes { get; set; }
     public bool IsReverseCharge { get; set; } = false;             // VAT treatment for intra-EU
-    
+
     // Navigation properties
     public Supplier Supplier { get; set; } = null!;
     public Currency Currency { get; set; } = null!;
@@ -400,33 +400,33 @@ public class Supplier : BaseEntity
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Website { get; set; }
-    
+
     // Address
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? PostalCode { get; set; }
     public string? Country { get; set; }
-    
+
     // Tax & Bank
     public string? TaxNumber { get; set; }
     public string? VatNumber { get; set; }
     public string? BankAccount { get; set; }
     public string? BankCode { get; set; }
     public string? Iban { get; set; }
-    
+
     // Classification (like Client)
     public int? SupplierTypeId { get; set; }     // B2B, B2C, Government, etc.
     public int? SupplierAreaId { get; set; }     // Inland, EU, Third Country
-    
+
     // Codes & status
     public string? SupplierCode { get; set; }    // Auto-generated (300000-399999)
     public bool IsApproved { get; set; } = false;
     public DateTime? ApprovedDate { get; set; }
-    
+
     // Accounting
     public int? DefaultAccountId { get; set; }   // For GL mapping
     public int? DefaultTaxRateId { get; set; }   // For tax calculation
-    
+
     // Navigation
     public ICollection<ExpenseInvoice> ExpenseInvoices { get; set; } = new List<ExpenseInvoice>();
 }
@@ -583,25 +583,25 @@ public class CreateExpenseInvoiceDto
 {
     [Required]
     public int SupplierId { get; set; }
-    
+
     public string? VendorInvoiceNumber { get; set; }
-    
+
     [Required]
     public DateTime InvoiceDate { get; set; }
-    
+
     [Required]
     public DateTime ReceiptDate { get; set; }
-    
+
     [Required]
     public DateTime DueDate { get; set; }
-    
+
     [Required]
     public int CurrencyId { get; set; }
-    
+
     [Required]
     [Range(0.01, double.MaxValue)]
     public decimal TotalAmount { get; set; }
-    
+
     public string? Department { get; set; }
     public int? CostCenterId { get; set; }
     public string? Notes { get; set; }
@@ -739,8 +739,8 @@ Before pushing to GitHub, ensure:
 
 ---
 
-**Generated:** 2026-01-23  
-**Updated:** As phases complete  
+**Generated:** 2026-01-23
+**Updated:** As phases complete
 **Owner:** GitHub Copilot (QIMy Development)
 
 ---

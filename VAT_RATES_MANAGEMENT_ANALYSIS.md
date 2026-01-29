@@ -32,7 +32,7 @@ SCOPE: Optimal solution for dynamic VAT rate management
 ⚠️ ПРОБЛЕМЫ:
 
   1. ЖЕСТКОЕ КОДИРОВАНИЕ ВСЕ ЕЩЕ СУЩЕСТВУЕТ:
-     
+
      In SeedData.cs (ПРОБЛЕМА):
      ```csharp
      new TaxRate { Name = "Standard VAT", Rate = 20m, IsDefault = true, ... },

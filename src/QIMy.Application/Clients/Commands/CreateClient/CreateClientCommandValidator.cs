@@ -43,6 +43,11 @@ public class CreateClientCommandValidator : AbstractValidator<CreateClientComman
             .When(c => c.ClientAreaId.HasValue)
             .WithMessage("Неверный идентификатор области клиента");
 
+        RuleFor(c => c.BusinessId)
+            .NotNull()
+            .GreaterThan(0)
+            .WithMessage("BusinessId обязателен");
+
         RuleFor(c => c.DoubleConfirmed)
             .Equal(true)
             .When(c => c.IgnoreDuplicateWarning)

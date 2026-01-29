@@ -3,6 +3,8 @@ using QuestPDF.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using QIMy.Core.Entities;
 using QIMy.Infrastructure.Data;
+using System.Globalization;
+using System.Text;
 
 namespace QIMy.Infrastructure.Services;
 
@@ -30,7 +32,7 @@ public class FinalReportService
             .ToListAsync();
 
         var business = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == businessId);
-        
+
         return Document.Create(container =>
         {
             container.Page(page =>
@@ -147,7 +149,8 @@ public class FinalReportService
     }
 
     /// <summary>
-    /// Generate CSV export of invoices
+    /// Generate CSV export of invoices in BMD NTCS format (29 fields)
+    /// Uses German date and number formatting for Austrian accounting systems
     /// </summary>
     public async Task<string> GenerateFinalReportCsvAsync(int businessId, DateTime fromDate, DateTime toDate)
     {
@@ -156,19 +159,114 @@ public class FinalReportService
                    i.InvoiceDate >= fromDate && i.InvoiceDate <= toDate)
             .Include(i => i.Client)
             .Include(i => i.Items)
+                .ThenInclude(item => item.Tax!)
+                    .ThenInclude(tax => tax.Account)
+            .Include(i => i.Currency)
             .OrderBy(i => i.InvoiceDate)
             .ToListAsync();
 
-        var csv = new System.Text.StringBuilder();
-        csv.AppendLine("Invoice Number;Client Name;Invoice Date;Due Date;Item Count;Sub Total;Tax Amount;Total Amount;Status");
+        var business = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == businessId);
+        
+        // German culture for number and date formatting
+        var germanCulture = CultureInfo.GetCultureInfo("de-DE");
+        
+        var csv = new StringBuilder();
+        
+        // BMD NTCS header (29 fields)
+        csv.AppendLine("satzart;konto;gkonto;buchdatum;belegdatum;belegnr;betrag;steuer;text;buchtyp;buchsymbol;filiale;prozent;steuercode;buchcode;fwbetrag;fwsteuer;waehrung;periode;gegenbuchkz;verbuchkz;ausz-belegnr;ausz-betrag;extid;extid;verbuchstatus;uidnr;dokumente");
 
         foreach (var invoice in invoices)
         {
-            var clientName = (invoice.Client?.CompanyName ?? "Unknown").Replace(";", ",");
-            csv.AppendLine($"\"{invoice.InvoiceNumber}\";\"{clientName}\";{invoice.InvoiceDate:yyyy-MM-dd};{invoice.DueDate:yyyy-MM-dd};{invoice.Items.Count};{invoice.SubTotal:F2};{invoice.TaxAmount:F2};{invoice.TotalAmount:F2};{invoice.Status}");
+            // Extract data with safe defaults
+            var clientCode = invoice.Client?.ClientCode?.ToString() ?? "";
+            var clientName = invoice.Client?.CompanyName ?? "Unknown";
+            var vatNumber = invoice.Client?.VatNumber ?? "";
+            var invoiceNumber = invoice.InvoiceNumber ?? "";
+            var currencyCode = invoice.Currency?.Code ?? "EUR";
+            
+            // Determine revenue account (gkonto) from first invoice item
+            var firstItem = invoice.Items.FirstOrDefault();
+            var revenueAccount = firstItem?.Tax?.Account?.AccountNumber ?? "4000";
+            
+            // Determine steuercode (tax code) based on invoice type
+            var steuercode = GetSteuercodeForInvoiceType(invoice);
+            
+            // Calculate amounts
+            var subTotal = invoice.SubTotal; // Net amount (Netto)
+            var taxAmount = invoice.TaxAmount;
+            var totalAmount = invoice.TotalAmount; // Gross amount (Brutto)
+            
+            // Tax percentage (from first item or invoice)
+            var taxPercent = invoice.Proz ?? 20.0m;
+            
+            // Format dates as German format (dd.MM.yyyy)
+            var buchdatum = invoice.InvoiceDate.ToString("dd.MM.yyyy", germanCulture);
+            var belegdatum = invoice.InvoiceDate.ToString("dd.MM.yyyy", germanCulture);
+            
+            // Format numbers as German format (comma as decimal separator)
+            var betragStr = subTotal.ToString("N2", germanCulture);
+            var steuerStr = taxAmount.ToString("N2", germanCulture);
+            var fwbetragStr = ""; // Foreign currency amount (empty if EUR)
+            var fwsteuerStr = ""; // Foreign currency tax (empty if EUR)
+            
+            // Period (month as 2 digits)
+            var periode = invoice.InvoiceDate.ToString("MM", CultureInfo.InvariantCulture);
+            
+            // Invoice type symbol (AR = Ausgangsrechnung)
+            var buchsymbol = "AR";
+            
+            // Text field: Full invoice description
+            var text = $"INVOICE {buchsymbol}{invoiceNumber} {clientName}, {vatNumber}";
+            
+            // Build CSV row (29 fields)
+            csv.Append("0;"); // satzart (always 0)
+            csv.Append($"{clientCode};"); // konto (client account number)
+            csv.Append($"{revenueAccount};"); // gkonto (revenue account)
+            csv.Append($"{buchdatum};"); // buchdatum (posting date)
+            csv.Append($"{belegdatum};"); // belegdatum (document date)
+            csv.Append($"{invoiceNumber.Replace(buchsymbol, "")};"); // belegnr (document number without AR prefix)
+            csv.Append($"{betragStr};"); // betrag (net amount)
+            csv.Append($"{steuerStr};"); // steuer (tax amount)
+            csv.Append($"{text};"); // text (description)
+            csv.Append("1;"); // buchtyp (1=AR, 2=ER)
+            csv.Append($"{buchsymbol};"); // buchsymbol (AR/ER/etc)
+            csv.Append(";"); // filiale (branch - empty)
+            csv.Append($"{taxPercent.ToString("N1", germanCulture).Replace(",", "")};"); // prozent (tax percent without decimal separator)
+            csv.Append($"{steuercode};"); // steuercode (1-99)
+            csv.Append("1;"); // buchcode (1=normal)
+            csv.Append($"{fwbetragStr};"); // fwbetrag (foreign currency amount)
+            csv.Append($"{fwsteuerStr};"); // fwsteuer (foreign currency tax)
+            csv.Append($"{currencyCode};"); // waehrung (currency)
+            csv.Append($"{periode};"); // periode (month)
+            csv.Append("E;"); // gegenbuchkz (E=Einzelposten)
+            csv.Append("A;"); // verbuchkz (A=Automatik)
+            csv.Append(";"); // ausz-belegnr (payment doc number - empty)
+            csv.Append(";"); // ausz-betrag (payment amount - empty)
+            csv.Append(";"); // extid (external ID 1 - empty)
+            csv.Append(";"); // extid (external ID 2 - empty)
+            csv.Append("0;"); // verbuchstatus (0=nicht gebucht)
+            csv.Append($"{vatNumber};"); // uidnr (VAT number)
+            csv.AppendLine(";"); // dokumente (documents - empty)
         }
 
         return csv.ToString();
+    }
+    
+    /// <summary>
+    /// Determine Austrian tax code (Steuercode) based on invoice type
+    /// </summary>
+    private int GetSteuercodeForInvoiceType(Invoice invoice)
+    {
+        return invoice.InvoiceType switch
+        {
+            InvoiceType.Domestic => 1, // Standard 20% VAT
+            InvoiceType.Export => 51, // Tax-free export (0%)
+            InvoiceType.IntraEUSale => 77, // Intra-EU supply (0%)
+            InvoiceType.ReverseCharge => 88, // Reverse charge
+            InvoiceType.SmallBusinessExemption => 62, // Kleinunternehmer
+            InvoiceType.TriangularTransaction => 78, // Dreiecksgeschäft
+            _ => invoice.Steuercode ?? 1 // Use invoice's Steuercode or default to 1
+        };
     }
 
     /// <summary>

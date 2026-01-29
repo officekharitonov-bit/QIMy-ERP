@@ -18,7 +18,7 @@ public record CreateSupplierCommand : IRequest<Result<SupplierDto>>
     public string? TaxNumber { get; set; }
     public string? VatNumber { get; set; }
     public string? BankAccount { get; set; }
-    
+
     public bool IgnoreDuplicateWarning { get; set; }
     public bool DoubleConfirmed { get; set; }
 }

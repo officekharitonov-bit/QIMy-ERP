@@ -1,9 +1,11 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Bank account information for business
 /// </summary>
-public class BankAccount : BaseEntity
+public class BankAccount : BaseEntity, IMustHaveBusiness
 {
     public int BusinessId { get; set; }
     public string BankName { get; set; } = string.Empty;

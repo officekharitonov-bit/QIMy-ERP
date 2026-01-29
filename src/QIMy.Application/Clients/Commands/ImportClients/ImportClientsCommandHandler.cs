@@ -32,6 +32,12 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
             request.FileStream.Length, request.SkipErrors);
 
         var startTime = DateTime.UtcNow;
+        if (!request.BusinessId.HasValue || request.BusinessId.Value <= 0)
+        {
+            throw new InvalidOperationException("BusinessId is required for client import.");
+        }
+
+        var businessId = request.BusinessId.Value;
         var result = new ImportResult { ImportedAt = startTime };
 
         try
@@ -172,7 +178,7 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                         TaxNumber = dto.TaxNumber,
                         ClientAreaId = null,  // TODO: map by country/area code if потребуется
                         ClientTypeId = null,  // TODO: map by type code if потребуется
-                        BusinessId = request.BusinessId,
+                        BusinessId = businessId,
                         CurrencyId = currencyId,
                         PaymentTermsDays = paymentTermsDays,
                         Notes = dto.Description,
@@ -246,7 +252,7 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
         var encoding = await DetectEncodingAsync(stream);
         stream.Position = 0; // Reset after detection
         _logger.LogInformation("✅ Кодировка определена: {EncodingName}", encoding.EncodingName);
-        
+
         var clients = new List<ClientImportDto>();
 
         using var reader = new StreamReader(stream, encoding);
@@ -316,24 +322,24 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
     private async Task<Encoding> DetectEncodingAsync(Stream stream)
     {
         _logger.LogInformation("🤖 AI Encoding Detection начат...");
-        
+
         try
         {
             var detectionResult = await _aiEncoding.DetectEncodingAsync(stream);
-            
+
             _logger.LogInformation(
                 "🤖 AI определил кодировку: {Encoding} (Confidence: {Confidence:P}, Method: {Method})",
                 detectionResult.Encoding.EncodingName,
                 detectionResult.Confidence,
                 detectionResult.DetectionMethod);
-            
+
             if (detectionResult.Alternatives.Any())
             {
                 _logger.LogDebug("Альтернативные варианты: {Alternatives}",
                     string.Join(", ", detectionResult.Alternatives
                         .Select(a => $"{a.Encoding.EncodingName} ({a.Confidence:P})")));
             }
-            
+
             // Log warning if confidence is low
             if (detectionResult.Confidence < 0.7m)
             {
@@ -341,18 +347,18 @@ public class ImportClientsCommandHandler : IRequestHandler<ImportClientsCommand,
                     "⚠️ Низкий confidence score ({Confidence:P}). Рекомендуется проверить результат.",
                     detectionResult.Confidence);
             }
-            
+
             return detectionResult.Encoding;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка AI encoding detection, использую fallback");
-            
+
             // Fallback to old method
             return DetectEncodingFallback(stream);
         }
     }
-    
+
     private Encoding DetectEncodingFallback(Stream stream)
     {
         // Read first 4 bytes to check for BOM

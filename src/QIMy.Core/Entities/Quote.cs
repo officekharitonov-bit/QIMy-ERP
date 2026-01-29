@@ -1,15 +1,17 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Quote/Offer entity (Angebot - AG)
 /// </summary>
-public class Quote : BaseEntity
+public class Quote : BaseEntity, IMustHaveBusiness
 {
     public string QuoteNumber { get; set; } = string.Empty;
     public DateTime QuoteDate { get; set; } = DateTime.UtcNow;
     public DateTime ValidUntil { get; set; }
     public int ClientId { get; set; }
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
     public int CurrencyId { get; set; }
 
     public decimal SubTotal { get; set; }

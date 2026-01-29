@@ -18,7 +18,7 @@ try
 {
     var optionsBuilder = new DbContextOptionsBuilder();
     optionsBuilder.UseSqlite(connectionString);
-    
+
     // Try to query directly without using the full EF context
     var connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString);
     connection.Open();
@@ -26,7 +26,7 @@ try
     command.CommandText = "SELECT COUNT(*) FROM Clients;";
     var result = command.ExecuteScalar();
     Console.WriteLine($"Total Clients: {result}");
-    
+
     command.CommandText = "SELECT CompanyName FROM Clients LIMIT 5;";
     var reader = command.ExecuteReader();
     while (reader.Read())

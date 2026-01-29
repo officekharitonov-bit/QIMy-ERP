@@ -8,8 +8,8 @@
         @if (CsvHeaders != null && CsvHeaders.Any())
         {
             <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> 
-                <strong>Инструкция:</strong> Перетащите колонки CSV слева в нужные поля QIMy справа. 
+                <i class="bi bi-info-circle"></i>
+                <strong>Инструкция:</strong> Перетащите колонки CSV слева в нужные поля QIMy справа.
                 Неиспользуемые колонки можно оставить в разделе "Игнорировать".
             </div>
 
@@ -31,8 +31,8 @@
                             {
                                 var isMapped = ColumnMapping.ContainsValue(header);
                                 var displayHeader = string.IsNullOrWhiteSpace(header) ? "(пустая колонка)" : header;
-                                
-                                <div class="csv-column mb-2 @(isMapped ? "mapped" : "")" 
+
+                                <div class="csv-column mb-2 @(isMapped ? "mapped" : "")"
                                      draggable="true"
                                      @ondragstart="@(() => OnDragStart(header))"
                                      @ondragend="OnDragEnd">
@@ -86,7 +86,7 @@
                             {
                                 var isRequired = RequiredFields.Contains(field.Key);
                                 var mappedColumn = ColumnMapping.ContainsKey(field.Key) ? ColumnMapping[field.Key] : null;
-                                
+
                                 <div class="qimy-field mb-3 border rounded p-2 @(isRequired ? "border-danger" : "")"
                                      @ondrop="@(() => OnDrop(field.Key))"
                                      @ondragover="OnDragOver"
@@ -106,12 +106,12 @@
                                             </button>
                                         }
                                     </div>
-                                    
+
                                     @if (!string.IsNullOrEmpty(mappedColumn))
                                     {
                                         <div class="mt-2 p-2 bg-success-subtle rounded">
                                             <small>
-                                                <i class="bi bi-link-45deg"></i> 
+                                                <i class="bi bi-link-45deg"></i>
                                                 <strong>@mappedColumn</strong>
                                             </small>
                                             @if (SampleData.ContainsKey(mappedColumn))
@@ -149,7 +149,7 @@
                         <ul class="mb-0">
                             <li>Всего колонок CSV: <strong>@CsvHeaders.Count</strong></li>
                             <li>Сопоставлено: <strong>@ColumnMapping.Count</strong></li>
-                            <li>Обязательных полей не заполнено: 
+                            <li>Обязательных полей не заполнено:
                                 <strong class="@(GetUnmappedRequiredCount() > 0 ? "text-danger" : "text-success")">
                                     @GetUnmappedRequiredCount()
                                 </strong>
@@ -261,7 +261,7 @@
 
             // Add new mapping
             ColumnMapping[targetField] = draggedColumn;
-            
+
             await OnMappingChanged.InvokeAsync(ColumnMapping);
             draggedColumn = null;
         }
@@ -297,7 +297,7 @@
             var alias = GetFieldAlias(targetField);
             if (!string.IsNullOrEmpty(alias))
             {
-                var exactAliasMatch = CsvHeaders.FirstOrDefault(h => 
+                var exactAliasMatch = CsvHeaders.FirstOrDefault(h =>
                     h.Equals(alias, StringComparison.OrdinalIgnoreCase) && !usedColumns.Contains(h)
                 );
                 if (exactAliasMatch != null)
@@ -312,8 +312,8 @@
         foreach (var targetField in TargetFields.Keys)
         {
             if (ColumnMapping.ContainsKey(targetField)) continue;
-            
-            var exactMatch = CsvHeaders.FirstOrDefault(h => 
+
+            var exactMatch = CsvHeaders.FirstOrDefault(h =>
                 h.Equals(targetField, StringComparison.OrdinalIgnoreCase) && !usedColumns.Contains(h)
             );
             if (exactMatch != null)
@@ -327,13 +327,13 @@
         foreach (var targetField in TargetFields.Keys)
         {
             if (ColumnMapping.ContainsKey(targetField)) continue;
-            
+
             var alias = GetFieldAlias(targetField);
             if (!string.IsNullOrEmpty(alias))
             {
-                var partialAliasMatch = CsvHeaders.FirstOrDefault(h => 
-                    (h.Contains(alias, StringComparison.OrdinalIgnoreCase) || 
-                     alias.Contains(h, StringComparison.OrdinalIgnoreCase)) && 
+                var partialAliasMatch = CsvHeaders.FirstOrDefault(h =>
+                    (h.Contains(alias, StringComparison.OrdinalIgnoreCase) ||
+                     alias.Contains(h, StringComparison.OrdinalIgnoreCase)) &&
                     !usedColumns.Contains(h)
                 );
                 if (partialAliasMatch != null)

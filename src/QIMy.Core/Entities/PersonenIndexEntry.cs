@@ -1,9 +1,11 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Personen Index Entry - центральный справочник контрагентов
 /// Это "телефонная книга" системы - единственный источник правды для данных контрагентов
-/// 
+///
 /// Архитектура:
 /// - Один контрагент может быть одновременно клиентом (AR) и поставщиком (ER)
 /// - Kto-Nr (номер счета) определяет тип и назначение:
@@ -14,17 +16,17 @@ namespace QIMy.Core.Entities;
 /// - Страна определяет налоговый режим (EU-RATE)
 /// - Предлагаемые счета автоматически подставляются в операции
 /// </summary>
-public class PersonenIndexEntry : BaseEntity
+public class PersonenIndexEntry : BaseEntity, IMustHaveBusiness
 {
     /// <summary>
     /// Бизнес (мультитенантность)
     /// </summary>
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
 
     /// <summary>
     /// Номер счета (Kto-Nr) - уникальный ID контрагента
     /// 2xxxxx: Клиент (AR)
-    /// 3xxxxx: Поставщик (ER)  
+    /// 3xxxxx: Поставщик (ER)
     /// 4xxxxx: Оба (AR + ER)
     /// </summary>
     public string KtoNr { get; set; } = string.Empty;
@@ -171,10 +173,10 @@ public enum ContractorType
 {
     /// <summary>Только клиент (AR)</summary>
     Customer = 1,
-    
+
     /// <summary>Только поставщик (ER)</summary>
     Supplier = 2,
-    
+
     /// <summary>Оба - и клиент, и поставщик (AR + ER)</summary>
     Both = 3
 }
@@ -186,13 +188,13 @@ public enum ContractorStatus
 {
     /// <summary>Активный контрагент</summary>
     Active = 1,
-    
+
     /// <summary>Неактивный (архивированный)</summary>
     Inactive = 2,
-    
+
     /// <summary>На проверке</summary>
     Pending = 3,
-    
+
     /// <summary>Заблокирован</summary>
     Blocked = 4
 }

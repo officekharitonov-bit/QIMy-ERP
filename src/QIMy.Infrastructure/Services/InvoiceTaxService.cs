@@ -163,8 +163,8 @@ public class InvoiceTaxService
 
         // Basic check: Should start with 2-letter country code + "U" + numbers
         // Example: ATU12345678, DE123456789
-        return uid.Length >= 8 && 
-               char.IsLetter(uid[0]) && 
+        return uid.Length >= 8 &&
+               char.IsLetter(uid[0]) &&
                char.IsLetter(uid[1]);
     }
 

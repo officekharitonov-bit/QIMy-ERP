@@ -33,7 +33,7 @@ Console.WriteLine($"BusinessId: {businessId}, CurrencyId: {currencyId}\n");
 
 // Get clients
 command.CommandText = @"
-    SELECT Id, CompanyName, Country FROM Clients 
+    SELECT Id, CompanyName, Country FROM Clients
     WHERE IsDeleted = 0
     ORDER BY CompanyName;
 ";
@@ -52,21 +52,21 @@ Console.WriteLine($"Found {clients.Count} clients\n");
 var invoices = new List<(string Number, long ClientId, string ClientName, string InvoiceType, decimal SubTotal, decimal Tax, string Description)>
 {
     // Case 1: Domestic (Inland) - 20% VAT
-    ("2026001", clients[0].Id, clients[0].Name, "Domestic", 100m, 20m, 
+    ("2026001", clients[0].Id, clients[0].Name, "Domestic", 100m, 20m,
      "INLAND: Domestic supply Austria → 20% VAT"),
-    
+
     // Case 2: Export (Exportrechnung) - 0% VAT
     ("2026002", clients[1].Id, clients[1].Name, "Export", 100m, 0m,
      "EXPORT: Tax-free export to Slovakia → 0% VAT"),
-    
+
     // Case 3: Intra-EU Sale (Innergemeinschaftliche Lieferung) - 0% VAT in AT
     ("2026003", clients[1].Id, clients[1].Name, "IntraEUSale", 120m, 0m,
      "INTRA-EU: Intra-EU supply to Slovakia → 0% VAT (reverse charge)"),
-    
+
     // Case 4: Reverse Charge - 0% VAT
     ("2026004", clients[2].Id, clients[2].Name, "ReverseCharge", 150m, 0m,
      "REVERSE CHARGE: VAT liability on customer → 0% VAT"),
-    
+
     // Case 5: Small Business (Kleinunternehmer) - no VAT
     ("2026005", clients[2].Id, clients[2].Name, "SmallBusinessExemption", 80m, 0m,
      "KLEINUNTERNEHMER: Small business exemption → 0% VAT"),
@@ -78,7 +78,7 @@ foreach (var (number, clientId, clientName, invType, subTotal, tax, description)
     var totalAmount = subTotal + tax;
     var invoiceDate = new DateTime(2026, 1, 20 + (number[^1] - '0'));
     var dueDate = invoiceDate.AddDays(30);
-    
+
     // Map string to enum value (0=Domestic, 1=Export, 2=IntraEUSale, 3=ReverseCharge, 4=SmallBusinessExemption)
     var typeValue = invType switch
     {
@@ -89,13 +89,13 @@ foreach (var (number, clientId, clientName, invType, subTotal, tax, description)
         "SmallBusinessExemption" => 4,
         _ => 0
     };
-    
+
     // Determine tax flags
     var isReverseCharge = invType == "ReverseCharge" ? 1 : 0;
     var isSmallBusiness = invType == "SmallBusinessExemption" ? 1 : 0;
     var isTaxFree = invType == "Export" ? 1 : 0;
     var isIntraEU = invType == "IntraEUSale" ? 1 : 0;
-    
+
     command = connection.CreateCommand();
     command.CommandText = @"
         INSERT INTO Invoices (
@@ -111,7 +111,7 @@ foreach (var (number, clientId, clientName, invType, subTotal, tax, description)
             @type, @revCharge, @smallBiz, @taxFree, @intraEu
         );
     ";
-    
+
     command.Parameters.AddWithValue("@number", number);
     command.Parameters.AddWithValue("@date", invoiceDate.ToString("yyyy-MM-dd"));
     command.Parameters.AddWithValue("@due", dueDate.ToString("yyyy-MM-dd"));
@@ -129,9 +129,9 @@ foreach (var (number, clientId, clientName, invType, subTotal, tax, description)
     command.Parameters.AddWithValue("@smallBiz", isSmallBusiness);
     command.Parameters.AddWithValue("@taxFree", isTaxFree);
     command.Parameters.AddWithValue("@intraEu", isIntraEU);
-    
+
     command.ExecuteNonQuery();
-    
+
     Console.WriteLine($"✓ {number} | {invType.PadRight(20)} | €{totalAmount:F2} | {clientName} | {description}");
 }
 

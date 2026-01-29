@@ -16,9 +16,9 @@ var client = await _context.Clients.FindAsync(clientId);
 
 // Применить налоговую логику к счёту:
 taxService.ApplyTaxLogic(
-    invoice, 
-    client, 
-    sellerIsSmallBusiness: false, 
+    invoice,
+    client,
+    sellerIsSmallBusiness: false,
     isGoodsSupply: true
 );
 

@@ -19,7 +19,7 @@
             rechnungen    rechnungen
 ```
 
-**В центре** → **Personen Index** - единственный источник правды (Single Source of Truth)  
+**В центре** → **Personen Index** - единственный источник правды (Single Source of Truth)
 **Вокруг** → **ER (Eingangsrechnungen)**, **AR (Ausgangsrechnungen)**, **EU-RATE** (налоги)
 
 ---
@@ -36,22 +36,22 @@ public class PersonenIndexEntry : BaseEntity
     // Идентификация
     public string KtoNr { get; set; }           // Номер счета (2xxxxx, 3xxxxx, 4xxxxx)
     public string TAG { get; set; }             // Краткая аббревиатура (для быстрого ввода)
-    
+
     // Базовые данные
     public string CompanyName { get; set; }     // Полное юридическое название
     public string? ContactPerson { get; set; }  // ФИО контакта
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Address { get; set; }
-    
+
     // Налоговые данные
     public string CountryCode { get; set; }     // AT, DE, BE... (определяет налоги)
     public string? UIDNumber { get; set; }      // UID/VAT ID (ATU12345678...)
-    
+
     // Рекомендуемые счета
     public int? SuggestedExpenseAccountId { get; set; }  // Для ER (расходы)
     public int? SuggestedIncomeAccountId { get; set; }   // Для AR (доходы)
-    
+
     // Классификация
     public ContractorType ContractorType { get; set; }   // Customer, Supplier, Both
     public ContractorStatus Status { get; set; }          // Active, Inactive, Pending...
@@ -60,7 +60,7 @@ public class PersonenIndexEntry : BaseEntity
 
 **Типы контрагентов:**
 - `Customer (200000-299999)` - только клиент, AR документы
-- `Supplier (300000-399999)` - только поставщик, ER документы  
+- `Supplier (300000-399999)` - только поставщик, ER документы
 - `Both (400000-499999)` - оба роли одновременно
 
 ---
@@ -74,15 +74,15 @@ public class ExpenseInvoice : BaseEntity
 {
     public string InvoiceNumber { get; set; }
     public DateTime InvoiceDate { get; set; }
-    
+
     // Связь с контрагентом
     public int SupplierId { get; set; }                    // Прямая ссылка на Supplier
     public int? PersonenIndexEntryId { get; set; }        // ✨ Ссылка на Personen Index
-    
+
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
-    
+
     // Navigation properties
     public PersonenIndexEntry? PersonenIndexEntry { get; set; }
     public ICollection<ExpenseInvoiceItem> Items { get; set; }
@@ -114,15 +114,15 @@ public class Invoice : BaseEntity
 {
     public string InvoiceNumber { get; set; }
     public DateTime InvoiceDate { get; set; }
-    
+
     // Связь с контрагентом
     public int ClientId { get; set; }                      // Прямая ссылка на Client
     public int? PersonenIndexEntryId { get; set; }        // ✨ Ссылка на Personen Index
-    
+
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
-    
+
     // Navigation properties
     public PersonenIndexEntry? PersonenIndexEntry { get; set; }
     public ICollection<InvoiceItem> Items { get; set; }
@@ -239,7 +239,7 @@ public class Invoice : BaseEntity
 
 ### Personen Index (PersonenIndexEntry)
 ```sql
-SELECT 
+SELECT
   KtoNr, TAG, CompanyName, CountryCode, UIDNumber,
   SuggestedExpenseAccountId, SuggestedIncomeAccountId
 FROM PersonenIndexEntries
@@ -256,8 +256,8 @@ LIMIT 5;
 
 ### EU-RATE (Справочник налогов)
 ```sql
-SELECT 
-  Code, CountryCode, StandardRate, 
+SELECT
+  Code, CountryCode, StandardRate,
   PurchaseThreshold, SupplyThreshold
 FROM EuCountryData
 WHERE Code IN ('DE', 'AT', 'CH');
@@ -270,8 +270,8 @@ WHERE Code IN ('DE', 'AT', 'CH');
 
 ### ER (ExpenseInvoice) + PersonenIndex
 ```sql
-SELECT 
-  e.InvoiceNumber, 
+SELECT
+  e.InvoiceNumber,
   e.InvoiceDate,
   p.TAG,
   p.CompanyName,
@@ -357,7 +357,7 @@ var expenseInvoice = new ExpenseInvoice
     InvoiceDate = DateTime.UtcNow,
     SupplierId = supplier.Id,
     PersonenIndexEntryId = personenIndexEntry.Id,  // ✨ Ссылка!
-    
+
     // Берем из Personen Index:
     // personenIndexEntry.UIDNumber
     // personenIndexEntry.CountryCode (для поиска в EU-RATE)
@@ -395,11 +395,11 @@ await context.SaveChangesAsync();
 
 ## 📚 Связанные файлы
 
-- Entity Models: 
+- Entity Models:
   - `src/QIMy.Core/Entities/PersonenIndexEntry.cs` (новая!)
   - `src/QIMy.Core/Entities/ExpenseInvoice.cs` (обновлена)
   - `src/QIMy.Core/Entities/Invoice.cs` (обновлена)
-  
+
 - Database:
   - `src/QIMy.Infrastructure/Data/ApplicationDbContext.cs` (обновлена)
   - Migration: `PersonenIndexIntegration_ER_AR_Links` (новая!)
@@ -429,6 +429,6 @@ await context.SaveChangesAsync();
 
 ---
 
-**Автор**: AI Assistant  
-**Дата**: 2026-01-24  
+**Автор**: AI Assistant
+**Дата**: 2026-01-24
 **Версия**: 1.0

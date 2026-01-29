@@ -52,28 +52,28 @@ CREATE TABLE Documents (
     ContentType NVARCHAR(200) NOT NULL,  -- application/pdf, image/jpeg
     FileSizeBytes BIGINT NOT NULL,
     StorageType NVARCHAR(50) NOT NULL,   -- 'Database' or 'FileSystem'
-    
+
     -- For Database storage:
     FileData BLOB NULL,
-    
+
     -- For FileSystem storage:
     StoragePath NVARCHAR(1000) NULL,
-    
+
     UploadedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UploadedByUserId INTEGER NOT NULL,
-    
+
     -- Document metadata
     DocumentType NVARCHAR(100) NULL,     -- 'UID Certificate', 'IBAN', 'Invoice', 'Contract'
     DocumentDate DATE NULL,              -- дата документа
-    
+
     -- Extracted data (from OCR/parsing)
     ExtractedText TEXT NULL,
     ExtractedDataJson TEXT NULL,         -- JSON с распознанными полями
-    
+
     -- Lifecycle
     IsArchived BIT NOT NULL DEFAULT 0,
     ArchivedDate DATETIME NULL,
-    
+
     BusinessId INTEGER NOT NULL,
     FOREIGN KEY (BusinessId) REFERENCES Businesses(Id),
     FOREIGN KEY (UploadedByUserId) REFERENCES Users(Id)
@@ -86,20 +86,20 @@ CREATE TABLE Documents (
 CREATE TABLE DocumentAttachments (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
     DocumentId INTEGER NOT NULL,
-    
+
     -- Generic relation (polymorphic)
     EntityType NVARCHAR(100) NOT NULL,   -- 'Business', 'Client', 'Supplier', 'Invoice', 'Product'
     EntityId INTEGER NOT NULL,
-    
+
     -- Field-specific attachment
     FieldName NVARCHAR(100) NULL,        -- 'VatNumber', 'BankAccount', 'Address'
-    
+
     AttachedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     AttachedByUserId INTEGER NOT NULL,
-    
+
     DisplayOrder INTEGER NOT NULL DEFAULT 0,
     Description NVARCHAR(500) NULL,
-    
+
     FOREIGN KEY (DocumentId) REFERENCES Documents(Id) ON DELETE CASCADE,
     FOREIGN KEY (AttachedByUserId) REFERENCES Users(Id)
 );
@@ -115,16 +115,16 @@ CREATE TABLE DocumentVersions (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
     DocumentId INTEGER NOT NULL,
     VersionNumber INTEGER NOT NULL,
-    
+
     FileName NVARCHAR(500) NOT NULL,
     FileSizeBytes BIGINT NOT NULL,
     FileData BLOB NULL,
     StoragePath NVARCHAR(1000) NULL,
-    
+
     CreatedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CreatedByUserId INTEGER NOT NULL,
     ChangeComment NVARCHAR(1000) NULL,
-    
+
     FOREIGN KEY (DocumentId) REFERENCES Documents(Id) ON DELETE CASCADE,
     FOREIGN KEY (CreatedByUserId) REFERENCES Users(Id)
 );
@@ -143,27 +143,27 @@ public class Document : BaseAuditableEntity
     public string OriginalFileName { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
-    
+
     public DocumentStorageType StorageType { get; set; }
     public byte[]? FileData { get; set; }  // For DB storage
     public string? StoragePath { get; set; }  // For FS storage
-    
+
     public DateTime UploadedDate { get; set; }
     public int UploadedByUserId { get; set; }
     public User? UploadedBy { get; set; }
-    
+
     public string? DocumentType { get; set; }
     public DateTime? DocumentDate { get; set; }
-    
+
     public string? ExtractedText { get; set; }
     public string? ExtractedDataJson { get; set; }
-    
+
     public bool IsArchived { get; set; }
     public DateTime? ArchivedDate { get; set; }
-    
+
     public int BusinessId { get; set; }
     public Business? Business { get; set; }
-    
+
     public ICollection<DocumentAttachment> Attachments { get; set; } = new List<DocumentAttachment>();
     public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
 }
@@ -182,15 +182,15 @@ public class DocumentAttachment : BaseEntity
 {
     public int DocumentId { get; set; }
     public Document? Document { get; set; }
-    
+
     public string EntityType { get; set; } = string.Empty;  // "Business", "Client", etc.
     public int EntityId { get; set; }
     public string? FieldName { get; set; }  // "VatNumber", "BankAccount", etc.
-    
+
     public DateTime AttachedDate { get; set; }
     public int AttachedByUserId { get; set; }
     public User? AttachedBy { get; set; }
-    
+
     public int DisplayOrder { get; set; }
     public string? Description { get; set; }
 }
@@ -206,23 +206,23 @@ public class DocumentAttachment : BaseEntity
 public interface IDocumentService
 {
     // Upload
-    Task<Document> UploadDocumentAsync(Stream fileStream, string fileName, 
+    Task<Document> UploadDocumentAsync(Stream fileStream, string fileName,
         string contentType, int businessId, int userId);
-    
+
     // Attach to entity
-    Task AttachDocumentAsync(int documentId, string entityType, int entityId, 
+    Task AttachDocumentAsync(int documentId, string entityType, int entityId,
         string? fieldName, int userId);
-    
+
     // Retrieve
     Task<Document?> GetDocumentAsync(int documentId);
     Task<byte[]> GetDocumentContentAsync(int documentId);
     Task<List<Document>> GetEntityDocumentsAsync(string entityType, int entityId);
     Task<Document?> GetFieldDocumentAsync(string entityType, int entityId, string fieldName);
-    
+
     // Delete
     Task DeleteDocumentAsync(int documentId, int userId);
     Task DetachDocumentAsync(int attachmentId, int userId);
-    
+
     // Archive
     Task ArchiveDocumentAsync(int documentId, int userId);
     Task UnarchiveDocumentAsync(int documentId, int userId);
@@ -236,10 +236,10 @@ public interface IDocumentParserService
 {
     // PDF text extraction
     Task<string> ExtractTextFromPdfAsync(Stream pdfStream);
-    
+
     // Smart field extraction
     Task<Dictionary<string, string>> ExtractFieldsAsync(string text, string documentType);
-    
+
     // Examples:
     // ExtractFieldsAsync(text, "UIDCertificate") → { "VatNumber": "ATU12345678" }
     // ExtractFieldsAsync(text, "IBANCertificate") → { "IBAN": "AT611904300234573201" }
@@ -254,12 +254,12 @@ public interface ISmartImportService
 {
     // Analyze folder structure
     Task<FolderAnalysisResult> AnalyzeFolderAsync(string folderPath);
-    
+
     // Import entire folder
     Task<ImportResult> ImportFolderAsync(string folderPath, int businessId, int userId);
-    
+
     // Process single file
-    Task<FileProcessResult> ProcessFileAsync(string filePath, string category, 
+    Task<FileProcessResult> ProcessFileAsync(string filePath, string category,
         int businessId, int userId);
 }
 
@@ -269,7 +269,7 @@ public class FolderAnalysisResult
     public List<FileInfo> PdfFiles { get; set; } = new();
     public List<FileInfo> ExcelFiles { get; set; } = new();
     public List<FileInfo> ImageFiles { get; set; } = new();
-    
+
     public Dictionary<string, List<FileInfo>> CategorizedFiles { get; set; } = new();
     // "FA und ZOLL" → [Bescheid UID.pdf, EORI.pdf]
     // "STAMM" → [Datenblatt.pdf, ...]
@@ -368,7 +368,7 @@ IBAN:\s*(AT\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})
 
 <div class="field-with-document">
     <InputText @bind-Value="Value" />
-    
+
     @if (HasDocument)
     {
         <button class="btn-icon" @onclick="ViewDocument" title="View attached document">
@@ -431,7 +431,7 @@ IBAN:\s*(AT\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})
     else if (CurrentStep == 2)
     {
         <h3>Step 2: Review Detected Files</h3>
-        
+
         <h4>CSVs (Data Import)</h4>
         @foreach (var csv in AnalysisResult.CsvFiles)
         {
@@ -446,7 +446,7 @@ IBAN:\s*(AT\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})
                 </select>
             </div>
         }
-        
+
         <h4>PDFs (Documents to Attach)</h4>
         @foreach (var pdf in AnalysisResult.PdfFiles)
         {
@@ -457,7 +457,7 @@ IBAN:\s*(AT\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})
                 <span>→ Attach to: @GetAttachmentTarget(pdf.Name)</span>
             </div>
         }
-        
+
         <button @onclick="StartImport">Start Import</button>
     }
     else if (CurrentStep == 3)
@@ -660,9 +660,9 @@ var result = await _mediator.Send(importCommand);
 ```razor
 <div class="form-group">
     <label>UID Number</label>
-    <DocumentFieldAttachment 
-        EntityType="Business" 
-        EntityId="@Business.Id" 
+    <DocumentFieldAttachment
+        EntityType="Business"
+        EntityId="@Business.Id"
         FieldName="VatNumber"
         @bind-Value="Business.VatNumber" />
     @* Renders: [ATU12345678] [📄 View Document] *@

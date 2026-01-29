@@ -19,7 +19,8 @@ if (-not (Test-Path $excelPath)) {
 try {
     $health = Invoke-RestMethod -Uri "$apiUrl/health" -Method Get -ErrorAction Stop
     Write-Host "✓ API is running" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "ERROR: API is not running. Start it with: dotnet run --project src/QIMy.API/QIMy.API.csproj" -ForegroundColor Red
     exit 1
 }
@@ -32,9 +33,9 @@ try {
     $form = @{
         file = Get-Item $excelPath
     }
-    
+
     $result = Invoke-RestMethod -Uri "$apiUrl/api/import/personen-index" -Method Post -Form $form -ErrorAction Stop
-    
+
     Write-Host ""
     Write-Host "=== Import Results ===" -ForegroundColor Cyan
     Write-Host "Countries Imported: $($result.countriesImported)"
@@ -42,7 +43,7 @@ try {
     Write-Host "EU Data Imported: $($result.euDataImported)"
     Write-Host "EU Data Updated: $($result.euDataUpdated)"
     Write-Host ""
-    
+
     if ($result.errors -and $result.errors.Count -gt 0) {
         Write-Host "ERRORS:" -ForegroundColor Red
         foreach ($error in $result.errors) {
@@ -50,12 +51,13 @@ try {
         }
         exit 1
     }
-    
+
     Write-Host "✓ Import completed successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host $result.summary
-    
-} catch {
+
+}
+catch {
     Write-Host "ERROR: Import failed" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1

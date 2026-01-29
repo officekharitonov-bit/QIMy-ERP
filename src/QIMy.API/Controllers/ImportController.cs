@@ -40,7 +40,7 @@ public class ImportController : ControllerBase
         {
             // Save uploaded file temporarily
             var tempPath = Path.Combine(Path.GetTempPath(), $"personen_index_{Guid.NewGuid()}.xlsx");
-            
+
             using (var stream = new FileStream(tempPath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);

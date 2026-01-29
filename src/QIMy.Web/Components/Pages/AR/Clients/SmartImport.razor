@@ -148,22 +148,17 @@
                                 <summary class="cursor-pointer"><small>🔍 Показать все колонки CSV</small></summary>
                                 <div class="mt-2">
                                     <code style="white-space: pre-wrap; word-break: break-all;">
-                                        @string.Join("; ", csvHeaders.Select((h, i) => $"[{i}] {h}"))
-                                    </code>
+                                                    @string.Join("; ", csvHeaders.Select((h, i) => $"[{i}] {h}"))
+                                                </code>
                                 </div>
                             </details>
                         }
                     </div>
                 }
 
-                <CsvColumnMapper 
-                    CsvHeaders="@csvHeaders"
-                    SampleData="@sampleData"
-                    TargetFields="@targetFields"
-                    RequiredFields="@requiredFields"
-                    ColumnMapping="@columnMapping"
-                    OnMappingChanged="OnMappingChanged" />
-                
+                <CsvColumnMapper CsvHeaders="@csvHeaders" SampleData="@sampleData" TargetFields="@targetFields"
+                    RequiredFields="@requiredFields" ColumnMapping="@columnMapping" OnMappingChanged="OnMappingChanged" />
+
                 <div class="card mt-3">
                     <div class="card-body">
                         <div class="d-flex gap-2">
@@ -363,7 +358,8 @@
                                                     @error.ErrorMessage
                                                     @if (error.Details?.Any() == true)
                                                     {
-                                                        <br />@string.Join(", ", error.Details)
+                                                        <br />
+                                                        @string.Join(", ", error.Details)
                                                     }
                                                 </small>
                                             </td>
@@ -439,30 +435,30 @@
     private Dictionary<string, string> sampleData = new();
     private Dictionary<string, string> columnMapping = new();
     private Dictionary<string, string> targetFields = new()
-    {
-        { "ClientCode", "Код клиента" },
-        { "CompanyName", "Название компании" },
-        { "ExternalAccountNumber", "Externe KontoNr (внешний номер)" },
-        { "Country", "Страна" },
-        { "CountryCode", "Код страны" },
-        { "Address", "Адрес" },
-        { "PostalCode", "Индекс" },
-        { "City", "Город" },
-        { "VatNumber", "UID-номер" },
-        { "Email", "Email" },
-        { "Phone", "Телефон" },
-        { "ContactPerson", "Контактное лицо" },
-        { "AccountNumber", "Счет (Erlöskonto)" },
-        { "PaymentTerms", "Условия оплаты" },
-        { "DiscountPercent", "Скидка %" },
-        { "DiscountDays", "Дни скидки" },
-        { "Currency", "Валюта" },
-        { "TaxNumber", "Налоговый номер" },
-        { "Branch", "Филиал" },
-        { "CountryNumber", "Номер страны (Land-Nr)" },
-        { "Description", "Описание товаров/услуг" },
-        { "SupplierSuggestedAccount", "Счет поставщика" }
-    };
+{
+{ "ClientCode", "Код клиента" },
+{ "CompanyName", "Название компании" },
+{ "ExternalAccountNumber", "Externe KontoNr (внешний номер)" },
+{ "Country", "Страна" },
+{ "CountryCode", "Код страны" },
+{ "Address", "Адрес" },
+{ "PostalCode", "Индекс" },
+{ "City", "Город" },
+{ "VatNumber", "UID-номер" },
+{ "Email", "Email" },
+{ "Phone", "Телефон" },
+{ "ContactPerson", "Контактное лицо" },
+{ "AccountNumber", "Счет (Erlöskonto)" },
+{ "PaymentTerms", "Условия оплаты" },
+{ "DiscountPercent", "Скидка %" },
+{ "DiscountDays", "Дни скидки" },
+{ "Currency", "Валюта" },
+{ "TaxNumber", "Налоговый номер" },
+{ "Branch", "Филиал" },
+{ "CountryNumber", "Номер страны (Land-Nr)" },
+{ "Description", "Описание товаров/услуг" },
+{ "SupplierSuggestedAccount", "Счет поставщика" }
+};
     private List<string> requiredFields = new() { "ClientCode", "CompanyName" };
 
     // Preview data
@@ -480,7 +476,7 @@
         selectedFile = e.File;
         selectedFileName = e.File.Name;
         errorMessage = null;
-        
+
         // Read file into memory immediately to avoid Blazor file reference issues
         try
         {
@@ -488,7 +484,7 @@
             using var memoryStream = new MemoryStream();
             await uploadStream.CopyToAsync(memoryStream);
             fileContent = memoryStream.ToArray();
-            
+
             Logger.LogInformation($"File loaded into memory: {selectedFileName}, {fileContent.Length} bytes");
         }
         catch (Exception ex)
@@ -576,7 +572,8 @@
         try
         {
             using var stream = new MemoryStream(fileContent);
-            importResult = await ImportService.ImportClientsAsync(stream, skipErrors, columnMapping, selectedEncoding, BusinessCtx.CurrentBusinessId);
+            importResult = await ImportService.ImportClientsAsync(stream, skipErrors, columnMapping, selectedEncoding,
+            BusinessCtx.CurrentBusinessId);
 
             Logger.LogInformation($"Import completed: {importResult.SuccessCount} imported, {importResult.ErrorCount} errors");
 

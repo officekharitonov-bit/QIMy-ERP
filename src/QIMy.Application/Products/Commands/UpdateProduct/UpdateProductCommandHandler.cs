@@ -88,9 +88,10 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         }
 
         _mapper.Map(request, product);
-        if (request.BusinessId.HasValue)
+
+        if (request.BusinessId.HasValue && request.BusinessId.Value != product.BusinessId)
         {
-            product.BusinessId = request.BusinessId;
+            return Result<ProductDto>.Failure("Changing BusinessId is not allowed.");
         }
 
         await _unitOfWork.Products.UpdateAsync(product, cancellationToken);

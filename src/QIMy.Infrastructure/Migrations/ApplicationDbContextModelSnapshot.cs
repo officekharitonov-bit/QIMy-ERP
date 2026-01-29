@@ -195,7 +195,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("DefaultTaxRateId");
 
-                    b.ToTable("Accounts");
+                    b.ToTable("Accounts", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.AiConfiguration", b =>
@@ -248,7 +248,7 @@ namespace QIMy.Infrastructure.Migrations
                     b.HasIndex("BusinessId")
                         .IsUnique();
 
-                    b.ToTable("AiConfigurations");
+                    b.ToTable("AiConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.AiProcessingLog", b =>
@@ -306,7 +306,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("AiProcessingLogs");
+                    b.ToTable("AiProcessingLogs", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.AiSuggestion", b =>
@@ -361,7 +361,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("AiSuggestions");
+                    b.ToTable("AiSuggestions", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.AnomalyAlert", b =>
@@ -415,7 +415,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("AnomalyAlerts");
+                    b.ToTable("AnomalyAlerts", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.AppUser", b =>
@@ -556,7 +556,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("DefaultCurrencyId");
 
-                    b.ToTable("BankAccounts");
+                    b.ToTable("BankAccounts", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.BankReconciliation", b =>
@@ -613,7 +613,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BankStatementLineId");
 
-                    b.ToTable("BankReconciliations");
+                    b.ToTable("BankReconciliations", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.BankStatement", b =>
@@ -688,7 +688,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("BankStatements");
+                    b.ToTable("BankStatements", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.BankStatementLine", b =>
@@ -754,7 +754,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BankStatementId");
 
-                    b.ToTable("BankStatementLines");
+                    b.ToTable("BankStatementLines", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Business", b =>
@@ -811,7 +811,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Businesses");
+                    b.ToTable("Businesses", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.CashBookDay", b =>
@@ -878,7 +878,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("CashBoxId");
 
-                    b.ToTable("CashBookDays");
+                    b.ToTable("CashBookDays", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.CashBox", b =>
@@ -937,7 +937,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("CashBoxes");
+                    b.ToTable("CashBoxes", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.CashEntry", b =>
@@ -1027,7 +1027,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("PersonenIndexEntryId");
 
-                    b.ToTable("CashEntries");
+                    b.ToTable("CashEntries", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Client", b =>
@@ -1154,7 +1154,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("DefaultPaymentMethodId");
 
-                    b.ToTable("Clients");
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ClientArea", b =>
@@ -1190,7 +1190,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("ClientAreas");
+                    b.ToTable("ClientAreas", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ClientType", b =>
@@ -1226,7 +1226,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("ClientTypes");
+                    b.ToTable("ClientTypes", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Country", b =>
@@ -1268,7 +1268,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Countries");
+                    b.ToTable("Countries", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Currency", b =>
@@ -1312,7 +1312,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("Currencies");
+                    b.ToTable("Currencies", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.DeliveryNote", b =>
@@ -1363,7 +1363,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("DeliveryNotes");
+                    b.ToTable("DeliveryNotes", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.DeliveryNoteItem", b =>
@@ -1403,7 +1403,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("DeliveryNoteItems");
+                    b.ToTable("DeliveryNoteItems", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Discount", b =>
@@ -1439,7 +1439,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("Discounts");
+                    b.ToTable("Discounts", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.EuCountryData", b =>
@@ -1488,7 +1488,7 @@ namespace QIMy.Infrastructure.Migrations
                     b.HasIndex("CountryId")
                         .IsUnique();
 
-                    b.ToTable("EuCountryData");
+                    b.ToTable("EuCountryData", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ExpenseInvoice", b =>
@@ -1573,7 +1573,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("ExpenseInvoices");
+                    b.ToTable("ExpenseInvoices", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ExpenseInvoiceItem", b =>
@@ -1625,7 +1625,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("ExpenseInvoiceId");
 
-                    b.ToTable("ExpenseInvoiceItems");
+                    b.ToTable("ExpenseInvoiceItems", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Invoice", b =>
@@ -1738,7 +1738,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("PersonenIndexEntryId");
 
-                    b.ToTable("Invoices");
+                    b.ToTable("Invoices", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.InvoiceDiscount", b =>
@@ -1768,7 +1768,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("InvoiceDiscounts");
+                    b.ToTable("InvoiceDiscounts", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.InvoiceItem", b =>
@@ -1829,7 +1829,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("TaxId");
 
-                    b.ToTable("InvoiceItems");
+                    b.ToTable("InvoiceItems", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.JournalEntry", b =>
@@ -1903,7 +1903,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("PersonenIndexEntryId");
 
-                    b.ToTable("JournalEntries");
+                    b.ToTable("JournalEntries", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.JournalEntryLine", b =>
@@ -1954,7 +1954,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("PersonenIndexEntryId");
 
-                    b.ToTable("JournalEntryLines");
+                    b.ToTable("JournalEntryLines", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.NumberingConfig", b =>
@@ -2010,7 +2010,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("NumberingConfigs");
+                    b.ToTable("NumberingConfigs", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Payment", b =>
@@ -2058,7 +2058,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("PaymentMethodId");
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.PaymentMethod", b =>
@@ -2090,7 +2090,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("PaymentMethods");
+                    b.ToTable("PaymentMethods", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.PersonenIndexEntry", b =>
@@ -2192,7 +2192,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("PersonenIndexEntries");
+                    b.ToTable("PersonenIndexEntries", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Product", b =>
@@ -2267,7 +2267,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Quote", b =>
@@ -2330,7 +2330,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("CurrencyId");
 
-                    b.ToTable("Quotes");
+                    b.ToTable("Quotes", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.QuoteItem", b =>
@@ -2381,7 +2381,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("TaxId");
 
-                    b.ToTable("QuoteItems");
+                    b.ToTable("QuoteItems", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Return", b =>
@@ -2443,7 +2443,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("OriginalInvoiceId");
 
-                    b.ToTable("Returns");
+                    b.ToTable("Returns", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.ReturnItem", b =>
@@ -2494,7 +2494,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("TaxId");
 
-                    b.ToTable("ReturnItems");
+                    b.ToTable("ReturnItems", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Supplier", b =>
@@ -2556,7 +2556,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Tax", b =>
@@ -2594,7 +2594,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("TaxRateId");
 
-                    b.ToTable("Taxes");
+                    b.ToTable("Taxes", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.TaxRate", b =>
@@ -2659,7 +2659,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("CountryId");
 
-                    b.ToTable("TaxRates");
+                    b.ToTable("TaxRates", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.Unit", b =>
@@ -2695,7 +2695,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("BusinessId");
 
-                    b.ToTable("Units");
+                    b.ToTable("Units", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.UserBusiness", b =>
@@ -2733,7 +2733,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserBusinesses");
+                    b.ToTable("UserBusinesses", (string)null);
                 });
 
             modelBuilder.Entity("QIMy.Core.Entities.VatRateChangeLog", b =>
@@ -2789,7 +2789,7 @@ namespace QIMy.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("VatRateChangeLogs");
+                    b.ToTable("VatRateChangeLogs", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

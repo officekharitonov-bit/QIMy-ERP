@@ -133,7 +133,7 @@
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         var unitsQuery = new GetAllUnitsQuery();
         var unitsResult = await Mediator.Send(unitsQuery);
         units = unitsResult.OrderBy(x => x.Name).ToList();

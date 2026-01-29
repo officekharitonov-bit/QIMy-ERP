@@ -117,7 +117,7 @@ foreach ($row in $data) {
         TaxCode = $row.'USt-StC'
         BusinessId = $businessId
     }
-    
+
     # POST к API или CQRS Command
     Write-Host "Importing: $($account.AccountNumber) - $($account.Name)"
 }
@@ -208,7 +208,7 @@ IBAN → BankAccount
 - Website
 
 #### 4.5 Bankkonto (IBAN)
-**Файлы:** 
+**Файлы:**
 - `STAMM\eBanking _ BAWAG Online Banking.pdf`
 - `STAMM\Bankauszug MKRTCHAN.pdf`
 - `STAMM\Verfügerantrag - George Vertrag BKHA.pdf`

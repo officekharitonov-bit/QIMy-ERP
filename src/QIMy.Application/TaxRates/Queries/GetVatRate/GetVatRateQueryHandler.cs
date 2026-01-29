@@ -29,8 +29,8 @@ public class GetVatRateQueryHandler : IRequestHandler<GetVatRateQuery, Result<Va
         try
         {
             var asOfDate = request.AsOfDate ?? DateTime.UtcNow;
-            var rateType = string.IsNullOrWhiteSpace(request.RateType) 
-                ? TaxRateType.Standard 
+            var rateType = string.IsNullOrWhiteSpace(request.RateType)
+                ? TaxRateType.Standard
                 : Enum.Parse<TaxRateType>(request.RateType);
 
             _logger.LogInformation(
@@ -52,7 +52,7 @@ public class GetVatRateQueryHandler : IRequestHandler<GetVatRateQuery, Result<Va
                 _logger.LogWarning(
                     "No VAT rate found for {CountryCode}, type {RateType}, as of {Date}",
                     request.CountryCode, rateType, asOfDate);
-                
+
                 return Result<VatRateDto>.Failure($"No VAT rate found for {request.CountryCode}");
             }
 

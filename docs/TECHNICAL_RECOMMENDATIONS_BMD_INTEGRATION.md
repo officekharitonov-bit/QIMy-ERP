@@ -1,7 +1,7 @@
 # 🔧 ТЕХНИЧЕСКИЕ РЕКОМЕНДАЦИИ: Интеграция QIMy с клиентским паттерном (Google Cloud → BMD)
 
-**Дата:** 24 января 2026  
-**Уровень:** Enterprise Integration  
+**Дата:** 24 января 2026
+**Уровень:** Enterprise Integration
 **Приоритет:** HIGH
 
 ---
@@ -48,33 +48,33 @@ public class JournalEntry : BaseEntity
     /// Запись в журнале (BUCHUNGSSCHRITT в BMD)
     /// </summary>
     public int Id { get; set; }
-    
+
     // Идентификация
     public DateTime EntryDate { get; set; }
     public string Description { get; set; } = string.Empty;
-    
+
     // Ссылка на исходный документ
     public int? InvoiceId { get; set; }          // Если из AR
     public int? ExpenseInvoiceId { get; set; }   // Если из ER
     public int? BankStatementLineId { get; set; } // Если из BANK
     public int? CashEntryId { get; set; }         // Если из KASSA
-    
+
     // Счета (двойная запись)
     public int DebitAccountId { get; set; }      // FK → Account
     public int CreditAccountId { get; set; }     // FK → Account
-    
+
     // Сумма
     public decimal Amount { get; set; }
-    
+
     // Справочные сведения для BMD
     public string ReferenceNumber { get; set; } = string.Empty; // Invoice/ER number
     public int? CountryCode { get; set; }  // Для VAT tracking
     public int? VATAccountId { get; set; }  // Если есть VAT
     public decimal? VATAmount { get; set; }
-    
+
     // Многотенантность
     public int BusinessId { get; set; }
-    
+
     // Навигация
     public Invoice? Invoice { get; set; }
     public ExpenseInvoice? ExpenseInvoice { get; set; }
@@ -90,7 +90,7 @@ public class JournalEntry : BaseEntity
 public class JournalEntryService
 {
     private readonly ApplicationDbContext _context;
-    
+
     /// <summary>
     /// Создать проводки из AR счета
     /// ПРИМЕР: Invoice 1000€ + 200€ VAT = 1200€
@@ -98,7 +98,7 @@ public class JournalEntryService
     public async Task CreateEntriesFromInvoice(Invoice invoice)
     {
         var entries = new List<JournalEntry>();
-        
+
         // ENTRY 1: Дебет - Bank/Receivables (1100), Кредит - Revenue (4000)
         entries.Add(new JournalEntry
         {
@@ -111,7 +111,7 @@ public class JournalEntryService
             ReferenceNumber = invoice.InvoiceNumber,
             BusinessId = invoice.BusinessId ?? 1
         });
-        
+
         // ENTRY 2: Дебет - Bank/Receivables (1100), Кредит - VAT Payable (2100)
         if (invoice.TaxAmount > 0)
         {
@@ -128,11 +128,11 @@ public class JournalEntryService
                 BusinessId = invoice.BusinessId ?? 1
             });
         }
-        
+
         await _context.JournalEntries.AddRangeAsync(entries);
         await _context.SaveChangesAsync();
     }
-    
+
     /// <summary>
     /// Создать проводки из ER счета (входящий)
     /// ПРИМЕР: ER 500€ + 95€ VAT = 595€
@@ -140,7 +140,7 @@ public class JournalEntryService
     public async Task CreateEntriesFromExpenseInvoice(ExpenseInvoice invoice)
     {
         var entries = new List<JournalEntry>();
-        
+
         // ENTRY 1: Дебет - Purchases (5030), Кредит - AP (3000)
         entries.Add(new JournalEntry
         {
@@ -153,7 +153,7 @@ public class JournalEntryService
             ReferenceNumber = invoice.InvoiceNumber,
             BusinessId = invoice.BusinessId ?? 1
         });
-        
+
         // ENTRY 2: Дебет - VAT Receivable (2300), Кредит - AP (3000)
         if (invoice.TaxAmount > 0)
         {
@@ -170,11 +170,11 @@ public class JournalEntryService
                 BusinessId = invoice.BusinessId ?? 1
             });
         }
-        
+
         await _context.JournalEntries.AddRangeAsync(entries);
         await _context.SaveChangesAsync();
     }
-    
+
     /// <summary>
     /// Валидация: Дебет должен равняться Кредиту!
     /// </summary>
@@ -182,7 +182,7 @@ public class JournalEntryService
     {
         var debitTotal = await _context.JournalEntries.SumAsync(j => j.Amount);
         var creditTotal = await _context.JournalEntries.SumAsync(j => j.Amount);
-        
+
         return debitTotal == creditTotal; // ДОЛЖНО БЫТЬ ИСТИНОЙ!
     }
 }
@@ -197,7 +197,7 @@ public async Task CreateInvoice(CreateInvoiceDto dto)
     var invoice = new Invoice { /* ... */ };
     await _context.Invoices.AddAsync(invoice);
     await _context.SaveChangesAsync();
-    
+
     // 🔥 АВТОМАТИЧЕСКИ создать JournalEntry!
     await _journalEntryService.CreateEntriesFromInvoice(invoice);
 }
@@ -219,7 +219,7 @@ public class BankStatement : BaseEntity
     public int BankAccountId { get; set; }
     public decimal OpeningBalance { get; set; }
     public decimal ClosingBalance { get; set; }
-    
+
     public ICollection<BankStatementLine> Lines { get; set; } = new List<BankStatementLine>();
     public BankAccount? BankAccount { get; set; }
 }
@@ -231,10 +231,10 @@ public class BankStatementLine : BaseEntity
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string TransactionType { get; set; } = string.Empty; // DEBIT/CREDIT
-    
+
     public int? RelatedInvoiceId { get; set; }  // Если payment для AR
     public int? RelatedExpenseInvoiceId { get; set; } // Если payment для ER
-    
+
     public BankStatement? BankStatement { get; set; }
     public Invoice? RelatedInvoice { get; set; }
     public ExpenseInvoice? RelatedExpenseInvoice { get; set; }
@@ -258,7 +258,7 @@ public class BankStatementImportService
             StatementDate = DateTime.UtcNow,
             BankAccountId = bankAccountId
         };
-        
+
         using (var reader = new StreamReader(filePath))
         {
             string line;
@@ -272,18 +272,18 @@ public class BankStatementImportService
                     Amount = decimal.Parse(parts[2]),
                     TransactionType = decimal.Parse(parts[2]) > 0 ? "CREDIT" : "DEBIT"
                 };
-                
+
                 // Попытка найти связанный документ
-                statementLine.RelatedInvoiceId = 
+                statementLine.RelatedInvoiceId =
                     await FindRelatedInvoice(parts[1], Math.Abs(decimal.Parse(parts[2])));
-                
+
                 statement.Lines.Add(statementLine);
             }
         }
-        
+
         await _context.BankStatements.AddAsync(statement);
         await _context.SaveChangesAsync();
-        
+
         // Создать JournalEntry для платежей
         foreach (var line in statement.Lines)
         {
@@ -311,10 +311,10 @@ public class CashEntry : BaseEntity
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string EntryType { get; set; } = string.Empty; // INCOME/EXPENSE/WITHDRAWAL
-    
+
     public int? RelatedInvoiceId { get; set; }  // Если приход от продажи
     public int? RelatedExpenseInvoiceId { get; set; } // Если расход
-    
+
     public Invoice? RelatedInvoice { get; set; }
     public ExpenseInvoice? RelatedExpenseInvoice { get; set; }
 }
@@ -326,7 +326,7 @@ public class CashBook : BaseEntity
     public decimal Income { get; set; }    // Приход
     public decimal Expense { get; set; }   // Расход
     public decimal EndingBalance { get; set; }
-    
+
     public ICollection<CashEntry> Entries { get; set; } = new List<CashEntry>();
 }
 ```
@@ -341,13 +341,13 @@ public class CashBookService
     /// </summary>
     public async Task<bool> ValidateCashBalance(CashBook cashBook)
     {
-        var calculated = cashBook.BeginningBalance 
-                       + cashBook.Income 
+        var calculated = cashBook.BeginningBalance
+                       + cashBook.Income
                        - cashBook.Expense;
-        
+
         return calculated == cashBook.EndingBalance;
     }
-    
+
     /// <summary>
     /// Ежедневное закрытие кассы
     /// </summary>
@@ -356,7 +356,7 @@ public class CashBookService
         var entries = await _context.CashEntries
             .Where(c => c.EntryDate == date)
             .ToListAsync();
-        
+
         var book = new CashBook
         {
             EntryDate = date,
@@ -365,12 +365,12 @@ public class CashBookService
             Expense = entries.Where(e => e.EntryType == "EXPENSE").Sum(e => e.Amount),
             Entries = entries
         };
-        
+
         book.EndingBalance = book.BeginningBalance + book.Income - book.Expense;
-        
+
         if (!await ValidateCashBalance(book))
             throw new Exception("Cash book does not balance!");
-        
+
         await _context.CashBooks.AddAsync(book);
         await _context.SaveChangesAsync();
     }
@@ -397,36 +397,36 @@ public class BmdNtcsExportService
         {
             // 1. BUCHUNGSSCHRITTE (JournalEntry)
             await ExportJournalEntries(workbook, businessId);
-            
+
             // 2. AR (Invoice)
             await ExportInvoices(workbook, businessId);
-            
+
             // 3. ER (ExpenseInvoice)
             await ExportExpenseInvoices(workbook, businessId);
-            
+
             // 4. BANK (BankStatement)
             await ExportBankStatements(workbook, businessId);
-            
+
             // 5. KASSA (CashBook)
             await ExportCashBooks(workbook, businessId);
-            
+
             // 6. Personen Index
             await ExportPersonenIndex(workbook, businessId);
-            
+
             workbook.SaveAs($"{outputPath}/BMD_Export_{DateTime.UtcNow:yyyyMMdd}.xlsx");
         }
     }
-    
+
     private async Task ExportJournalEntries(XLWorkbook workbook, int businessId)
     {
         var sheet = workbook.Worksheets.Add("BUCHUNGSSCHRITTE");
-        
+
         var entries = await _context.JournalEntries
             .Where(j => j.BusinessId == businessId)
             .Include(j => j.DebitAccount)
             .Include(j => j.CreditAccount)
             .ToListAsync();
-        
+
         // Заголовки
         sheet.Cell(1, 1).Value = "Date";
         sheet.Cell(1, 2).Value = "Description";
@@ -435,7 +435,7 @@ public class BmdNtcsExportService
         sheet.Cell(1, 5).Value = "Credit Account";
         sheet.Cell(1, 6).Value = "Credit Amount";
         sheet.Cell(1, 7).Value = "Reference";
-        
+
         // Данные
         int row = 2;
         foreach (var entry in entries)
@@ -450,7 +450,7 @@ public class BmdNtcsExportService
             row++;
         }
     }
-    
+
     // ... аналогично для AR, ER, BANK, KASSA ...
 }
 ```
@@ -470,10 +470,10 @@ public class QuarterlyArchiveService
         {
             var startDate = new DateTime(year, (quarter - 1) * 3 + 1, 1);
             var endDate = startDate.AddMonths(3).AddDays(-1);
-            
+
             var folder = $"{year}_{GetQuarterName(quarter)}";
             Directory.CreateDirectory(folder);
-            
+
             // Экспортировать только данные за этот квартал
             await ExportPeriodData(folder, startDate, endDate);
         }
@@ -539,6 +539,6 @@ public class QuarterlyArchiveService
 
 ---
 
-**Документ завершен**  
-**Дата:** 24 января 2026  
+**Документ завершен**
+**Дата:** 24 января 2026
 **Статус:** ✅ ГОТОВЫЕ ТЕХНИЧЕСКИЕ РЕКОМЕНДАЦИИ

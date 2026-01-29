@@ -29,7 +29,7 @@ public class AiColumnMappingService : IAiColumnMappingService
         { "ClientCode", new[] { "code", "kundennummer", "clientcode", "kundencode", "id", "nummer" } },
         { "ClientType", new[] { "type", "typ", "clienttype", "kundentyp", "category" } },
         { "ClientArea", new[] { "area", "bereich", "region", "zone", "gebiet" } },
-        
+
         // Invoice common aliases
         { "InvoiceNumber", new[] { "invoice", "number", "rechnungsnummer", "invoicenumber", "nr", "nummer" } },
         { "InvoiceDate", new[] { "date", "datum", "invoicedate", "rechnungsdatum", "created" } },
@@ -37,7 +37,7 @@ public class AiColumnMappingService : IAiColumnMappingService
         { "Amount", new[] { "amount", "betrag", "total", "sum", "summe", "value" } },
         { "VatAmount", new[] { "vat", "ust", "tax", "steuer", "vatamount", "taxamount" } },
         { "Description", new[] { "description", "beschreibung", "text", "details", "bemerkung", "notes" } },
-        
+
         // Common fields
         { "CreatedDate", new[] { "created", "createdat", "angelegt", "erstellt", "datum" } },
         { "Notes", new[] { "notes", "note", "notiz", "notizen", "bemerkung", "comment" } },
@@ -67,7 +67,7 @@ public class AiColumnMappingService : IAiColumnMappingService
         for (int i = 0; i < csvHeaders.Length; i++)
         {
             var header = CleanHeader(csvHeaders[i]);
-            var exactMatch = entityProperties.FirstOrDefault(p => 
+            var exactMatch = entityProperties.FirstOrDefault(p =>
                 string.Equals(p.Name, header, StringComparison.OrdinalIgnoreCase));
 
             if (exactMatch != null && !usedProperties.Contains(exactMatch.Name))

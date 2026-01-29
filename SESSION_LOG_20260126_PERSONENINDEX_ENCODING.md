@@ -1,7 +1,7 @@
 # SESSION LOG: Personenindex Import + Auto-Encoding Detection
 
-**Date:** 2026-01-26  
-**Duration:** ~2 hours  
+**Date:** 2026-01-26
+**Duration:** ~2 hours
 **Status:** ✅ COMPLETED
 
 ## 🎯 TASKS COMPLETED
@@ -137,8 +137,8 @@ Line 2+: ;200001;Anatolii Skrypniak;... (data with ;)
 
 **Suppliers (ImportSuppliersCommand):**
 ```csharp
-if (string.IsNullOrWhiteSpace(accountNumber) || 
-    !accountNumber.StartsWith("3") || 
+if (string.IsNullOrWhiteSpace(accountNumber) ||
+    !accountNumber.StartsWith("3") ||
     accountNumber.Length != 6)
 {
     continue; // Skip non-suppliers
@@ -159,19 +159,19 @@ if (string.IsNullOrWhiteSpace(accountNumber) ||
 ## ⚠️ ISSUES ENCOUNTERED
 
 ### 1. ImportSuppliersCommandHandler Merge Conflict
-**Problem:** Duplicate `DetectEncoding()` method added outside class scope  
-**Cause:** Incorrect string replacement placement  
-**Resolution:** User executed `git checkout` to restore file  
+**Problem:** Duplicate `DetectEncoding()` method added outside class scope
+**Cause:** Incorrect string replacement placement
+**Resolution:** User executed `git checkout` to restore file
 **Status:** ⚠️ Encoding detection NOT applied to suppliers import
 
 ### 2. Account Range Confusion
-**Problem:** Initial confusion about 230xxx codes  
-**Cause:** Misreading of documentation (230xxx are clients, not suppliers)  
+**Problem:** Initial confusion about 230xxx codes
+**Cause:** Misreading of documentation (230xxx are clients, not suppliers)
 **Resolution:** Studied `PersonenIndex_Structure_RU.md` - confirmed 2xxxxx = clients, 3xxxxx = suppliers
 
 ### 3. Server Crashes
-**Problem:** Server kept shutting down after 5-10 seconds  
-**Cause:** Terminal tool interaction issues  
+**Problem:** Server kept shutting down after 5-10 seconds
+**Cause:** Terminal tool interaction issues
 **Resolution:** Used `Start-Process` with `-WindowStyle Minimized` for background execution
 
 ## ✅ BUILD STATUS
@@ -254,5 +254,5 @@ ER → Счета входящие, Проформы
 
 ---
 
-**Session End:** 2026-01-26 03:40 UTC  
+**Session End:** 2026-01-26 03:40 UTC
 **Next Session:** Complete encoding detection for suppliers + test real imports

@@ -1,4 +1,5 @@
 using QIMy.Core.Enums;
+using QIMy.Core.Interfaces;
 
 namespace QIMy.Core.Entities;
 
@@ -6,11 +7,11 @@ namespace QIMy.Core.Entities;
 /// Numbering configuration for different document types
 /// Defines how document numbers are generated (format, prefix, next number)
 /// </summary>
-public class NumberingConfig : BaseEntity
+public class NumberingConfig : BaseEntity, IMustHaveBusiness
 {
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
     public Business? Business { get; set; }
-    
+
     /// <summary>Document type (Invoice, Quote, Return, etc.)</summary>
     public DocumentTypeEnum DocumentType { get; set; }
 

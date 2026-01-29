@@ -10,7 +10,7 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 function Show-Result {
     param($title, $response, $statusCode)
     Write-Host "`n--- $title ---" -ForegroundColor Yellow
-    Write-Host "Status: $statusCode" -ForegroundColor $(if($statusCode -lt 400) { "Green" } else { "Red" })
+    Write-Host "Status: $statusCode" -ForegroundColor $(if ($statusCode -lt 400) { "Green" } else { "Red" })
     if ($response) {
         $response | ConvertTo-Json -Depth 5
     }
@@ -21,27 +21,28 @@ Write-Host "`n[TEST 1] GET /api/suppliers - Получить все постав
 try {
     $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers" -Method Get
     Show-Result "Список поставщиков" $response 200
-} catch {
+}
+catch {
     Write-Host "Ошибка: $_" -ForegroundColor Red
 }
 
 # Test 2: Create new supplier
 Write-Host "`n[TEST 2] POST /api/suppliers - Создать поставщика" -ForegroundColor Cyan
 $newSupplier = @{
-    businessId = $businessId
-    companyName = "ООО Тестовый Поставщик"
-    contactPerson = "Иван Иванов"
-    email = "test@supplier.com"
-    phone = "+43 123 456789"
-    address = "Тестовая улица 123"
-    city = "Вена"
-    postalCode = "1010"
-    country = "Австрия"
-    taxNumber = "123456789"
-    vatNumber = "ATU12345678"
-    bankAccount = "AT123456789012345678"
+    businessId             = $businessId
+    companyName            = "ООО Тестовый Поставщик"
+    contactPerson          = "Иван Иванов"
+    email                  = "test@supplier.com"
+    phone                  = "+43 123 456789"
+    address                = "Тестовая улица 123"
+    city                   = "Вена"
+    postalCode             = "1010"
+    country                = "Австрия"
+    taxNumber              = "123456789"
+    vatNumber              = "ATU12345678"
+    bankAccount            = "AT123456789012345678"
     ignoreDuplicateWarning = $false
-    doubleConfirmed = $false
+    doubleConfirmed        = $false
 } | ConvertTo-Json
 
 try {
@@ -49,7 +50,8 @@ try {
     $supplierId = $response.id
     Show-Result "Создан поставщик" $response 201
     Write-Host "✅ Supplier ID: $supplierId" -ForegroundColor Green
-} catch {
+}
+catch {
     $errorDetails = $_.ErrorDetails.Message | ConvertFrom-Json
     Write-Host "Ошибка: $($errorDetails | ConvertTo-Json -Depth 3)" -ForegroundColor Red
 }
@@ -60,7 +62,8 @@ if ($supplierId) {
     try {
         $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers/$supplierId" -Method Get
         Show-Result "Поставщик по ID" $response 200
-    } catch {
+    }
+    catch {
         Write-Host "Ошибка: $_" -ForegroundColor Red
     }
 }
@@ -68,20 +71,21 @@ if ($supplierId) {
 # Test 4: Try to create DUPLICATE (should fail with warning)
 Write-Host "`n[TEST 4] POST /api/suppliers - ДУБЛИКАТ (должен выдать предупреждение)" -ForegroundColor Cyan
 $duplicateSupplier = @{
-    businessId = $businessId
-    companyName = "ООО Тестовый Поставщик"  # Same name
-    contactPerson = "Петр Петров"
-    email = "duplicate@supplier.com"
-    phone = "+43 987 654321"
-    vatNumber = "ATU98765432"
+    businessId             = $businessId
+    companyName            = "ООО Тестовый Поставщик"  # Same name
+    contactPerson          = "Петр Петров"
+    email                  = "duplicate@supplier.com"
+    phone                  = "+43 987 654321"
+    vatNumber              = "ATU98765432"
     ignoreDuplicateWarning = $false
-    doubleConfirmed = $false
+    doubleConfirmed        = $false
 } | ConvertTo-Json
 
 try {
     $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers" -Method Post -Body $duplicateSupplier -ContentType "application/json"
     Write-Host "❌ ОШИБКА: Дубликат должен был быть заблокирован!" -ForegroundColor Red
-} catch {
+}
+catch {
     $errorResponse = $_.ErrorDetails.Message | ConvertFrom-Json
     Write-Host "`n✅ Ожидаемое предупреждение:" -ForegroundColor Green
     Write-Host $errorResponse.error -ForegroundColor Yellow
@@ -90,18 +94,19 @@ try {
 # Test 5: Create duplicate with IgnoreDuplicateWarning (should ask for DoubleConfirmed)
 Write-Host "`n[TEST 5] POST - ДУБЛИКАТ с IgnoreDuplicateWarning=true" -ForegroundColor Cyan
 $duplicateSupplier2 = @{
-    businessId = $businessId
-    companyName = "ООО Тестовый Поставщик"
-    contactPerson = "Петр Петров"
-    email = "duplicate@supplier.com"
+    businessId             = $businessId
+    companyName            = "ООО Тестовый Поставщик"
+    contactPerson          = "Петр Петров"
+    email                  = "duplicate@supplier.com"
     ignoreDuplicateWarning = $true
-    doubleConfirmed = $false
+    doubleConfirmed        = $false
 } | ConvertTo-Json
 
 try {
     $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers" -Method Post -Body $duplicateSupplier2 -ContentType "application/json"
     Write-Host "❌ ОШИБКА: Должно требовать DoubleConfirmed!" -ForegroundColor Red
-} catch {
+}
+catch {
     $errorResponse = $_.ErrorDetails.Message | ConvertFrom-Json
     Write-Host "`n✅ Ожидаемое второе предупреждение:" -ForegroundColor Green
     Write-Host $errorResponse.error -ForegroundColor Yellow
@@ -110,14 +115,14 @@ try {
 # Test 6: Create duplicate with BOTH flags (should succeed)
 Write-Host "`n[TEST 6] POST - ДУБЛИКАТ с двойным подтверждением" -ForegroundColor Cyan
 $duplicateSupplier3 = @{
-    businessId = $businessId
-    companyName = "ООО Тестовый Поставщик Копия"
-    contactPerson = "Петр Петров"
-    email = "duplicate2@supplier.com"
-    phone = "+43 111 222333"
-    vatNumber = "ATU11122233"
+    businessId             = $businessId
+    companyName            = "ООО Тестовый Поставщик Копия"
+    contactPerson          = "Петр Петров"
+    email                  = "duplicate2@supplier.com"
+    phone                  = "+43 111 222333"
+    vatNumber              = "ATU11122233"
     ignoreDuplicateWarning = $true
-    doubleConfirmed = $true
+    doubleConfirmed        = $true
 } | ConvertTo-Json
 
 try {
@@ -125,7 +130,8 @@ try {
     $duplicateId = $response.id
     Show-Result "Дубликат создан с подтверждением" $response 201
     Write-Host "✅ Duplicate Supplier ID: $duplicateId" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "Ошибка: $($_.ErrorDetails.Message)" -ForegroundColor Red
 }
 
@@ -133,27 +139,28 @@ try {
 if ($supplierId) {
     Write-Host "`n[TEST 7] PUT /api/suppliers/$supplierId - Обновить поставщика" -ForegroundColor Cyan
     $updateSupplier = @{
-        id = $supplierId
-        businessId = $businessId
-        companyName = "ООО Тестовый Поставщик ОБНОВЛЕН"
-        contactPerson = "Иван Иванов UPDATED"
-        email = "updated@supplier.com"
-        phone = "+43 999 888777"
-        address = "Новая улица 456"
-        city = "Зальцбург"
-        postalCode = "5020"
-        country = "Австрия"
-        taxNumber = "999888777"
-        vatNumber = "ATU99988877"
-        bankAccount = "AT999888777666555444"
+        id                     = $supplierId
+        businessId             = $businessId
+        companyName            = "ООО Тестовый Поставщик ОБНОВЛЕН"
+        contactPerson          = "Иван Иванов UPDATED"
+        email                  = "updated@supplier.com"
+        phone                  = "+43 999 888777"
+        address                = "Новая улица 456"
+        city                   = "Зальцбург"
+        postalCode             = "5020"
+        country                = "Австрия"
+        taxNumber              = "999888777"
+        vatNumber              = "ATU99988877"
+        bankAccount            = "AT999888777666555444"
         ignoreDuplicateWarning = $false
-        doubleConfirmed = $false
+        doubleConfirmed        = $false
     } | ConvertTo-Json
 
     try {
         $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers/$supplierId" -Method Put -Body $updateSupplier -ContentType "application/json"
         Show-Result "Поставщик обновлен" $response 200
-    } catch {
+    }
+    catch {
         Write-Host "Ошибка: $($_.ErrorDetails.Message)" -ForegroundColor Red
     }
 }
@@ -165,7 +172,8 @@ try {
     $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers?searchTerm=$encodedSearch" -Method Get
     Show-Result "Результаты поиска" $response 200
     Write-Host "Найдено: $($response.Count) поставщиков" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "Ошибка: $_" -ForegroundColor Red
 }
 
@@ -187,7 +195,7 @@ try {
     $boundary = [System.Guid]::NewGuid().ToString()
     $fileBin = [System.IO.File]::ReadAllBytes($csvPath)
     $enc = [System.Text.Encoding]::GetEncoding("UTF-8")
-    
+
     $bodyLines = @(
         "--$boundary",
         "Content-Disposition: form-data; name=`"file`"; filename=`"test_suppliers.csv`"",
@@ -200,11 +208,12 @@ try {
         "$businessId",
         "--$boundary--"
     ) -join "`r`n"
-    
+
     $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers/import" -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bodyLines
     Show-Result "Результат импорта" $response 200
     Write-Host "✅ Импортировано: $($response.successCount) из $($response.totalRows)" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "Ошибка импорта: $($_.ErrorDetails.Message)" -ForegroundColor Red
 }
 
@@ -216,7 +225,8 @@ try {
     Write-Host "✅ CSV экспортирован: $exportPath" -ForegroundColor Green
     Write-Host "Первые 5 строк:" -ForegroundColor Yellow
     Get-Content $exportPath -First 5
-} catch {
+}
+catch {
     Write-Host "Ошибка экспорта: $_" -ForegroundColor Red
 }
 
@@ -226,7 +236,8 @@ try {
     $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers?businessId=$businessId" -Method Get
     Write-Host "✅ Всего поставщиков: $($response.Count)" -ForegroundColor Green
     $response | Format-Table Id, CompanyName, Email, VatNumber -AutoSize
-} catch {
+}
+catch {
     Write-Host "Ошибка: $_" -ForegroundColor Red
 }
 
@@ -235,16 +246,18 @@ Write-Host "`n[TEST 13] POST /api/suppliers/bulk-delete - Массовое уд�
 try {
     $allSuppliers = Invoke-RestMethod -Uri "$baseUrl/api/suppliers?businessId=$businessId" -Method Get
     $idsToDelete = $allSuppliers | Select-Object -First 2 -ExpandProperty id
-    
+
     if ($idsToDelete.Count -gt 0) {
         $deleteBody = $idsToDelete | ConvertTo-Json
         $response = Invoke-RestMethod -Uri "$baseUrl/api/suppliers/bulk-delete" -Method Post -Body $deleteBody -ContentType "application/json"
         Show-Result "Результат массового удаления" $response 200
         Write-Host "✅ Удалено: $($response.successCount) из $($response.total)" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "Нет поставщиков для удаления" -ForegroundColor Yellow
     }
-} catch {
+}
+catch {
     Write-Host "Ошибка: $($_.ErrorDetails.Message)" -ForegroundColor Red
 }
 
@@ -254,7 +267,8 @@ if ($supplierId) {
     try {
         Invoke-RestMethod -Uri "$baseUrl/api/suppliers/$supplierId" -Method Delete
         Write-Host "✅ Поставщик удален" -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "Ошибка: $($_.ErrorDetails.Message)" -ForegroundColor Red
     }
 }

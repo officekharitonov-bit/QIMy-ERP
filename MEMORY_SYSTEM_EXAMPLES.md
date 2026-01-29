@@ -272,12 +272,12 @@ After I provide the changes, add to AI_CONTEXT.md:
 **Вы заполняете:**
 ```
 **[2026-01-23 17:30 UPDATE]:**
-- ✅ Completed: 
+- ✅ Completed:
   * Created ExpenseInvoiceDtos.cs (all 3 DTOs)
   * Created CreateExpenseInvoiceCommand & handler
   * Created CreateExpenseInvoiceCommandValidator
   * Added to DI container in Program.cs
-  
+
 - ❌ Blocked:
   * Database migration still needs to be applied
   * ApprovalChain JSON format needs decision
@@ -338,7 +338,7 @@ AI_CONTEXT.md теперь содержит:
 
 **ИИ:**
 ```
-Используйте паттерн из: 
+Используйте паттерн из:
 src/QIMy.Application/Clients/Commands/CreateClient/CreateClientCommandValidator.cs
 
 Вот структура:
@@ -355,11 +355,11 @@ public class CreateExpenseInvoiceCommandValidator : AbstractValidator<CreateExpe
     {
         RuleFor(x => x.SupplierId)
             .NotEmpty().WithMessage("Supplier is required");
-            
+
         RuleFor(x => x.InvoiceDate)
             .NotEmpty().WithMessage("Invoice date is required")
             .LessThanOrEqualTo(DateTime.UtcNow).WithMessage("Invoice date cannot be in future");
-            
+
         RuleFor(x => x.TotalAmount)
             .NotEmpty().WithMessage("Total amount is required")
             .GreaterThan(0).WithMessage("Total amount must be greater than 0");
@@ -427,6 +427,6 @@ public class CreateExpenseInvoiceCommandValidator : AbstractValidator<CreateExpe
 
 ---
 
-**Создано:** 2026-01-23  
-**Готово к использованию:** ✅  
+**Создано:** 2026-01-23
+**Готово к использованию:** ✅
 **Протестировано:** Да, примеры выше реальны!

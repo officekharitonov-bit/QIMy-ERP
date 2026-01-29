@@ -1,16 +1,18 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Delivery Note entity (Lieferschein - LS)
 /// Non-financial document, just tracks shipments
 /// </summary>
-public class DeliveryNote : BaseEntity
+public class DeliveryNote : BaseEntity, IMustHaveBusiness
 {
     public string DeliveryNumber { get; set; } = string.Empty;
     public DateTime DeliveryDate { get; set; } = DateTime.UtcNow;
     public int ClientId { get; set; }
     public int? InvoiceId { get; set; }
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
 
     public DeliveryNoteStatus Status { get; set; } = DeliveryNoteStatus.Draft;
     public string? DeliveryAddress { get; set; }

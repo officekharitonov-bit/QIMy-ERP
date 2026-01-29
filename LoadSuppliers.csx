@@ -51,7 +51,7 @@ foreach (var (name, country, email, vat) in suppliers)
     insertCmd.Parameters.AddWithValue("@vat", vat);
     insertCmd.Parameters.AddWithValue("@businessId", businessId);
     insertCmd.Parameters.AddWithValue("@now", DateTime.UtcNow.ToString("o"));
-    
+
     insertCmd.ExecuteNonQuery();
     added++;
     Console.WriteLine($"✓ Добавлен: {name} ({country})");

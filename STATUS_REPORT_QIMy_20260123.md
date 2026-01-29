@@ -253,23 +253,23 @@ public class ExpenseInvoice
     public DateTime ReceiptDate { get; set; }
     public DateTime InvoiceDate { get; set; }
     public DateTime DueDate { get; set; }
-    
+
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
-    
+
     public int CurrencyId { get; set; }
     public int? PoId { get; set; }                         // Link to Purchase Order
-    
+
     // Approval workflow
     public ExpenseStatus Status { get; set; }              // Draft → Submitted → Approved → Rejected/Paid
     public string? ApprovalChain { get; set; }             // JSON: [{UserId, Role, Date, Status}]
-    
+
     // Attachments
     public string? DocumentUrl { get; set; }               // Stored in Azure Blob
     public string? OcrExtractedText { get; set; }          // Raw OCR output
-    
+
     public ICollection<ExpenseInvoiceItem> Items { get; set; }
     public ICollection<Payment> Payments { get; set; }
 }

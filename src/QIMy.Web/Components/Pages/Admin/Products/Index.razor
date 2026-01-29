@@ -120,9 +120,9 @@ else
     private async Task LoadData()
     {
         // Фильтрация на уровне Query (оптимизация)
-        var query = new GetAllProductsQuery 
-        { 
-            BusinessId = BusinessCtx.CurrentBusinessId 
+        var query = new GetAllProductsQuery
+        {
+            BusinessId = BusinessCtx.CurrentBusinessId
         };
         var result = await Mediator.Send(query);
         products = result.OrderBy(x => x.Name).ToList();
@@ -251,6 +251,7 @@ else
 
                 var create = new CreateProductCommand
                 {
+                    BusinessId = BusinessCtx.CurrentBusinessId,
                     Name = name,
                     Description = desc,
                     SKU = sku,

@@ -34,7 +34,7 @@ public interface IUnitOfWork : IDisposable
     // Other Repositories
     IRepository<Tax> Taxes { get; }
     IRepository<Payment> Payments { get; }
-    
+
     // Personen Index (Справочник контрагентов)
     IRepository<PersonenIndexEntry> PersonenIndexEntries { get; }
 

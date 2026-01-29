@@ -229,12 +229,12 @@
             Logger.LogInformation("Starting Sachkonten import from {FileName}", selectedFileName);
 
             using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-            
+
             // Auto-detect encoding
-            var encoding = DetectEncoding(stream);
+            var encoding = await DetectEncodingAsync(stream);
             stream.Position = 0;
             Logger.LogInformation("Detected encoding: {EncodingName}", encoding.EncodingName);
-            
+
             using var reader = new StreamReader(stream, encoding);
 
             var allLines = new List<string>();
@@ -279,9 +279,9 @@
                 string GetPart(int idx) => idx < parts.Length ? parts[idx].Trim() : string.Empty;
 
                 var accountNumberStr = GetPart(1); // Kto-Nr
-                var accountName = GetPart(2);      // Bezeichnung
-                var taxCode = GetPart(3);          // Ust-Code
-                var code = GetPart(4);             // Vorschlagskonto (Code)
+                var accountName = GetPart(2); // Bezeichnung
+                var taxCode = GetPart(3); // Ust-Code
+                var code = GetPart(4); // Vorschlagskonto (Code)
 
                 if (string.IsNullOrWhiteSpace(accountNumberStr) || string.IsNullOrWhiteSpace(accountName))
                 {
@@ -335,7 +335,7 @@
             currentStep = ImportStep.Completed;
 
             Logger.LogInformation("Sachkonten import completed: {Success} success, {Skipped} skipped, {Errors} errors",
-                successCount, skippedCount, errorCount);
+            successCount, skippedCount, errorCount);
         }
         catch (Exception ex)
         {
@@ -361,11 +361,11 @@
         errors.Clear();
     }
 
-    private System.Text.Encoding DetectEncoding(Stream stream)
+    private async Task<System.Text.Encoding> DetectEncodingAsync(Stream stream)
     {
         // Read first 4 bytes to check for BOM
         var bom = new byte[4];
-        var bytesRead = stream.Read(bom, 0, 4);
+        var bytesRead = await stream.ReadAsync(bom, 0, 4);
         stream.Position = 0;
 
         // Check for UTF-8 BOM (EF BB BF)

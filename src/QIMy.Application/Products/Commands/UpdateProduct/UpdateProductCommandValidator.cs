@@ -24,6 +24,11 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
             .GreaterThanOrEqualTo(0).WithMessage("Stock quantity must be greater than or equal to 0")
             .LessThanOrEqualTo(1000000).WithMessage("Stock quantity must not exceed 1,000,000");
 
+        RuleFor(x => x.BusinessId)
+            .NotNull()
+            .GreaterThan(0)
+            .WithMessage("BusinessId is required");
+
         RuleFor(x => x.DoubleConfirmed)
             .Equal(true)
             .When(x => x.IgnoreDuplicateWarning)

@@ -15,22 +15,22 @@ public enum NumberingFormatEnum
 {
     /// <summary>Year-Number (2026-001)</summary>
     YearDashNumber = 0,
-    
+
     /// <summary>YearNumber (2026001)</summary>
     YearNumber = 1,
-    
+
     /// <summary>2-digit Year-Number (26-001)</summary>
     YearShortDashNumber = 2,
-    
+
     /// <summary>2-digit YearNumber (26001)</summary>
     YearShortNumber = 3,
-    
+
     /// <summary>Number only (001)</summary>
     NumberOnly = 4,
-    
+
     /// <summary>Year/Number (2026/001)</summary>
     YearSlashNumber = 5,
-    
+
     /// <summary>Custom format with prefix and pattern</summary>
     Custom = 6
 }

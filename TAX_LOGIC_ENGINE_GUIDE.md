@@ -242,7 +242,7 @@ if (taxResult.RequiresUidValidation)
     {
         throw new ValidationException("UID Käufer ist erforderlich für diesen Steuerfall");
     }
-    
+
     // Validate via VIES
     var isValid = await _viesService.ValidateVatIdAsync(customer.VatId);
     if (!isValid)

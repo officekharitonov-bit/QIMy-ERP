@@ -1,14 +1,31 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using QIMy.Core.Entities;
+using QIMy.Core.Interfaces;
 
 namespace QIMy.Infrastructure.Data;
 
 public class ApplicationDbContext : IdentityDbContext<AppUser>
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly ICurrentBusinessIdAccessor _businessIdAccessor;
+
+    /// <summary>
+    /// Current tenant (BusinessId) for this scope. Used by global query filters.
+    /// </summary>
+    public int? CurrentBusinessId => _businessIdAccessor.CurrentBusinessId;
+
+    /// <summary>
+    /// Emergency bypass for seeding/admin maintenance.
+    /// </summary>
+    public bool BypassTenantFilter => _businessIdAccessor.BypassTenantFilter;
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        ICurrentBusinessIdAccessor businessIdAccessor)
         : base(options)
     {
+        _businessIdAccessor = businessIdAccessor;
     }
 
     // Main entities
@@ -17,7 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<UserBusiness> UserBusinesses => Set<UserBusiness>();
-    
+
     /// <summary>
     /// Personen Index - центральный справочник контрагентов
     /// Это "телефонная книга" системы - единственный источник правды
@@ -125,6 +142,142 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
 
         // Configure decimal precision
         ConfigureDecimalPrecision(modelBuilder);
+
+        // Multi-tenant enforcement
+        ApplyBusinessQueryFilters(modelBuilder);
+    }
+
+    public override int SaveChanges()
+    {
+        EnforceBusinessIsolation();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        EnforceBusinessIsolation();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyBusinessQueryFilters(ModelBuilder modelBuilder)
+    {
+        var mustHaveBusinessType = typeof(IMustHaveBusiness);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var clrType = entityType.ClrType;
+            if (clrType == null)
+                continue;
+
+            if (!mustHaveBusinessType.IsAssignableFrom(clrType))
+                continue;
+
+            // e => BypassTenantFilter || (CurrentBusinessId != null && e.BusinessId == CurrentBusinessId.Value)
+            var parameter = Expression.Parameter(clrType, "e");
+            var businessIdProperty = Expression.Property(parameter, nameof(IMustHaveBusiness.BusinessId));
+
+            var contextConstant = Expression.Constant(this);
+            var bypassProperty = Expression.Property(contextConstant, nameof(BypassTenantFilter));
+            var currentBusinessIdProperty = Expression.Property(contextConstant, nameof(CurrentBusinessId));
+
+            var hasTenant = Expression.NotEqual(
+                currentBusinessIdProperty,
+                Expression.Constant(null, typeof(int?)));
+
+            var currentBusinessIdValue = Expression.Convert(currentBusinessIdProperty, typeof(int));
+            var businessMatch = Expression.Equal(businessIdProperty, currentBusinessIdValue);
+            var tenantPredicate = Expression.AndAlso(hasTenant, businessMatch);
+
+            var body = Expression.OrElse(bypassProperty, tenantPredicate);
+            var lambda = Expression.Lambda(body, parameter);
+
+            modelBuilder.Entity(clrType).HasQueryFilter(lambda);
+        }
+
+        // Dependent entities without BusinessId must still be tenant-isolated via their required parent.
+        modelBuilder.Entity<InvoiceItem>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.Invoice.BusinessId == CurrentBusinessId.Value));
+        modelBuilder.Entity<InvoiceDiscount>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.Invoice.BusinessId == CurrentBusinessId.Value));
+        modelBuilder.Entity<QuoteItem>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.Quote.BusinessId == CurrentBusinessId.Value));
+        modelBuilder.Entity<ReturnItem>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.Return.BusinessId == CurrentBusinessId.Value));
+        modelBuilder.Entity<DeliveryNoteItem>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.DeliveryNote.BusinessId == CurrentBusinessId.Value));
+        modelBuilder.Entity<ExpenseInvoiceItem>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.ExpenseInvoice.BusinessId == CurrentBusinessId.Value));
+
+        modelBuilder.Entity<JournalEntryLine>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.JournalEntry.BusinessId == CurrentBusinessId.Value));
+
+        modelBuilder.Entity<CashBookDay>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.CashBox.BusinessId == CurrentBusinessId.Value));
+
+        modelBuilder.Entity<BankStatementLine>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.BankStatement.BusinessId == CurrentBusinessId.Value));
+        modelBuilder.Entity<BankReconciliation>()
+            .HasQueryFilter(e => BypassTenantFilter || (CurrentBusinessId != null && e.BankStatement.BusinessId == CurrentBusinessId.Value));
+
+        modelBuilder.Entity<AiProcessingLog>()
+            .HasQueryFilter(e => BypassTenantFilter ||
+                                (CurrentBusinessId != null &&
+                                 ((e.Invoice != null && e.Invoice.BusinessId == CurrentBusinessId.Value) ||
+                                  (e.ExpenseInvoice != null && e.ExpenseInvoice.BusinessId == CurrentBusinessId.Value))));
+        modelBuilder.Entity<AiSuggestion>()
+            .HasQueryFilter(e => BypassTenantFilter ||
+                                (CurrentBusinessId != null &&
+                                 ((e.Invoice != null && e.Invoice.BusinessId == CurrentBusinessId.Value) ||
+                                  (e.ExpenseInvoice != null && e.ExpenseInvoice.BusinessId == CurrentBusinessId.Value))));
+        modelBuilder.Entity<AnomalyAlert>()
+            .HasQueryFilter(e => BypassTenantFilter ||
+                                (CurrentBusinessId != null &&
+                                 ((e.Invoice != null && e.Invoice.BusinessId == CurrentBusinessId.Value) ||
+                                  (e.ExpenseInvoice != null && e.ExpenseInvoice.BusinessId == CurrentBusinessId.Value))));
+    }
+
+    private void EnforceBusinessIsolation()
+    {
+        if (BypassTenantFilter)
+            return;
+
+        var currentBusinessId = CurrentBusinessId;
+
+        foreach (var entry in ChangeTracker.Entries<IMustHaveBusiness>())
+        {
+            if (entry.State is EntityState.Detached or EntityState.Unchanged)
+                continue;
+
+            if (!currentBusinessId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"BusinessId is required but no current business is set. Entity: {entry.Entity.GetType().Name}");
+            }
+
+            // Ensure the entity is bound to the current business.
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.BusinessId == 0)
+                    entry.Entity.BusinessId = currentBusinessId.Value;
+            }
+
+            if (entry.Entity.BusinessId != currentBusinessId.Value)
+            {
+                throw new InvalidOperationException(
+                    $"Cross-business write attempt detected. CurrentBusinessId={currentBusinessId.Value}, EntityBusinessId={entry.Entity.BusinessId}, Entity={entry.Entity.GetType().Name}");
+            }
+
+            // Prevent changing tenant ownership.
+            if (entry.State == EntityState.Modified)
+            {
+                var businessIdProperty = entry.Property(nameof(IMustHaveBusiness.BusinessId));
+                if (businessIdProperty.IsModified)
+                {
+                    throw new InvalidOperationException(
+                        $"Changing BusinessId is not allowed. Entity: {entry.Entity.GetType().Name}");
+                }
+            }
+        }
     }
 
     private void ConfigureDecimalPrecision(ModelBuilder modelBuilder)

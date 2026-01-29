@@ -44,11 +44,11 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="/AR/Clients/SmartImport">
-                        <i class="bi bi-magic me-2"></i>Smart Import (новый!)
-                    </a></li>
+                            <i class="bi bi-magic me-2"></i>Smart Import (новый!)
+                        </a></li>
                     <li><a class="dropdown-item" href="/AR/Clients/Import">
-                        <i class="bi bi-file-text me-2"></i>Standard Import
-                    </a></li>
+                            <i class="bi bi-file-text me-2"></i>Standard Import
+                        </a></li>
                 </ul>
                 <button type="button" class="btn btn-info" @onclick="ExportToCSV">
                     <i class="bi bi-download me-1"></i> Export CSV
@@ -81,9 +81,8 @@
                 <thead>
                     <tr>
                         <th style="width: 40px;">
-                            <input type="checkbox" class="form-check-input" 
-                                   @onchange="ToggleSelectAll" 
-                                   checked="@(selectedClients.Count == clients.Count && clients.Any())" />
+                            <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                checked="@(selectedClients.Count == clients.Count && clients.Any())" />
                         </th>
                         <th>Код</th>
                         <th>Название</th>
@@ -100,9 +99,9 @@
                     {
                         <tr class="@(selectedClients.Contains(client.Id) ? "table-active" : "")">
                             <td>
-                                <input type="checkbox" class="form-check-input" 
-                                       @onchange="() => ToggleClientSelection(client.Id)" 
-                                       checked="@selectedClients.Contains(client.Id)" />
+                                <input type="checkbox" class="form-check-input"
+                                    @onchange="() => ToggleClientSelection(client.Id)"
+                                    checked="@selectedClients.Contains(client.Id)" />
                             </td>
                             <td><code>@client.ClientCode</code></td>
                             <td>
@@ -110,7 +109,7 @@
                                 @if (!string.IsNullOrWhiteSpace(client.ContactPerson))
                                 {
                                     <br />
-                        
+
                                     <small class="text-muted">@client.ContactPerson</small>
                                 }
                             </td>
@@ -193,7 +192,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="() => showBulkEditModal = false">Отмена</button>
+                    <button type="button" class="btn btn-secondary"
+                        @onclick="() => showBulkEditModal = false">Отмена</button>
                     <button type="button" class="btn btn-primary" @onclick="ApplyBulkEdit">
                         <i class="bi bi-check-lg"></i> Применить изменения
                     </button>
@@ -231,9 +231,9 @@
         try
         {
             // Фильтрация на уровне Query (оптимизация)
-            var query = new GetAllClientsQuery 
-            { 
-                BusinessId = BusinessCtx.CurrentBusinessId 
+            var query = new GetAllClientsQuery
+            {
+                BusinessId = BusinessCtx.CurrentBusinessId
             };
             var result = await Mediator.Send(query);
             clients = result.ToList();
@@ -307,8 +307,8 @@
     {
         if (!selectedClients.Any()) return;
 
-        var confirmed = await JS.InvokeAsync<bool>("confirm", 
-            $"Вы уверены, что хотите удалить {selectedClients.Count} клиентов? Это действие необратимо!");
+        var confirmed = await JS.InvokeAsync<bool>("confirm",
+        $"Вы уверены, что хотите удалить {selectedClients.Count} клиентов? Это действие необратимо!");
 
         if (!confirmed) return;
 
@@ -391,14 +391,14 @@
             }
 
             await JS.InvokeVoidAsync("alert", $"Успешно обновлено {updatedCount} из {selectedClients.Count} клиентов");
-            
+
             // Сброс формы
             showBulkEditModal = false;
             selectedClients.Clear();
             bulkClientAreaId = "";
             bulkClientTypeId = "";
             bulkRenumberClients = false;
-            
+
             await LoadClients();
         }
         catch (Exception ex)

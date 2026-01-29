@@ -39,21 +39,21 @@ foreach (var filePath in testFiles)
 
     Console.WriteLine($"📄 Testing: {Path.GetFileName(filePath)}");
     Console.WriteLine($"   Path: {filePath}");
-    
+
     try
     {
         using var stream = File.OpenRead(filePath);
         var result = await encodingService.DetectEncodingAsync(stream);
-        
+
         Console.WriteLine($"✅ Detected Encoding: {result.Encoding.EncodingName} ({result.Encoding.CodePage})");
         Console.WriteLine($"   Confidence: {result.Confidence:P1}");
         Console.WriteLine($"   Method: {result.DetectionMethod}");
-        
+
         if (!string.IsNullOrEmpty(result.Details))
         {
             Console.WriteLine($"   Details: {result.Details}");
         }
-        
+
         if (result.Alternatives.Any())
         {
             Console.WriteLine($"   Alternatives:");
@@ -62,13 +62,13 @@ foreach (var filePath in testFiles)
                 Console.WriteLine($"     - {alt.Encoding.EncodingName} ({alt.Confidence:P1}): {alt.Reason}");
             }
         }
-        
+
         // Test reading with detected encoding
         stream.Position = 0;
         using var reader = new StreamReader(stream, result.Encoding);
         var firstLine = reader.ReadLine();
         Console.WriteLine($"   First line preview: {firstLine?.Substring(0, Math.Min(100, firstLine?.Length ?? 0))}...");
-        
+
         Console.WriteLine();
     }
     catch (Exception ex)

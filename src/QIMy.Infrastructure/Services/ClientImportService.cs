@@ -41,12 +41,12 @@ public class ClientImportService
 
         // Register code page provider for Windows-1252
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        
+
         // Use specified encoding
         var encoding = GetEncodingByName(encodingName);
 
         using var reader = new StreamReader(fileStream, encoding, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        
+
         // Read first line
         var firstLine = await reader.ReadLineAsync();
         if (string.IsNullOrWhiteSpace(firstLine))
@@ -67,7 +67,7 @@ public class ClientImportService
                 .Select(h => h.Trim())
                 .Where(h => !string.IsNullOrWhiteSpace(h))
                 .ToList();
-            
+
             // Read second line for sample data
             sampleLine = await reader.ReadLineAsync();
         }
@@ -78,7 +78,7 @@ public class ClientImportService
             headers = Enumerable.Range(1, columns.Length)
                 .Select(i => $"Колонка {i}")
                 .ToList();
-            
+
             // Use first line as sample data
             sampleLine = firstLine;
         }
@@ -109,19 +109,19 @@ public class ClientImportService
     public async Task<List<ClientImportDto>> PreviewImportAsync(Stream fileStream, Dictionary<string, string>? columnMapping = null, string encodingName = "utf-8")
     {
         var clients = new List<ClientImportDto>();
-        
+
         // Reset stream and detect encoding
         if (fileStream.CanSeek)
             fileStream.Position = 0;
-        
+
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var encoding = GetEncodingByName(encodingName);
-        
+
         using var reader = new StreamReader(fileStream, encoding, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        
+
         // Read header to determine format
         var header = await reader.ReadLineAsync();
-        
+
         CsvFormat format;
         if (columnMapping != null && columnMapping.Any())
         {
@@ -135,20 +135,20 @@ public class ClientImportService
             format = DetermineFormat(header);
             _logger.LogInformation($"Detected CSV format: {format}");
         }
-        
+
         int rowNumber = 2;
         while (!reader.EndOfStream)
         {
             var line = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            var dto = columnMapping != null 
+            var dto = columnMapping != null
                 ? ParseCsvLineWithMapping(line, rowNumber, header, columnMapping)
                 : ParseCsvLine(line, rowNumber, format);
-            
+
             await ValidateClientAsync(dto);
             clients.Add(dto);
-            
+
             rowNumber++;
         }
 
@@ -163,6 +163,14 @@ public class ClientImportService
             ImportedAt = startTime
         };
 
+        var resolvedBusinessId = businessId ?? _context.CurrentBusinessId;
+        if (!resolvedBusinessId.HasValue || resolvedBusinessId.Value <= 0)
+        {
+            throw new InvalidOperationException("BusinessId is required for client import.");
+        }
+
+        var effectiveBusinessId = resolvedBusinessId.Value;
+
         try
         {
             var clients = await PreviewImportAsync(fileStream, columnMapping, encodingName);
@@ -175,7 +183,7 @@ public class ClientImportService
             var currencies = await _context.Currencies.ToDictionaryAsync(c => c.Code);
 
             using var transaction = await _context.Database.BeginTransactionAsync();
-            
+
             try
             {
                 foreach (var dto in clients)
@@ -256,14 +264,14 @@ public class ClientImportService
                             TaxNumber = null,
                             ClientTypeId = clientType?.Id,
                             ClientAreaId = clientArea?.Id,
-                            BusinessId = businessId,
+                            BusinessId = effectiveBusinessId,
                             CreatedAt = DateTime.UtcNow,
                             IsDeleted = false
                         };
 
                         _context.Clients.Add(client);
                         result.SuccessCount++;
-                        
+
                         _logger.LogInformation($"Imported client: {client.ClientCode} - {client.CompanyName}");
                     }
                     catch (Exception ex)
@@ -288,7 +296,7 @@ public class ClientImportService
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                
+
                 _logger.LogInformation($"Import completed: {result.SuccessCount} success, {result.ErrorCount} errors, {result.SkippedCount} skipped");
             }
             catch (Exception ex)
@@ -336,7 +344,7 @@ public class ClientImportService
     private ClientImportDto ParseQimyCsvLine(string line, int rowNumber)
     {
         var fields = line.Split(';');
-        
+
         return new ClientImportDto
         {
             RowNumber = rowNumber,
@@ -359,7 +367,7 @@ public class ClientImportService
     private ClientImportDto ParseBmdCsvLine(string line, int rowNumber)
     {
         var fields = line.Split(';');
-        
+
         // BMD format columns:
         // 0: Freifeld 01 (empty)
         // 1: Kto-Nr (ClientCode)
@@ -374,7 +382,7 @@ public class ClientImportService
         // 10: SktoTage1 (Discount days)
         // 11: UID-Nummer (VAT Number)
         // 20: Land-Nr (Country code)
-        
+
         var clientCode = GetField(fields, 1); // Kto-Nr
         var companyName = GetField(fields, 2); // Nachname
         var addressCombined = GetField(fields, 3); // Freifeld 06 - часто содержит адрес+город+страну
@@ -387,7 +395,7 @@ public class ClientImportService
         var discountDays = GetField(fields, 10);
         var vatNumber = GetField(fields, 11);
         var countryCode = GetField(fields, 20); // Land-Nr
-        
+
         // Parse address from combined field if street is empty
         string? address = street;
         if (string.IsNullOrWhiteSpace(address) && !string.IsNullOrWhiteSpace(addressCombined))
@@ -397,7 +405,7 @@ public class ClientImportService
             if (addressParts.Length > 0)
                 address = addressParts[0];
         }
-        
+
         return new ClientImportDto
         {
             RowNumber = rowNumber,
@@ -416,18 +424,18 @@ public class ClientImportService
             AccountNumber = null // BMD doesn't have this in client export
         };
     }
-    
+
     private string? ExtractCountryFromAddress(string? addressCombined)
     {
         if (string.IsNullOrWhiteSpace(addressCombined))
             return null;
-            
+
         // Try to extract country from combined address (last line usually)
         var lines = addressCombined.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length > 0)
         {
             var lastLine = lines[^1].Trim();
-            
+
             // Common country names/codes
             if (lastLine.Contains("Slovensko", StringComparison.OrdinalIgnoreCase))
                 return "Slovakia";
@@ -435,10 +443,10 @@ public class ClientImportService
                 return "Czech Republic";
             if (lastLine.Contains("LV-", StringComparison.OrdinalIgnoreCase))
                 return "Latvia";
-                
+
             return lastLine;
         }
-        
+
         return null;
     }
 
@@ -510,7 +518,7 @@ public class ClientImportService
         // Required fields
         if (string.IsNullOrWhiteSpace(dto.ClientCode))
             dto.ValidationErrors.Add("ClientCode is required");
-        
+
         if (string.IsNullOrWhiteSpace(dto.CompanyName))
             dto.ValidationErrors.Add("CompanyName is required");
 
@@ -554,17 +562,17 @@ public class ClientImportService
 
         if (countryCode == "AT")
             return "1"; // Inländisch (Austria)
-        
+
         if (euCountries.Contains(countryCode.ToUpper()))
             return "2"; // EU
-        
+
         return "3"; // Ausländisch (Third Countries)
     }
 
     private Encoding GetEncodingByName(string encodingName)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        
+
         return encodingName.ToLower() switch
         {
             "utf-8" => Encoding.UTF8, // Standard UTF-8 with automatic BOM handling
@@ -581,7 +589,7 @@ public class ClientImportService
             return Encoding.UTF8;
 
         var position = stream.Position;
-        
+
         // Read first bytes
         byte[] buffer = new byte[Math.Min(4096, (int)stream.Length)];
         int bytesRead = stream.Read(buffer, 0, buffer.Length);
@@ -610,7 +618,7 @@ public class ClientImportService
             var decoder = Encoding.UTF8.GetDecoder();
             char[] chars = new char[buffer.Length];
             int charCount = decoder.GetChars(buffer, 0, bytesRead, chars, 0, false);
-            
+
             // If successful and no replacement characters, it's valid UTF-8
             if (charCount > 0 && !new string(chars, 0, charCount).Contains('\uFFFD'))
             {

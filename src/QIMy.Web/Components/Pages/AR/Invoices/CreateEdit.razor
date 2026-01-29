@@ -25,7 +25,7 @@
     <div class="row mb-3">
         <div class="col">
             <h3>
-                <i class="bi bi-file-text"></i> 
+                <i class="bi bi-file-text"></i>
                 @(Id.HasValue ? "Редактировать счёт" : "Новый счёт")
             </h3>
         </div>
@@ -82,7 +82,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Номер счёта</label>
-                            <input type="text" class="form-control" @bind="invoiceNumber" 
+                            <input type="text" class="form-control" @bind="invoiceNumber"
                                    placeholder="Оставьте пустым для автогенерации" />
                         </div>
                         <div class="col-md-6">
@@ -176,12 +176,12 @@
                                     {
                                         <tr>
                                             <td>
-                                                <select class="form-select form-select-sm" 
+                                                <select class="form-select form-select-sm"
                                                         @onchange="(ChangeEventArgs e) => SelectProduct(item, Convert.ToInt32(e.Value ?? 0))">
                                                     <option value="0">-- Выберите услугу --</option>
                                                     @foreach (var product in products)
                                                     {
-                                                        <option value="@product.Id" 
+                                                        <option value="@product.Id"
                                                                 selected="@(item.ProductId == product.Id)">
                                                             @product.Name @(string.IsNullOrEmpty(product.SKU) ? "" : $"({product.SKU})")
                                                         </option>
@@ -191,19 +191,19 @@
                                                 {
                                                     <small class="text-muted d-block mt-1">Выберите из списка или напишите вручную</small>
                                                 }
-                                                <input type="text" class="form-control form-control-sm mt-1" 
+                                                <input type="text" class="form-control form-control-sm mt-1"
                                                        @bind="item.Description" placeholder="Описание (опционально)" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                <input type="number" class="form-control form-control-sm text-end"
                                                        @bind="item.Quantity" step="0.01" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                <input type="number" class="form-control form-control-sm text-end"
                                                        @bind="item.UnitPrice" step="0.01" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                <input type="number" class="form-control form-control-sm text-end"
                                                        @bind="item.TaxRatePercent" step="0.01" />
                                             </td>
                                             <td class="text-end">
@@ -305,10 +305,10 @@
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         var allClients = (await ClientService.GetAllClientsAsync()).ToList();
         var allProducts = (await ProductService.GetAllProductsAsync()).ToList();
-        
+
         // Фильтр по текущему бизнесу
         if (BusinessCtx.CurrentBusinessId.HasValue)
         {
@@ -376,13 +376,13 @@
             item.ProductId = productId;
             item.Description = product.Name;
             item.UnitPrice = product.Price;
-            
+
             // Set tax rate if product has one configured
             if (product.TaxRateId.HasValue && product.TaxRate != null)
             {
                 item.TaxRatePercent = product.TaxRate.Rate;
             }
-            
+
             BuildCsvDownloadUrl();
         }
     }
@@ -421,8 +421,8 @@
 
             // Применяем налоговую логику
             TaxService.ApplyTaxLogic(
-                tempInvoice, 
-                client, 
+                tempInvoice,
+                client,
                 sellerIsSmallBusiness: false, // TODO: получить из настроек компании
                 isGoodsSupply: true           // TODO: добавить чекбокс
             );
@@ -485,6 +485,12 @@
 
     private async Task HandleSubmit()
     {
+        if (!BusinessCtx.CurrentBusinessId.HasValue)
+        {
+            errorMessage = "Сначала выберите бизнес";
+            return;
+        }
+
         if (selectedClientId == 0)
         {
             errorMessage = "Выберите клиента";
@@ -518,7 +524,7 @@
                 currentInvoice.Steuercode = steuercode;
                 currentInvoice.Konto = konto;
                 currentInvoice.Proz = proz;
-                
+
                 // Update existing items and clear old ones
                 currentInvoice.Items.Clear();
                 foreach (var itemModel in items)
@@ -533,7 +539,7 @@
                         TotalAmount = CalculateItemTotal(itemModel)
                     });
                 }
-                
+
                 await InvoiceService.UpdateInvoiceAsync(currentInvoice);
             }
             else
@@ -548,14 +554,14 @@
                     Status = (InvoiceStatus)invoiceStatus,
                     SubTotal = subTotal,
                     TotalAmount = totalAmount,
-                    BusinessId = BusinessCtx.CurrentBusinessId,
-                    
+                    BusinessId = BusinessCtx.CurrentBusinessId.Value,
+
                     // Apply tax fields
                     InvoiceType = (InvoiceType)invoiceType,
                     Steuercode = steuercode,
                     Konto = konto,
                     Proz = proz,
-                    
+
                     Items = items.Select(i => new InvoiceItem
                     {
                         Description = i.Description,
@@ -565,7 +571,7 @@
                         TotalAmount = CalculateItemTotal(i)
                     }).ToList()
                 };
-                
+
                 await InvoiceService.CreateInvoiceAsync(invoice);
             }
 

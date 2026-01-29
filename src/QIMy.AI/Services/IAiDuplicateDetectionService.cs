@@ -13,7 +13,7 @@ public interface IAiDuplicateDetectionService
         IEnumerable<TEntity> existingEntities,
         DuplicateDetectionOptions? options = null,
         CancellationToken cancellationToken = default) where TEntity : class;
-    
+
     /// <summary>
     /// Находит потенциальные дубликаты для клиента
     /// </summary>
@@ -23,7 +23,7 @@ public interface IAiDuplicateDetectionService
         string? email = null,
         string? phone = null,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Находит потенциальные дубликаты для поставщика
     /// </summary>
@@ -32,7 +32,7 @@ public interface IAiDuplicateDetectionService
         string? vatNumber = null,
         string? email = null,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Находит потенциальные дубликаты счетов
     /// </summary>
@@ -50,22 +50,22 @@ public class DuplicateDetectionResult
     /// Найдены ли дубликаты
     /// </summary>
     public bool HasDuplicates { get; set; }
-    
+
     /// <summary>
     /// Список найденных дубликатов
     /// </summary>
     public List<DuplicateMatch> Duplicates { get; set; } = new();
-    
+
     /// <summary>
     /// Общий confidence score (0.0-1.0)
     /// </summary>
     public decimal OverallConfidence { get; set; }
-    
+
     /// <summary>
     /// Рекомендация: Block, Warn, Allow
     /// </summary>
     public DuplicateAction RecommendedAction { get; set; }
-    
+
     /// <summary>
     /// Объяснение для пользователя
     /// </summary>
@@ -78,27 +78,27 @@ public class DuplicateMatch
     /// ID существующей сущности
     /// </summary>
     public int EntityId { get; set; }
-    
+
     /// <summary>
     /// Название/описание сущности
     /// </summary>
     public string EntityDescription { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Match score (0.0-1.0)
     /// </summary>
     public decimal MatchScore { get; set; }
-    
+
     /// <summary>
     /// Какие поля совпали
     /// </summary>
     public List<FieldMatch> MatchedFields { get; set; } = new();
-    
+
     /// <summary>
     /// Тип дубликата: Exact, Fuzzy, Suspected
     /// </summary>
     public DuplicateType Type { get; set; }
-    
+
     /// <summary>
     /// Почему считается дубликатом
     /// </summary>
@@ -120,27 +120,27 @@ public class DuplicateDetectionOptions
     /// Минимальный threshold для exact duplicate (default: 0.95)
     /// </summary>
     public decimal ExactThreshold { get; set; } = 0.95m;
-    
+
     /// <summary>
     /// Минимальный threshold для fuzzy duplicate (default: 0.75)
     /// </summary>
     public decimal FuzzyThreshold { get; set; } = 0.75m;
-    
+
     /// <summary>
     /// Поля для проверки (если null, проверяются все)
     /// </summary>
     public List<string>? FieldsToCheck { get; set; }
-    
+
     /// <summary>
     /// Веса полей для расчета общего score
     /// </summary>
     public Dictionary<string, decimal> FieldWeights { get; set; } = new();
-    
+
     /// <summary>
     /// Игнорировать регистр
     /// </summary>
     public bool IgnoreCase { get; set; } = true;
-    
+
     /// <summary>
     /// Игнорировать пробелы и специальные символы
     /// </summary>
@@ -153,17 +153,17 @@ public enum DuplicateType
     /// 100% совпадение
     /// </summary>
     Exact,
-    
+
     /// <summary>
     /// Очень похоже (>90%)
     /// </summary>
     Fuzzy,
-    
+
     /// <summary>
     /// Подозрительно похоже (75-90%)
     /// </summary>
     Suspected,
-    
+
     /// <summary>
     /// Может быть дубликат (60-75%)
     /// </summary>
@@ -176,12 +176,12 @@ public enum DuplicateAction
     /// Заблокировать создание
     /// </summary>
     Block,
-    
+
     /// <summary>
     /// Предупредить пользователя
     /// </summary>
     Warn,
-    
+
     /// <summary>
     /// Разрешить создание
     /// </summary>

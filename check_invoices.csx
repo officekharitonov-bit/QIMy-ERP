@@ -13,7 +13,7 @@ connection.Open();
 
 var command = connection.CreateCommand();
 command.CommandText = @"
-    SELECT 
+    SELECT
         i.Id,
         i.InvoiceNumber,
         i.InvoiceDate,
@@ -42,7 +42,7 @@ connection.Open();
 
 command = connection.CreateCommand();
 command.CommandText = @"
-    SELECT 
+    SELECT
         Id,
         CompanyName,
         Country,

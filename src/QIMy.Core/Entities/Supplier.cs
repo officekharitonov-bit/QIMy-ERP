@@ -1,11 +1,13 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Supplier/Vendor entity for incoming invoices
 /// </summary>
-public class Supplier : BaseEntity
+public class Supplier : BaseEntity, IMustHaveBusiness
 {
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
     public int SupplierCode { get; set; } // 300000-399999
     public string CompanyName { get; set; } = string.Empty;
     public string? ContactPerson { get; set; }
@@ -18,7 +20,7 @@ public class Supplier : BaseEntity
     public string? TaxNumber { get; set; }
     public string? VatNumber { get; set; }
     public string? BankAccount { get; set; }
-    
+
     // Navigation properties
     public Business? Business { get; set; }
     public ICollection<ExpenseInvoice> ExpenseInvoices { get; set; } = new List<ExpenseInvoice>();

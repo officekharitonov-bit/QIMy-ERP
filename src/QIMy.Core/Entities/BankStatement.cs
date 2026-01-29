@@ -1,10 +1,12 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Bank Statement (Банковская выписка)
 /// Импортируется из CSV файлов различных банков
 /// </summary>
-public class BankStatement : BaseEntity
+public class BankStatement : BaseEntity, IMustHaveBusiness
 {
     /// <summary>
     /// Бизнес, к которому относится выписка

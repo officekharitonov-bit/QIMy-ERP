@@ -8,7 +8,7 @@ public static class SeedData
     public static async Task SeedReferenceData(ApplicationDbContext context)
     {
         // Get or create first business for seeding
-        var business = await context.Businesses.FirstOrDefaultAsync();
+        var business = await context.Businesses.IgnoreQueryFilters().FirstOrDefaultAsync();
         if (business == null)
         {
             business = new Business
@@ -20,11 +20,11 @@ public static class SeedData
             await context.Businesses.AddAsync(business);
             await context.SaveChangesAsync();
         }
-        
+
         var businessId = business.Id;
 
         // Seed ClientAreas
-        if (!await context.ClientAreas.AnyAsync())
+        if (!await context.ClientAreas.IgnoreQueryFilters().AnyAsync())
         {
             var clientAreas = new[]
             {
@@ -37,7 +37,7 @@ public static class SeedData
         }
 
         // Seed ClientTypes
-        if (!await context.ClientTypes.AnyAsync())
+        if (!await context.ClientTypes.IgnoreQueryFilters().AnyAsync())
         {
             var clientTypes = new[]
             {
@@ -50,59 +50,59 @@ public static class SeedData
 
         // Seed TaxRates - Will be populated by VatRateUpdateService from Vatlayer API
         // Seed only Austria rates initially (for backward compatibility)
-        if (!await context.TaxRates.AnyAsync())
+        if (!await context.TaxRates.IgnoreQueryFilters().AnyAsync())
         {
             var now = DateTime.UtcNow;
             var taxRates = new[]
             {
-                new TaxRate 
-                { 
+                new TaxRate
+                {
                     CountryCode = "AT",
                     CountryName = "Austria",
-                    Name = "Standard VAT (AT)", 
-                    Rate = 20m, 
+                    Name = "Standard VAT (AT)",
+                    Rate = 20m,
                     RateType = TaxRateType.Standard,
-                    IsDefault = true, 
+                    IsDefault = true,
                     BusinessId = businessId,
                     EffectiveFrom = now,
                     EffectiveUntil = null,
                     Source = "Manual",
                     Notes = "Initial seed - will be updated by Vatlayer API"
                 },
-                new TaxRate 
-                { 
+                new TaxRate
+                {
                     CountryCode = "AT",
                     CountryName = "Austria",
-                    Name = "Reduced VAT 10% (AT)", 
-                    Rate = 10m, 
+                    Name = "Reduced VAT 10% (AT)",
+                    Rate = 10m,
                     RateType = TaxRateType.Reduced,
-                    IsDefault = false, 
+                    IsDefault = false,
                     BusinessId = businessId,
                     EffectiveFrom = now,
                     EffectiveUntil = null,
                     Source = "Manual"
                 },
-                new TaxRate 
-                { 
+                new TaxRate
+                {
                     CountryCode = "AT",
                     CountryName = "Austria",
-                    Name = "Reduced VAT 13% (AT)", 
-                    Rate = 13m, 
+                    Name = "Reduced VAT 13% (AT)",
+                    Rate = 13m,
                     RateType = TaxRateType.SuperReduced,
-                    IsDefault = false, 
+                    IsDefault = false,
                     BusinessId = businessId,
                     EffectiveFrom = now,
                     EffectiveUntil = null,
                     Source = "Manual"
                 },
-                new TaxRate 
-                { 
+                new TaxRate
+                {
                     CountryCode = "AT",
                     CountryName = "Austria",
-                    Name = "VAT Free Export (AT)", 
-                    Rate = 0m, 
+                    Name = "VAT Free Export (AT)",
+                    Rate = 0m,
                     RateType = TaxRateType.Zero,
-                    IsDefault = false, 
+                    IsDefault = false,
                     BusinessId = businessId,
                     EffectiveFrom = now,
                     EffectiveUntil = null,
@@ -111,18 +111,18 @@ public static class SeedData
             };
             await context.TaxRates.AddRangeAsync(taxRates);
             await context.SaveChangesAsync();
-            
+
             // Note: VatRateUpdateService will populate EU countries automatically on first run
         }
 
         // Seed Accounts (Revenue accounts / Erlöskonten)
-        var domesticArea = await context.ClientAreas.FirstOrDefaultAsync(ca => ca.Code == "1");
-        var standardTaxRate = await context.TaxRates.FirstOrDefaultAsync(tr => tr.Rate == 20m);
-        var reducedTaxRate10 = await context.TaxRates.FirstOrDefaultAsync(tr => tr.Rate == 10m);
-        var reducedTaxRate13 = await context.TaxRates.FirstOrDefaultAsync(tr => tr.Rate == 13m);
-        var zeroTaxRate = await context.TaxRates.FirstOrDefaultAsync(tr => tr.Rate == 0m);
+        var domesticArea = await context.ClientAreas.IgnoreQueryFilters().FirstOrDefaultAsync(ca => ca.Code == "1");
+        var standardTaxRate = await context.TaxRates.IgnoreQueryFilters().FirstOrDefaultAsync(tr => tr.Rate == 20m);
+        var reducedTaxRate10 = await context.TaxRates.IgnoreQueryFilters().FirstOrDefaultAsync(tr => tr.Rate == 10m);
+        var reducedTaxRate13 = await context.TaxRates.IgnoreQueryFilters().FirstOrDefaultAsync(tr => tr.Rate == 13m);
+        var zeroTaxRate = await context.TaxRates.IgnoreQueryFilters().FirstOrDefaultAsync(tr => tr.Rate == 0m);
 
-        if (!await context.Accounts.AnyAsync() && domesticArea != null)
+        if (!await context.Accounts.IgnoreQueryFilters().AnyAsync() && domesticArea != null)
         {
             var accounts = new[]
             {
@@ -192,9 +192,9 @@ public static class SeedData
         }
 
         // Seed Taxes (combinations of TaxRate + Account)
-        if (!await context.Taxes.AnyAsync())
+        if (!await context.Taxes.IgnoreQueryFilters().AnyAsync())
         {
-            var accounts = await context.Accounts.Include(a => a.DefaultTaxRate).ToListAsync();
+            var accounts = await context.Accounts.IgnoreQueryFilters().Include(a => a.DefaultTaxRate).ToListAsync();
             var taxes = new List<Tax>();
 
             foreach (var account in accounts)
@@ -219,7 +219,7 @@ public static class SeedData
         }
 
         // Seed Units
-        if (!await context.Units.AnyAsync())
+        if (!await context.Units.IgnoreQueryFilters().AnyAsync())
         {
             var units = new[]
             {
@@ -236,7 +236,7 @@ public static class SeedData
         }
 
         // Seed Currencies
-        if (!await context.Currencies.AnyAsync())
+        if (!await context.Currencies.IgnoreQueryFilters().AnyAsync())
         {
             var currencies = new[]
             {
@@ -291,7 +291,7 @@ public static class SeedData
         }
 
         // Seed PaymentMethods
-        if (!await context.PaymentMethods.AnyAsync())
+        if (!await context.PaymentMethods.IgnoreQueryFilters().AnyAsync())
         {
             var paymentMethods = new[]
             {

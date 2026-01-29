@@ -154,7 +154,7 @@ QIMy.Application/Suppliers/
 #### DELETE /api/suppliers/{id}
 Удалить поставщика
 
-**Response:** 
+**Response:**
 - 204 No Content - успешно
 - 400 Bad Request - если есть связанные расходные накладные
 
@@ -280,42 +280,42 @@ public async Task<SupplierDto?> CreateSupplierWithDuplicateHandlingAsync(CreateS
 {
     // First attempt
     var result = await mediator.Send(command);
-    
+
     if (result.IsSuccess)
         return result.Value;
-    
+
     // Check if it's a duplicate warning
     if (result.Error.Contains("similar details already exists"))
     {
         // Show warning to user
         var userConfirmed = await ShowDuplicateWarningAsync(result.Error);
-        
+
         if (!userConfirmed)
             return null;
-        
+
         // Second attempt with IgnoreDuplicateWarning
         command = command with { IgnoreDuplicateWarning = true };
         result = await mediator.Send(command);
-        
+
         if (result.IsSuccess)
             return result.Value;
-        
+
         // Third attempt with DoubleConfirmed
         if (result.Error.Contains("confirm that you want"))
         {
             var doubleConfirmed = await ShowFinalConfirmationAsync(result.Error);
-            
+
             if (!doubleConfirmed)
                 return null;
-            
+
             command = command with { DoubleConfirmed = true };
             result = await mediator.Send(command);
-            
+
             if (result.IsSuccess)
                 return result.Value;
         }
     }
-    
+
     // Show error
     await ShowErrorAsync(result.Error);
     return null;

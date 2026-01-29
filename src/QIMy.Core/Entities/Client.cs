@@ -1,14 +1,16 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Client/Customer entity
 /// </summary>
-public class Client : BaseEntity
+public class Client : BaseEntity, IMustHaveBusiness
 {
     /// <summary>
     /// ID бизнеса (мультитенантность)
     /// </summary>
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
 
     /// <summary>
     /// Уникальный код клиента (автогенерация на основе ClientArea)
@@ -38,19 +40,19 @@ public class Client : BaseEntity
     public string? Country { get; set; }
     public string? TaxNumber { get; set; }
     public string? VatNumber { get; set; }
-    
+
     // Bank account fields
     public string? IBAN { get; set; }
     public string? BIC { get; set; }
     public string? BankName { get; set; }
     public string? BankAccountNumber { get; set; }
-    
+
     // Payment terms
     public int PaymentTermsDays { get; set; } = 30;
     public decimal? CreditLimit { get; set; }
     public int? DefaultPaymentMethodId { get; set; }
     public int? CurrencyId { get; set; }
-    
+
     // Additional fields
     public string? Notes { get; set; }
     public string? CustomField01 { get; set; }

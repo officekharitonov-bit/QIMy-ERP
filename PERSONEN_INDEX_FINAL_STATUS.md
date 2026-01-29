@@ -1,8 +1,8 @@
 # ✅ PERSONEN INDEX ER/AR INTEGRATION - FINAL REPORT
 
-**Дата:** 24 января 2026  
-**Статус:** ✅ **РЕАЛИЗОВАНО И ПРОТЕСТИРОВАНО**  
-**Сборка:** ✅ **0 ошибок, 0 warning**  
+**Дата:** 24 января 2026
+**Статус:** ✅ **РЕАЛИЗОВАНО И ПРОТЕСТИРОВАНО**
+**Сборка:** ✅ **0 ошибок, 0 warning**
 **БД миграция:** ✅ **ПРИМЕНЕНА**
 
 ---
@@ -82,10 +82,10 @@
 
 ```sql
 -- ER (ExpenseInvoice)
-ALTER TABLE ExpenseInvoices ADD 
+ALTER TABLE ExpenseInvoices ADD
   PersonenIndexEntryId INT FOREIGN KEY REFERENCES PersonenIndexEntries(Id)
 
--- AR (Invoice)  
+-- AR (Invoice)
 ALTER TABLE Invoices ADD
   PersonenIndexEntryId INT FOREIGN KEY REFERENCES PersonenIndexEntries(Id)
 ```
@@ -256,16 +256,16 @@ public class PersonenIndexController
 {
     [HttpGet("search/{tag}")]
     public async Task<PersonenIndexEntryDto> Search(string tag);
-    
+
     [HttpGet("{id}")]
     public async Task<PersonenIndexEntryDto> GetById(int id);
-    
+
     [HttpPost]
     public async Task<PersonenIndexEntryDto> Create(CreatePersonenIndexEntryDto dto);
-    
+
     [HttpPut("{id}")]
     public async Task<PersonenIndexEntryDto> Update(int id, UpdatePersonenIndexEntryDto dto);
-    
+
     [HttpDelete("{id}")]
     public async Task<bool> Delete(int id);
 }
@@ -391,7 +391,7 @@ public class PersonenIndexController
 
 ---
 
-**Дата завершения:** 24 января 2026  
-**Статус:** ✅ **ГОТОВО К ИСПОЛЬЗОВАНИЮ**  
-**Версия:** 1.0  
+**Дата завершения:** 24 января 2026
+**Статус:** ✅ **ГОТОВО К ИСПОЛЬЗОВАНИЮ**
+**Версия:** 1.0
 **Сборка:** ✅ **0 ОШИБОК, 0 WARNING**

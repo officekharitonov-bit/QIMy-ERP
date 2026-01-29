@@ -13,7 +13,7 @@ public record GetAllVatRatesQuery : IRequest<Result<List<VatRateDto>>>
     /// Include historical (inactive) rates
     /// </summary>
     public bool IncludeHistorical { get; init; } = false;
-    
+
     /// <summary>
     /// Filter by country code
     /// </summary>

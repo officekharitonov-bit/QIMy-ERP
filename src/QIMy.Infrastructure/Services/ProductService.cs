@@ -82,9 +82,9 @@ public class ProductService : IProductService
         return await _context.Products
             .Include(p => p.Unit)
             .Include(p => p.TaxRate)
-            .Where(p => !p.IsDeleted && 
-                   (p.Name.Contains(searchTerm) || 
-                    p.Description!.Contains(searchTerm) || 
+            .Where(p => !p.IsDeleted &&
+                   (p.Name.Contains(searchTerm) ||
+                    p.Description!.Contains(searchTerm) ||
                     p.SKU!.Contains(searchTerm)))
             .OrderBy(p => p.Name)
             .ToListAsync();

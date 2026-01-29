@@ -1,7 +1,7 @@
 # Austrian USt-Steuercode Complete Reference
 
-**Source:** BMD NTCS / Austrian Tax Authority  
-**Total Codes:** 99  
+**Source:** BMD NTCS / Austrian Tax Authority
+**Total Codes:** 99
 **Last Updated:** January 25, 2026
 
 ---
@@ -216,23 +216,23 @@ public class AustrianTaxLogicEngine
         // Case 1: Kleinunternehmer
         if (input.SellerIsSmallBusiness)
             return new TaxCaseResult { Steuercode = 16, Konto = 4062, Proz = 0m };
-        
+
         // Case 2: INLAND
         if (input.BuyerCountry == "AT")
             return new TaxCaseResult { Steuercode = 1, Konto = 4000, Proz = 20m };
-        
+
         // Case 3: IGL (EU + Goods + UID)
         if (input.BuyerCountryInEU && input.IsGoodsSupply && !string.IsNullOrEmpty(input.BuyerUid))
             return new TaxCaseResult { Steuercode = 11, Konto = 4000, Proz = 0m };
-        
+
         // Case 4: Reverse Charge (EU + Services + UID)
         if (input.BuyerCountryInEU && !input.IsGoodsSupply && !string.IsNullOrEmpty(input.BuyerUid))
             return new TaxCaseResult { Steuercode = 19, Konto = 4000, Proz = 0m };
-        
+
         // Case 5: Export (Third Country)
         if (!input.BuyerCountryInEU)
             return new TaxCaseResult { Steuercode = 10, Konto = 4000, Proz = 0m };
-        
+
         // Default
         return new TaxCaseResult { Steuercode = 1, Konto = 4000, Proz = 20m };
     }
@@ -251,6 +251,6 @@ public class AustrianTaxLogicEngine
 
 ---
 
-**Created:** January 25, 2026  
-**For:** QIMy ERP - Austrian Tax Logic Engine  
+**Created:** January 25, 2026
+**For:** QIMy ERP - Austrian Tax Logic Engine
 **Status:** ✅ Complete Reference

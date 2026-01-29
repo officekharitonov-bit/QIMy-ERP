@@ -13,20 +13,20 @@ try {
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $workbook = $excel.Workbooks.Open($filePath)
-    
+
     $sheetCount = $workbook.Sheets.Count
-    
+
     foreach ($i in 1..$sheetCount) {
         $sheet = $workbook.Sheets.Item($i)
         $usedRange = $sheet.UsedRange
         $lastRow = $usedRange.Rows.Count
         $lastCol = $usedRange.Columns.Count
-        
+
         $report += "SHEET $($i): $($sheet.Name)"
         $report += "-" * 90
         $report += "Dimensions: $lastRow rows x $lastCol columns"
         $report += ""
-        
+
         # Header row
         $headers = @()
         for ($col = 1; $col -le $lastCol; $col++) {
@@ -34,13 +34,13 @@ try {
             $val = $cell.Value2
             if ($val) { $headers += $val.ToString().Trim() } else { $headers += "[EMPTY]" }
         }
-        
+
         $report += "COLUMNS:"
         for ($col = 0; $col -lt $headers.Count; $col++) {
             $report += "  Col $($col+1): $($headers[$col])"
         }
         $report += ""
-        
+
         # Sample data rows
         if ($lastRow -gt 1) {
             $report += "SAMPLE DATA (first 5 rows):"
@@ -54,11 +54,11 @@ try {
                 $report += "  Row $row : $($rowData -join ' | ')"
             }
         }
-        
+
         $report += ""
         $report += ""
     }
-    
+
     # Summary
     $report += "=" * 90
     $report += "SUMMARY"
@@ -93,19 +93,20 @@ try {
     $report += "  Columns: Country name (German), Account range?, English name, Country number"
     $report += "  Key field: Country number"
     $report += ""
-    
+
     $workbook.Close($false)
     $excel.Quit()
-    
+
     # Write report
     $report | Out-File -FilePath $reportFile -Encoding UTF8 -Force
-    
+
     Write-Host "Analysis complete! Report saved to:" -ForegroundColor Green
     Write-Host $reportFile -ForegroundColor Cyan
     Write-Host ""
     $report | Out-Host
-    
-} catch {
+
+}
+catch {
     Write-Host "ERROR: $($_)" -ForegroundColor Red
     if ($excel) { $excel.Quit() }
     exit 1

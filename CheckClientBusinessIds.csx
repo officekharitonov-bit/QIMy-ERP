@@ -18,7 +18,7 @@ Console.WriteLine("=== CHECKING CLIENT BUSINESS IDS ===\n");
 
 // Get all clients
 var clients = await context.Database.SqlQueryRaw<ClientInfo>(@"
-    SELECT 
+    SELECT
         Id,
         ClientCode,
         CompanyName,
@@ -46,7 +46,7 @@ foreach (var client in clientsWithoutBusiness)
 
 // Get all businesses
 var businesses = await context.Database.SqlQueryRaw<BusinessInfo>(@"
-    SELECT 
+    SELECT
         Id,
         CompanyName
     FROM Businesses

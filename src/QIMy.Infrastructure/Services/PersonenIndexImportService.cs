@@ -94,22 +94,22 @@ public class PersonenIndexImportService
         {
             var worksheet = workbook.Worksheet(6); // Länder sheet
             _logger.LogInformation("Found sheet: {Name}", worksheet.Name);
-            
+
             var rows = worksheet.RowsUsed();
             _logger.LogInformation("Sheet 6 row range: {Range}", rows.Count());
-            
+
             int rowNum = 0;
             foreach (var row in rows)
             {
                 rowNum++;
                 if (rowNum == 1) continue; // Skip header
-                
+
                 try
                 {
                     var codeCell = row.Cell(1).GetValue<string>();
                     if (string.IsNullOrWhiteSpace(codeCell))
                         continue;
-                        
+
                     var code = codeCell.Trim();
                     var nameGerman = (row.Cell(2).GetValue<string>() ?? string.Empty).Trim();
                     var nameEnglish = (row.Cell(3).GetValue<string>() ?? string.Empty).Trim();
@@ -177,16 +177,16 @@ public class PersonenIndexImportService
         {
             var worksheet = workbook.Worksheet(2); // EU-RATE sheet
             _logger.LogInformation("Found sheet: {Name}", worksheet.Name);
-            
+
             var rows = worksheet.RowsUsed();
             _logger.LogInformation("Sheet 2 row range: {Range}", rows.Count());
-            
+
             int rowNum = 0;
             foreach (var row in rows)
             {
                 rowNum++;
                 if (rowNum == 1) continue; // Skip header
-                
+
                 try
                 {
                     var codeCell = row.Cell(2).GetValue<string>();
@@ -194,7 +194,7 @@ public class PersonenIndexImportService
                         continue;
 
                     var code = codeCell.Trim(); // Code column
-                    
+
                     // Find corresponding country
                     var country = await _context.Countries
                         .Include(c => c.EuData)
@@ -310,9 +310,9 @@ public class PersonenIndexImportResult
     public int EuDataImported { get; set; }
     public int EuDataUpdated { get; set; }
     public List<string> Errors { get; set; } = new();
-    
+
     public bool IsSuccess => Errors.Count == 0;
-    
+
     public string Summary => $"Countries: {CountriesImported} imported, {CountriesUpdated} updated | " +
                             $"EU Data: {EuDataImported} imported, {EuDataUpdated} updated | " +
                             $"Errors: {Errors.Count}";

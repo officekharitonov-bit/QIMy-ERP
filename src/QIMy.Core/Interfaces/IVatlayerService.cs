@@ -11,12 +11,12 @@ public interface IVatlayerService
     /// Get current VAT rates for all EU countries
     /// </summary>
     Task<VatlayerResponse?> GetVatRatesAsync(CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Get VAT rate for specific country
     /// </summary>
     Task<VatlayerCountryRate?> GetCountryRateAsync(string countryCode, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Validate VAT number using VIES
     /// </summary>

@@ -1,7 +1,7 @@
 # Тест реактивной фильтрации по бизнесам
 
-**Дата:** 24.01.2026  
-**Статус:** ✅ Реализовано  
+**Дата:** 24.01.2026
+**Статус:** ✅ Реализовано
 **Файлы:** AR/Invoices/Index.razor, AG/Quotes/Index.razor
 
 ---
@@ -22,7 +22,7 @@ public class BusinessContext
 {
     public int? CurrentBusinessId { get; private set; }
     public event Action? Changed;  // ⬅️ Событие для подписки
-    
+
     public async Task SetBusinessAsync(int businessId, bool saveDefault = true)
     {
         CurrentBusinessId = businessId;
@@ -40,25 +40,25 @@ public class BusinessContext
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         // Подписка с async lambda
-        BusinessCtx.Changed += async () => 
+        BusinessCtx.Changed += async () =>
         {
             await LoadInvoices();  // Перезагрузка данных
             StateHasChanged();     // Обновление UI
         };
-        
+
         await LoadInvoices();
     }
-    
+
     private async Task LoadInvoices()
     {
         var all = (await InvoiceService.GetAllInvoicesAsync()).ToList();
         var bizId = BusinessCtx.CurrentBusinessId;
-        
+
         // Фильтрация по текущему бизнесу
-        invoices = bizId.HasValue 
-            ? all.Where(i => i.BusinessId == bizId.Value).ToList() 
+        invoices = bizId.HasValue
+            ? all.Where(i => i.BusinessId == bizId.Value).ToList()
             : all;
     }
 }
@@ -73,23 +73,23 @@ public class BusinessContext
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         BusinessCtx.Changed += async () =>
         {
             await LoadQuotes();
             StateHasChanged();
         };
-        
+
         await LoadQuotes();
     }
-    
+
     private async Task LoadQuotes()
     {
         var all = (await QuoteService.GetAllQuotesAsync()).ToList();
         var bizId = BusinessCtx.CurrentBusinessId;
-        
-        quotes = bizId.HasValue 
-            ? all.Where(q => q.BusinessId == bizId.Value).ToList() 
+
+        quotes = bizId.HasValue
+            ? all.Where(q => q.BusinessId == bizId.Value).ToList()
             : all;
     }
 }
@@ -113,7 +113,7 @@ public class BusinessContext
 2. Проверить текущий бизнес в селекторе (header, правый верхний угол)
 3. Записать количество отображаемых счетов: _____ штук
 4. Сменить бизнес через селектор
-5. **Ожидаемый результат:** 
+5. **Ожидаемый результат:**
    - ✅ Страница НЕ перезагружается полностью
    - ✅ Список счетов обновляется автоматически
    - ✅ Отображаются только счета с новым BusinessId
@@ -168,7 +168,7 @@ BusinessCtx.Changed += OnBusinessChanged;
 private async Task OnBusinessChanged() { ... }
 
 // ✅ СТАЛО:
-BusinessCtx.Changed += async () => 
+BusinessCtx.Changed += async () =>
 {
     await LoadData();
     StateHasChanged();
@@ -217,18 +217,18 @@ public class AddBusinessIdToClientAndProduct : Migration
             table: "Clients",
             nullable: false,
             defaultValue: 1);
-            
+
         migrationBuilder.AddColumn<int>(
             name: "BusinessId",
             table: "Products",
             nullable: false,
             defaultValue: 1);
-            
+
         migrationBuilder.CreateIndex(
             name: "IX_Clients_BusinessId",
             table: "Clients",
             column: "BusinessId");
-            
+
         migrationBuilder.CreateIndex(
             name: "IX_Products_BusinessId",
             table: "Products",

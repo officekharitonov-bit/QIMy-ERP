@@ -35,7 +35,7 @@ public class UnitOfWork : IUnitOfWork
 
     private IRepository<Tax>? _taxes;
     private IRepository<Payment>? _payments;
-    
+
     private IRepository<PersonenIndexEntry>? _personenIndexEntries;
     private IRepository<JournalEntry>? _journalEntries;
     private IRepository<JournalEntryLine>? _journalEntryLines;

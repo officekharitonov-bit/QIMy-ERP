@@ -32,6 +32,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     }
 });
 
+// Multi-tenant accessor (used by EF Core global filters + SaveChanges guardrails)
+builder.Services.AddScoped<ICurrentBusinessIdAccessor, CurrentBusinessIdAccessor>();
+
 // Add ASP.NET Core Identity
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
@@ -106,6 +109,8 @@ builder.Services.AddScoped<PdfInvoiceGeneratorService>();
 // ============== TAX LOGIC ENGINE ==============
 builder.Services.AddScoped<InvoiceTaxService>();
 builder.Services.AddScoped<FinalReportService>();
+builder.Services.AddScoped<BmdInvoiceImportService>();
+builder.Services.AddScoped<UniversalInvoiceImportService>(); // Universal CSV importer
 builder.Services.AddScoped<AustrianInvoicePdfService>();
 builder.Services.AddScoped<NumberingService>();
 
@@ -130,10 +135,14 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var businessAccessor = scope.ServiceProvider.GetRequiredService<ICurrentBusinessIdAccessor>();
+
+        // Startup tasks must see all tenants.
+        businessAccessor.BypassTenantFilter = true;
 
         // Apply migrations properly (instead of EnsureCreatedAsync which bypasses migrations)
         await context.Database.MigrateAsync();
-        
+
         // Seed reference data (currencies, tax rates, etc.)
         await QIMy.Infrastructure.Data.SeedData.SeedReferenceData(context);
 
@@ -192,6 +201,10 @@ try
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var businessAccessor = scope.ServiceProvider.GetRequiredService<ICurrentBusinessIdAccessor>();
+
+    // Startup tasks must see all tenants.
+    businessAccessor.BypassTenantFilter = true;
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
     var adminEmail = "office@kharitonov.at";
@@ -254,24 +267,60 @@ try
         var akha = businesses.FirstOrDefault(b => b.Name == "AKHA GmbH");
         if (akha != null)
         {
-            // Update Invoices without BusinessId
-            var invoicesWithoutBusiness = await context.Invoices.Where(i => i.BusinessId == null && !i.IsDeleted).ToListAsync();
-            foreach (var invoice in invoicesWithoutBusiness)
+            async Task<int> BackfillAsync<TEntity>(DbSet<TEntity> set) where TEntity : BaseEntity, IMustHaveBusiness
             {
-                invoice.BusinessId = akha.Id;
+                var rows = await set
+                    .IgnoreQueryFilters()
+                    .Where(e => e.BusinessId == 0 && !e.IsDeleted)
+                    .ToListAsync();
+
+                foreach (var row in rows)
+                {
+                    row.BusinessId = akha.Id;
+                }
+
+                return rows.Count;
             }
 
-            // Update Quotes without BusinessId
-            var quotesWithoutBusiness = await context.Quotes.Where(q => q.BusinessId == null && !q.IsDeleted).ToListAsync();
-            foreach (var quote in quotesWithoutBusiness)
+            var backfilled = new Dictionary<string, int>
             {
-                quote.BusinessId = akha.Id;
-            }
+                ["Invoices"] = await BackfillAsync(context.Invoices),
+                ["Quotes"] = await BackfillAsync(context.Quotes),
+                ["Returns"] = await BackfillAsync(context.Returns),
+                ["DeliveryNotes"] = await BackfillAsync(context.DeliveryNotes),
+                ["ExpenseInvoices"] = await BackfillAsync(context.ExpenseInvoices),
+                ["Payments"] = await BackfillAsync(context.Payments),
 
-            if (invoicesWithoutBusiness.Count > 0 || quotesWithoutBusiness.Count > 0)
+                ["Clients"] = await BackfillAsync(context.Clients),
+                ["Suppliers"] = await BackfillAsync(context.Suppliers),
+                ["Products"] = await BackfillAsync(context.Products),
+                ["PersonenIndexEntries"] = await BackfillAsync(context.PersonenIndexEntries),
+
+                ["Accounts"] = await BackfillAsync(context.Accounts),
+                ["Currencies"] = await BackfillAsync(context.Currencies),
+                ["ClientAreas"] = await BackfillAsync(context.ClientAreas),
+                ["ClientTypes"] = await BackfillAsync(context.ClientTypes),
+                ["Units"] = await BackfillAsync(context.Units),
+                ["PaymentMethods"] = await BackfillAsync(context.PaymentMethods),
+                ["Discounts"] = await BackfillAsync(context.Discounts),
+                ["TaxRates"] = await BackfillAsync(context.TaxRates),
+                ["Taxes"] = await BackfillAsync(context.Taxes),
+                ["NumberingConfigs"] = await BackfillAsync(context.NumberingConfigs),
+
+                ["BankAccounts"] = await BackfillAsync(context.BankAccounts),
+                ["BankStatements"] = await BackfillAsync(context.BankStatements),
+                ["CashEntries"] = await BackfillAsync(context.CashEntries),
+                ["CashBoxes"] = await BackfillAsync(context.CashBoxes),
+                ["JournalEntries"] = await BackfillAsync(context.JournalEntries),
+                ["AiConfigurations"] = await BackfillAsync(context.AiConfigurations)
+            };
+
+            var totalBackfilled = backfilled.Values.Sum();
+            if (totalBackfilled > 0)
             {
                 await context.SaveChangesAsync();
-                Console.WriteLine($"Linked {invoicesWithoutBusiness.Count} invoices, {quotesWithoutBusiness.Count} quotes to AKHA GmbH");
+                var details = string.Join(", ", backfilled.Where(kvp => kvp.Value > 0).Select(kvp => $"{kvp.Key}={kvp.Value}"));
+                Console.WriteLine($"Linked legacy records to AKHA GmbH: {details}");
             }
         }
     }

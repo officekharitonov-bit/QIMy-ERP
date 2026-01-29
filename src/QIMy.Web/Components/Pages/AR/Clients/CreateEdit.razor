@@ -171,7 +171,7 @@
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         if (Id.HasValue)
         {
             var query = new GetClientByIdQuery(Id.Value);

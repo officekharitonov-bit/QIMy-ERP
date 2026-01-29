@@ -18,30 +18,30 @@ optionsBuilder.UseSqlite(connectionString);
 using (var context = new ApplicationDbContext(optionsBuilder.Options))
 {
     Console.WriteLine("=== Creating Test Invoices ===\n");
-    
+
     var business = context.Businesses.FirstOrDefault();
-    if (business == null) 
+    if (business == null)
     {
         Console.WriteLine("Error: No business found!");
         return;
     }
-    
+
     var clients = context.Clients.Where(c => !c.IsDeleted).ToList();
     var taxRate = context.TaxRates.FirstOrDefault(tr => tr.Rate == 20);
-    
+
     if (clients.Count < 3)
     {
         Console.WriteLine($"Warning: Only {clients.Count} clients found, need 3 for demo");
     }
-    
+
     // Create 3 sample invoices
     var invoices = new List<Invoice>();
-    
+
     for (int i = 0; i < Math.Min(3, clients.Count); i++)
     {
         var client = clients[i];
-        var invoiceNumber = $"2026{(i+1):D3}"; // 2026001, 2026002, 2026003
-        
+        var invoiceNumber = $"2026{(i + 1):D3}"; // 2026001, 2026002, 2026003
+
         var invoice = new Invoice
         {
             InvoiceNumber = invoiceNumber,
@@ -60,14 +60,14 @@ using (var context = new ApplicationDbContext(optionsBuilder.Options))
             UpdatedAt = DateTime.UtcNow,
             Notes = $"Sample invoice for {client.CompanyName}"
         };
-        
+
         invoices.Add(invoice);
-        
+
         Console.WriteLine($"Created: Invoice {invoiceNumber} for {client.CompanyName} ({client.Country})");
     }
-    
+
     context.Invoices.AddRange(invoices);
     await context.SaveChangesAsync();
-    
+
     Console.WriteLine($"\n✅ Successfully created {invoices.Count} invoices");
 }

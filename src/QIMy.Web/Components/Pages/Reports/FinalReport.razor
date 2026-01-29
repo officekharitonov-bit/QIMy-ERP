@@ -36,17 +36,22 @@
                         Show
                     </button>
                     <div class="btn-group" role="group" disabled="@(!hasData)">
-                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle"
+                            data-bs-toggle="dropdown">
                             Export
                         </button>
                         <ul class="dropdown-menu">
                             <li>
-                                <button class="dropdown-item" @onclick="@(async () => await ExportReport(ExportFormat.PDF))" disabled="@isLoading">
+                                <button class="dropdown-item"
+                                    @onclick="@(async () => await ExportReport(ExportFormat.PDF))"
+                                    disabled="@isLoading">
                                     Export to PDF
                                 </button>
                             </li>
                             <li>
-                                <button class="dropdown-item" @onclick="@(async () => await ExportReport(ExportFormat.CSV))" disabled="@isLoading">
+                                <button class="dropdown-item"
+                                    @onclick="@(async () => await ExportReport(ExportFormat.CSV))"
+                                    disabled="@isLoading">
                                     Export to CSV
                                 </button>
                             </li>
@@ -150,7 +155,7 @@
     {
         fromDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
         toDate = DateTime.Now;
-        
+
         // TODO: Get businessId from user claims or user context
         // For now using default value of 2 (Mag. Kharitonov Egor)
     }
@@ -158,11 +163,11 @@
     private ReportData ParseReportFromCsv(string csvContent)
     {
         var lines = csvContent.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-        var data = new ReportData 
-        { 
-            FromDate = fromDate, 
-            ToDate = toDate, 
-            Invoices = new List<InvoiceRow>() 
+        var data = new ReportData
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            Invoices = new List<InvoiceRow>()
         };
 
         bool inDetailsSection = false;
@@ -215,10 +220,10 @@
         {
             // Get PDF from service (but we use it to get invoice data)
             var pdfBytes = await ReportService.GenerateFinalReportPdfAsync(businessId, fromDate, toDate);
-            
+
             // Get CSV to extract invoice data
             var csvData = await ReportService.GenerateFinalReportCsvAsync(businessId, fromDate, toDate);
-            
+
             // Parse CSV to populate reportData for UI display
             reportData = ParseReportFromCsv(csvData);
             hasData = true;
@@ -245,7 +250,7 @@
                 // Generate PDF from service
                 var pdfBytes = await ReportService.GenerateFinalReportPdfAsync(businessId, fromDate, toDate);
                 var fileName = $"FinalReport_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}.pdf";
-                
+
                 // Download file using JS interop
                 var jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/file-download.js");
                 await jsModule.InvokeVoidAsync("downloadFile", fileName, "application/pdf", Convert.ToBase64String(pdfBytes));
@@ -256,7 +261,7 @@
                 var csvContent = await ReportService.GenerateFinalReportCsvAsync(businessId, fromDate, toDate);
                 var fileName = $"FinalReport_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}.csv";
                 var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
-                
+
                 // Download file using JS interop
                 var jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/file-download.js");
                 await jsModule.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(bytes));

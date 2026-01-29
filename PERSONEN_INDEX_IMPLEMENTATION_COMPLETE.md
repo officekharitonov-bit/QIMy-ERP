@@ -26,22 +26,22 @@ public class PersonenIndexEntry : BaseEntity
     // Идентификация
     public string KtoNr { get; set; }                      // Номер счета (2/3/4xxxxx)
     public string TAG { get; set; }                        // Быстрый поиск (5 букв)
-    
+
     // Данные контрагента
     public string CompanyName { get; set; }
     public string? ContactPerson { get; set; }
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Address { get; set; }
-    
+
     // Налоговые данные
     public string CountryCode { get; set; }                // Определяет налог!
     public string? UIDNumber { get; set; }                 // UID/VAT ID
-    
+
     // Рекомендуемые счета
     public int? SuggestedExpenseAccountId { get; set; }    // Для ER
     public int? SuggestedIncomeAccountId { get; set; }     // Для AR
-    
+
     // Классификация
     public ContractorType ContractorType { get; set; }     // Customer/Supplier/Both
     public ContractorStatus Status { get; set; }           // Active/Inactive/Pending/Blocked
@@ -63,7 +63,7 @@ public enum ContractorStatus { Active = 1, Inactive = 2, Pending = 3, Blocked = 
 public class ExpenseInvoice : BaseEntity
 {
     // ... существующие поля ...
-    
+
     // ✨ НОВЫЕ ПОЛЯ для интеграции:
     public int? PersonenIndexEntryId { get; set; }        // Ссылка на реестр!
     public PersonenIndexEntry? PersonenIndexEntry { get; set; }  // Navigation property
@@ -89,7 +89,7 @@ public class ExpenseInvoice : BaseEntity
 public class Invoice : BaseEntity
 {
     // ... существующие поля ...
-    
+
     // ✨ НОВЫЕ ПОЛЯ для интеграции:
     public int? PersonenIndexEntryId { get; set; }        // Ссылка на реестр!
     public PersonenIndexEntry? PersonenIndexEntry { get; set; }  // Navigation property
@@ -289,24 +289,24 @@ decimal tax = subTotal * (vatRate.StandardRate / 100m);
 
 **Формат данных:**
 ```
-Kto-Nr (2xxxxx/3xxxxx/4xxxxx) 
+Kto-Nr (2xxxxx/3xxxxx/4xxxxx)
   → ContractorType (Customer/Supplier/Both)
 
 TAG = первые 5 букв компании (MonoOst из Monolith Ost)
 
-Freifeld 01 (страна) 
+Freifeld 01 (страна)
   → CountryCode (AT/DE/CH/...)
 
-UID-Nummer 
+UID-Nummer
   → UIDNumber (для налоговых отчетов)
 
-Land-NR 
+Land-NR
   → CountryNumber (для сортировки)
 
-Lief-Vorschlag 
+Lief-Vorschlag
   → SuggestedExpenseAccountId
 
-Kunden-Vorschlag 
+Kunden-Vorschlag
   → SuggestedIncomeAccountId
 ```
 
@@ -319,13 +319,13 @@ public class PersonenIndexController : ControllerBase
 {
     [HttpGet("{tag}")]
     public async Task<PersonenIndexEntry> GetByTag(string tag) { }
-    
+
     [HttpPost]
     public async Task<PersonenIndexEntry> Create(PersonenIndexEntry entry) { }
-    
+
     [HttpPut("{id}")]
     public async Task<PersonenIndexEntry> Update(int id, PersonenIndexEntry entry) { }
-    
+
     [HttpDelete("{id}")]
     public async Task<bool> Delete(int id) { }
 }
@@ -445,6 +445,6 @@ dotnet ef migrations list \
 
 ---
 
-**Дата завершения:** 2026-01-24  
-**Версия:** 1.0  
+**Дата завершения:** 2026-01-24
+**Версия:** 1.0
 **Статус:** ✅ ГОТОВО К ИСПОЛЬЗОВАНИЮ

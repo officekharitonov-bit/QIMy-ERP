@@ -26,7 +26,7 @@ public class SwashbuckleFileUploadFilter : IOperationFilter
         {
             var paramName = formFileParam.Name;
             var param = operation.Parameters.FirstOrDefault(p => p.Name == paramName);
-            
+
             if (param != null)
             {
                 param.Schema = new OpenApiSchema()

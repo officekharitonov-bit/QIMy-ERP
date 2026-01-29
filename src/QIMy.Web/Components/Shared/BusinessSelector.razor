@@ -34,7 +34,7 @@
         await BusinessCtx.InitializeAsync();
         businesses = await BusinessCtx.GetUserBusinessesAsync();
         selectedId = BusinessCtx.CurrentBusinessId ?? (businesses.Count > 0 ? businesses[0].Id : (int?)null);
-        
+
         // Subscribe to business changes from other components
         BusinessCtx.Changed += OnBusinessContextChanged;
     }
@@ -56,7 +56,7 @@
         {
             selectedId = id;
             await BusinessCtx.SetBusinessAsync(id);
-            
+
             // Force page reload to clear all cached data
             Nav.NavigateTo(Nav.Uri, forceLoad: true);
         }

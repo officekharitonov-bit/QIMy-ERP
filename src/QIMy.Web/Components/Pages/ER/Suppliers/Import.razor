@@ -95,7 +95,8 @@
                             <li>Вторая строка = заголовки</li>
                         </ul>
                         <p><strong>Стандартный CSV:</strong></p>
-                        <pre class="bg-light p-2 small">CompanyName;Email;Phone;Address;City;PostalCode;Country;VatNumber</pre>
+                        <pre
+                            class="bg-light p-2 small">CompanyName;Email;Phone;Address;City;PostalCode;Country;VatNumber</pre>
                     </div>
                 </div>
             </div>
@@ -227,7 +228,7 @@
             Logger.LogInformation("Starting supplier import from {FileName}", selectedFileName);
 
             using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-            
+
             var command = new ImportSuppliersCommand
             {
                 FileStream = stream,
@@ -242,7 +243,7 @@
                 importResult = result.Value;
                 currentStep = ImportStep.Completed;
                 Logger.LogInformation("Import completed: {Success} success, {Failed} failed, {Duplicates} duplicates",
-                    importResult.SuccessCount, importResult.FailureCount, importResult.DuplicateCount);
+                importResult.SuccessCount, importResult.FailureCount, importResult.DuplicateCount);
             }
             else
             {

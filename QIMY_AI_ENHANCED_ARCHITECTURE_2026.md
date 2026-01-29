@@ -1,10 +1,10 @@
 # 🤖 QIMy AI-ENHANCED ARCHITECTURE 2026
 ## Comprehensive Blueprint for Modern AI-First Accounting System
 
-**Дата анализа:** 26 января 2026  
-**Версия:** 1.0 - COMPLETE AUTONOMOUS ANALYSIS  
-**Архитектор:** GitHub Copilot (Claude Sonnet 4.5)  
-**Время анализа:** 6 часов автономной работы  
+**Дата анализа:** 26 января 2026
+**Версия:** 1.0 - COMPLETE AUTONOMOUS ANALYSIS
+**Архитектор:** GitHub Copilot (Claude Sonnet 4.5)
+**Время анализа:** 6 часов автономной работы
 
 ---
 
@@ -96,13 +96,13 @@ public interface IAiOcrService
     Task<AiInvoiceData> ExtractInvoiceDataAsync(
         Stream pdfStream,
         string language = "de");
-    
+
     /// <summary>
     /// Извлекает данные поставщика из любого документа
     /// </summary>
     Task<AiSupplierData> ExtractSupplierDataAsync(
         Stream documentStream);
-    
+
     /// <summary>
     /// Confidence score для каждого поля
     /// </summary>
@@ -120,10 +120,10 @@ public class AiInvoiceData
     public decimal SubTotal { get; set; }
     public decimal VatAmount { get; set; }
     public List<AiInvoiceItem> Items { get; set; }
-    
+
     // Confidence scores (0.0-1.0)
     public Dictionary<string, decimal> ConfidenceScores { get; set; }
-    
+
     // Raw OCR text
     public string RawText { get; set; }
 }
@@ -148,14 +148,14 @@ public interface IAiClassificationService
     /// Определяет тип документа (Invoice, Receipt, Contract, etc.)
     /// </summary>
     Task<DocumentType> ClassifyDocumentAsync(string text);
-    
+
     /// <summary>
     /// Предлагает Steuercode на основе invoice context
     /// </summary>
     Task<AiTaxSuggestion> SuggestTaxCodeAsync(
         AiInvoiceData invoiceData,
         Client? client = null);
-    
+
     /// <summary>
     /// Предлагает Account (Erlöskonto/Aufwandskonto)
     /// </summary>
@@ -163,7 +163,7 @@ public interface IAiClassificationService
         string itemDescription,
         decimal amount,
         string? category = null);
-    
+
     /// <summary>
     /// Обучение на исторических данных
     /// </summary>
@@ -196,10 +196,10 @@ public class AiAccountSuggestion
    - Supplier: ACME GmbH (Austria, UID: ATU12345678)
    - Amount: 1000 EUR
    - Items: Software License, Support
-   
+
    Historical patterns:
    - 95% of software purchases → Steuercode 19, Account 5200
-   
+
    Suggest best Steuercode and explain reasoning."
    ```
 3. LLM возвращает: `{ steuercode: 19, confidence: 0.95, explanation: "... }" }`
@@ -220,7 +220,7 @@ public interface IAiMatchingService
         string companyName,
         string? vatNumber = null,
         string? address = null);
-    
+
     /// <summary>
     /// Дедупликация: проверяет не duplicate ли этот invoice
     /// </summary>
@@ -229,7 +229,7 @@ public interface IAiMatchingService
         int supplierId,
         decimal amount,
         DateTime date);
-    
+
     /// <summary>
     /// 3-way match: PO → Receipt → Invoice
     /// </summary>
@@ -269,14 +269,14 @@ public interface IAiApprovalRouter
     /// </summary>
     Task<ApprovalChain> RouteForApprovalAsync(
         ExpenseInvoice invoice);
-    
+
     /// <summary>
     /// Предсказывает вероятность approval
     /// </summary>
     Task<ApprovalPrediction> PredictApprovalOutcomeAsync(
         ExpenseInvoice invoice,
         string approverId);
-    
+
     /// <summary>
     /// Auto-approve если все критерии выполнены
     /// </summary>
@@ -309,7 +309,7 @@ public class ApprovalPrediction
 **Правила Auto-Approval:**
 ```csharp
 // Пример: Auto-approve если:
-if (invoice.TotalAmount < 100 && 
+if (invoice.TotalAmount < 100 &&
     invoice.Supplier.IsApproved &&
     !aiService.DetectAnomalies(invoice) &&
     historicalApprovalRate > 0.95)
@@ -334,7 +334,7 @@ public interface IAiAnomalyDetection
     /// </summary>
     Task<List<Anomaly>> DetectAnomaliesAsync(
         ExpenseInvoice invoice);
-    
+
     /// <summary>
     /// Обучается на нормальных patterns
     /// </summary>
@@ -389,12 +389,12 @@ public interface IAiChatAssistant
     Task<AiChatResponse> AskAsync(
         string question,
         int? businessId = null);
-    
+
     /// <summary>
     /// Генерирует SQL запросы из natural language
     /// </summary>
     Task<string> GenerateSqlQueryAsync(string nlQuery);
-    
+
     /// <summary>
     /// Объясняет налоговые правила
     /// </summary>
@@ -441,13 +441,13 @@ public interface IAiPredictiveAnalytics
     Task<CashFlowForecast> ForecastCashFlowAsync(
         int businessId,
         int monthsAhead = 3);
-    
+
     /// <summary>
     /// Предсказывает какие invoices будут paid late
     /// </summary>
     Task<List<LatePaymentPrediction>> PredictLatePaymentsAsync(
         int businessId);
-    
+
     /// <summary>
     /// Рекомендует оптимальные payment terms
     /// </summary>
@@ -727,38 +727,38 @@ public class AiInvoiceProcessingPipeline
     private readonly IAiAnomalyDetection _anomaly;
     private readonly IAiApprovalRouter _approver;
     private readonly IMediator _mediator;
-    
+
     public async Task<ProcessingResult> ProcessInvoiceEmailAsync(
         EmailMessage email,
         CancellationToken ct)
     {
         var result = new ProcessingResult();
-        
+
         // 1. Extract PDF attachment
         var pdfStream = ExtractPdfAttachment(email);
-        
+
         // 2. AI OCR
         var aiData = await _ocr.ExtractInvoiceDataAsync(pdfStream);
         result.OcrConfidence = aiData.ConfidenceScores.Average(x => x.Value);
-        
+
         // 3. AI Matching
         var supplierMatches = await _matcher.FindMatchingSupplierAsync(
-            aiData.SupplierName, 
+            aiData.SupplierName,
             aiData.SupplierVatNumber);
-        
+
         var supplier = supplierMatches.FirstOrDefault()?.Supplier;
         if (supplier == null)
         {
             // Create new supplier from AI data
             supplier = await CreateSupplierFromAiDataAsync(aiData);
         }
-        
+
         // 4. AI Classification
         var taxSuggestion = await _classifier.SuggestTaxCodeAsync(aiData);
         var accountSuggestion = await _classifier.SuggestAccountAsync(
-            aiData.Items.First().Description, 
+            aiData.Items.First().Description,
             aiData.TotalAmount);
-        
+
         // 5. Create ExpenseInvoice
         var command = new CreateExpenseInvoiceCommand
         {
@@ -777,16 +777,16 @@ public class AiInvoiceProcessingPipeline
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice
             }).ToList(),
-            
+
             // AI metadata
             AiProcessed = true,
             OcrConfidence = result.OcrConfidence,
             TaxCodeConfidence = taxSuggestion.Confidence,
             AccountConfidence = accountSuggestion.Confidence
         };
-        
+
         var invoice = await _mediator.Send(command, ct);
-        
+
         // 6. AI Anomaly Detection
         var anomalies = await _anomaly.DetectAnomaliesAsync(invoice);
         if (anomalies.Any(a => a.Severity > 0.7m))
@@ -795,18 +795,18 @@ public class AiInvoiceProcessingPipeline
             result.Anomalies = anomalies;
             return result;
         }
-        
+
         // 7. AI Approval Routing
         var canAutoApprove = await _approver.CanAutoApproveAsync(invoice);
         if (canAutoApprove)
         {
-            await _mediator.Send(new ApproveExpenseInvoiceCommand 
-            { 
+            await _mediator.Send(new ApproveExpenseInvoiceCommand
+            {
                 InvoiceId = invoice.Id,
                 ApproverId = "AI-AUTO",
                 Comment = "Auto-approved by AI (confidence: 95%+, no anomalies)"
             }, ct);
-            
+
             result.WasAutoApproved = true;
         }
         else
@@ -814,10 +814,10 @@ public class AiInvoiceProcessingPipeline
             var approvalChain = await _approver.RouteForApprovalAsync(invoice);
             await SendApprovalNotificationsAsync(approvalChain);
         }
-        
+
         // 8. Archive email
         await ArchiveEmailAsync(email.Id, invoice.Id);
-        
+
         return result;
     }
 }
@@ -1159,13 +1159,13 @@ public class AiTrainingService
                 ExpectedSteuercode = i.Steuercode.Value
             })
             .ToListAsync();
-        
+
         // Train ML.NET model
         var model = TrainClassificationModel(trainingData);
-        
+
         // Save model
         await SaveModelAsync(model, "steuercode-classifier-v1.zip");
-        
+
         // Evaluate accuracy
         var accuracy = EvaluateModel(model, testData);
         _logger.LogInformation("Model accuracy: {Accuracy}%", accuracy * 100);
@@ -1183,10 +1183,10 @@ public class AiFeedbackLoop
         string? userCorrection = null)
     {
         var suggestion = await _db.AiSuggestions.FindAsync(suggestionId);
-        
+
         suggestion.WasAccepted = wasAccepted;
         suggestion.AcceptedAt = DateTime.UtcNow;
-        
+
         if (!wasAccepted && userCorrection != null)
         {
             // Create training example from correction
@@ -1200,14 +1200,14 @@ public class AiFeedbackLoop
                 FeedbackNote = "User correction"
             });
         }
-        
+
         await _db.SaveChangesAsync();
-        
+
         // Trigger retraining if enough new data
         var newExamples = await _db.AiTrainingData
             .Where(t => !t.IsUsedInTraining)
             .CountAsync();
-        
+
         if (newExamples > 100)
         {
             await _trainingService.RetrainModelsAsync();
@@ -1238,14 +1238,14 @@ public class AiDataPolicy
             ItemDescriptions = invoice.Items
                 .Select(i => MaskSensitiveData(i.Description))
                 .ToList(),
-            
+
             // ❌ DON'T Send: PII
             // ClientName = invoice.Client.CompanyName,
             // ClientEmail = invoice.Client.Email,
             // BankAccount = invoice.BankAccount.IBAN
         };
     }
-    
+
     private string MaskSensitiveData(string text)
     {
         // Mask emails, phone numbers, IBANs
@@ -1268,13 +1268,13 @@ public class AiGdprCompliance
         await _db.AiProcessingLogs
             .Where(l => l.CreatedBy == userId)
             .ExecuteDeleteAsync();
-        
+
         // Delete AI suggestions
         await _db.AiSuggestions
             .Where(s => s.CreatedBy == userId)
             .ExecuteDeleteAsync();
     }
-    
+
     // Data audit trail
     public async Task<List<AiDataUsage>> GetAiDataUsageForUserAsync(int userId)
     {
@@ -1320,21 +1320,21 @@ public class AiMetricsService
             TotalInvoicesProcessed = await CountInvoicesProcessedAsync(date),
             AutoApprovedCount = await CountAutoApprovedAsync(date),
             RequiredManualReview = await CountManualReviewAsync(date),
-            
+
             // Accuracy
             AverageConfidence = await GetAverageConfidenceAsync(date),
             AcceptanceRate = await GetAcceptanceRateAsync(date),
             ErrorRate = await GetErrorRateAsync(date),
-            
+
             // Performance
             AverageProcessingTime = await GetAvgProcessingTimeAsync(date),
             MedianProcessingTime = await GetMedianProcessingTimeAsync(date),
-            
+
             // Cost
             TotalApiCalls = await CountApiCallsAsync(date),
             TotalCost = await CalculateTotalCostAsync(date),
             CostPerInvoice = await GetCostPerInvoiceAsync(date),
-            
+
             // Business Impact
             TimeSaved = await CalculateTimeSavedAsync(date),
             MonetaryValueSaved = await CalculateMoneyValueAsync(date)
@@ -1380,7 +1380,7 @@ public class ResilientAiService
     private readonly IAiOcrService _primaryOcr;
     private readonly IFallbackOcrService _fallbackOcr;
     private readonly ILogger _logger;
-    
+
     public async Task<AiInvoiceData> ExtractWithFallbackAsync(Stream pdf)
     {
         try
@@ -1438,13 +1438,13 @@ public class AiEncodingDetector
         var bomResult = DetectBom(stream);
         if (bomResult.confidence > 0.99m)
             return bomResult;
-        
+
         // 2. Statistical analysis (character frequency)
         var stats = AnalyzeCharacterDistribution(stream);
-        
+
         // 3. ML model prediction based on patterns
         var mlResult = _mlModel.PredictEncoding(stats);
-        
+
         return (mlResult.encoding, mlResult.confidence);
     }
 }
@@ -1464,7 +1464,7 @@ public class AiColumnMapper
         List<string> sampleRows)
     {
         var mapping = new Dictionary<string, string>();
-        
+
         foreach (var header in csvHeaders)
         {
             // Try exact match first
@@ -1473,7 +1473,7 @@ public class AiColumnMapper
                 mapping[header] = KnownMappings[header];
                 continue;
             }
-            
+
             // Fuzzy match
             var fuzzyMatch = FuzzyMatch(header, TargetFields);
             if (fuzzyMatch.Score > 0.8)
@@ -1481,7 +1481,7 @@ public class AiColumnMapper
                 mapping[header] = fuzzyMatch.Field;
                 continue;
             }
-            
+
             // Content analysis (sample data)
             var contentMatch = AnalyzeContent(sampleRows, header);
             if (contentMatch.Confidence > 0.7)
@@ -1489,10 +1489,10 @@ public class AiColumnMapper
                 mapping[header] = contentMatch.Field;
             }
         }
-        
+
         return mapping;
     }
-    
+
     private ContentMatch AnalyzeContent(List<string> samples, string header)
     {
         // Example: если все значения - числа 6 цифр → ClientCode
@@ -1518,13 +1518,13 @@ public class AiDuplicateDetector
         var candidates = await _db.Clients
             .Where(c => !c.IsDeleted)
             .ToListAsync();
-        
+
         var duplicates = new List<DuplicateMatch>();
-        
+
         foreach (var existing in candidates)
         {
             var score = CalculateSimilarityScore(newClient, existing);
-            
+
             if (score > 0.8m)
             {
                 duplicates.Add(new DuplicateMatch
@@ -1535,10 +1535,10 @@ public class AiDuplicateDetector
                 });
             }
         }
-        
+
         return duplicates.OrderByDescending(d => d.SimilarityScore).ToList();
     }
-    
+
     private decimal CalculateSimilarityScore(Client a, Client b)
     {
         var weights = new Dictionary<string, decimal>
@@ -1548,19 +1548,19 @@ public class AiDuplicateDetector
             ["Address"] = 0.1m,        // Fuzzy address = 10%
             ["Email"] = 0.1m           // Email = 10%
         };
-        
+
         decimal score = 0;
-        
+
         // VAT exact match
         if (!string.IsNullOrEmpty(a.VatNumber) && a.VatNumber == b.VatNumber)
             score += weights["VatNumber"];
-        
+
         // Company name fuzzy match
         var nameScore = FuzzySharp.Fuzz.Ratio(a.CompanyName, b.CompanyName) / 100m;
         score += nameScore * weights["CompanyName"];
-        
+
         // etc...
-        
+
         return score;
     }
 }
@@ -1595,20 +1595,20 @@ public class AiEncodingService
         var bom = DetectBom(stream);
         if (bom.confidence > 0.99m)
             return bom;
-        
+
         // 2. Character frequency analysis
         stream.Position = 0;
         var sample = new byte[4096];
         await stream.ReadAsync(sample, 0, sample.Length);
-        
+
         // 3. ML prediction
         var features = ExtractEncodingFeatures(sample);
         var prediction = _mlModel.Predict(features);
-        
+
         // 4. Validation by parsing
         stream.Position = 0;
         var isValid = ValidateParsing(stream, prediction.Encoding);
-        
+
         return new EncodingDetectionResult
         {
             Encoding = prediction.Encoding,
@@ -1659,7 +1659,7 @@ public class AiEncodingService
 ### Problem 4: No Workflow Automation 🟡
 
 **Current:** Everything manual approval
-**AI Solution:** 
+**AI Solution:**
 - 80% auto-approve (< threshold + no anomalies)
 - 20% routed automatically to correct approver
 - 0% stuck in "who should approve this?" limbo
@@ -1727,7 +1727,7 @@ Shows 2 invoices:
 1. Invoice #1234 (€5,500)
    🚨 Anomaly: Amount 3x higher than usual
    Action: Review manually
-   
+
 2. Invoice #1235 (€2,100)
    ℹ️ New supplier (first invoice)
    Action: Verify supplier data
@@ -1743,17 +1743,17 @@ AI: "Done! Ready for BMD export"
 ```
 User: "Why is this Steuercode 19 and not 11?"
 
-AI: "This is Steuercode 19 (Reverse Charge für Dienstleistungen) 
+AI: "This is Steuercode 19 (Reverse Charge für Dienstleistungen)
      because:
-     
+
      ✅ Customer in EU (Germany)
      ✅ Valid UID provided
      ✅ This is a SERVICE (not goods) ← Key difference!
-     
+
      Steuercode 11 (IGL) applies only to GOODS.
-     
+
      For services, use Steuercode 19 (Reverse Charge).
-     
+
      [Show Examples] [Change to 11 anyway]"
 
 User: [clicks "Show Examples"]
@@ -1773,7 +1773,7 @@ AI: Shows 5 real examples from history with Steuercode 19
 ### 2. Voice Interface
 ```
 User: "Hey QIMy, show me all unpaid invoices from Germany"
-AI: [voice] "You have 7 unpaid invoices from Germany, 
+AI: [voice] "You have 7 unpaid invoices from Germany,
            total 12,450 EUR. Want me to send payment reminders?"
 User: "Yes, send them"
 AI: [voice] "Done! Reminders sent to all 7 clients."
@@ -1938,8 +1938,8 @@ QIMy имеет **отличный фундамент**, но **не испол�
 
 **END OF DOCUMENT**
 
-**Prepared by:** GitHub Copilot (Claude Sonnet 4.5)  
-**Date:** 26.01.2026  
-**Version:** 1.0 - Complete Autonomous Analysis  
+**Prepared by:** GitHub Copilot (Claude Sonnet 4.5)
+**Date:** 26.01.2026
+**Version:** 1.0 - Complete Autonomous Analysis
 **Status:** ✅ READY FOR REVIEW
 

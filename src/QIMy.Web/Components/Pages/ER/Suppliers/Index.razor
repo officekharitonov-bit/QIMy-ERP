@@ -109,7 +109,8 @@
                                     <a href="/er/suppliers/edit/@supplier.Id" class="btn btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <button class="btn btn-outline-danger" @onclick="async () => await DeleteSupplier(supplier)">
+                                    <button class="btn btn-outline-danger"
+                                        @onclick="async () => await DeleteSupplier(supplier)">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -151,9 +152,9 @@
             if (result.IsSuccess && result.Value != null)
             {
                 var bizId = BusinessCtx.CurrentBusinessId;
-                suppliers = bizId.HasValue 
-                    ? result.Value.Where(s => s.BusinessId == bizId.Value).ToList()
-                    : result.Value;
+                suppliers = bizId.HasValue
+                ? result.Value.Where(s => s.BusinessId == bizId.Value).ToList()
+                : result.Value;
             }
         }
         catch (Exception ex)

@@ -36,7 +36,7 @@ public class AustrianTaxLogicEngine
         }
 
         // Case 2: Innergemeinschaftliche Lieferung (IGL - Intra-EU Supply)
-        if (input.BuyerCountryInEU && input.BuyerCountry != "AT" && 
+        if (input.BuyerCountryInEU && input.BuyerCountry != "AT" &&
             input.IsGoodsSupply && !string.IsNullOrEmpty(input.BuyerUid))
         {
             return new TaxCaseResult
@@ -58,7 +58,7 @@ public class AustrianTaxLogicEngine
         }
 
         // Case 3: Reverse Charge (Services within EU / B2B)
-        if (input.BuyerCountryInEU && input.BuyerCountry != "AT" && 
+        if (input.BuyerCountryInEU && input.BuyerCountry != "AT" &&
             input.IsServiceSupply && !string.IsNullOrEmpty(input.BuyerUid))
         {
             return new TaxCaseResult
@@ -100,7 +100,7 @@ public class AustrianTaxLogicEngine
         }
 
         // Case 5: Dreiecksgeschäft (Triangular Transaction)
-        if (input.IsTriangularTransaction && 
+        if (input.IsTriangularTransaction &&
             input.BuyerCountryInEU && input.IntermediaryCountryInEU)
         {
             return new TaxCaseResult
@@ -207,28 +207,28 @@ public class TaxCaseInput
 {
     /// <summary>Seller is small business (Kleinunternehmer)</summary>
     public bool SellerIsSmallBusiness { get; set; }
-    
+
     /// <summary>Buyer country code (AT, DE, US, etc.)</summary>
     public string BuyerCountry { get; set; } = "AT";
-    
+
     /// <summary>Is buyer country in EU?</summary>
     public bool BuyerCountryInEU { get; set; }
-    
+
     /// <summary>Buyer VAT ID (UID)</summary>
     public string? BuyerUid { get; set; }
-    
+
     /// <summary>Is this a supply of goods (true) or services (false)?</summary>
     public bool IsGoodsSupply { get; set; } = true;
-    
+
     /// <summary>Is this a supply of services?</summary>
     public bool IsServiceSupply => !IsGoodsSupply;
-    
+
     /// <summary>Is this a triangular transaction (Dreiecksgeschäft)?</summary>
     public bool IsTriangularTransaction { get; set; }
-    
+
     /// <summary>Intermediary country in EU (for triangular)</summary>
     public bool IntermediaryCountryInEU { get; set; }
-    
+
     /// <summary>Use reduced VAT rate (10% instead of 20%)?</summary>
     public bool ReducedVatRate { get; set; }
 }
@@ -240,38 +240,38 @@ public class TaxCaseResult
 {
     /// <summary>Determined tax case</summary>
     public TaxCase TaxCase { get; set; }
-    
+
     /// <summary>Invoice type for QIMy system</summary>
     public InvoiceType InvoiceType { get; set; }
-    
+
     /// <summary>BMD Steuercode (налоговый код)</summary>
     public int Steuercode { get; set; }
-    
+
     /// <summary>Prozentsatz (процентная ставка)</summary>
     public decimal Proz { get; set; }
-    
+
     /// <summary>Erlöskonto (счет доходов)</summary>
     public int Konto { get; set; }
-    
+
     /// <summary>Required text for invoice (mandatory by law)</summary>
     public string InvoiceText { get; set; } = string.Empty;
-    
+
     /// <summary>VAT rate in percent</summary>
     public decimal VatRate { get; set; }
-    
+
     /// <summary>Required fields for this tax case</summary>
     public string[] RequiredFields { get; set; } = Array.Empty<string>();
-    
+
     /// <summary>Additional notes for bookkeeper/developer</summary>
     public string Notes { get; set; } = string.Empty;
-    
+
     /// <summary>Flags for Invoice entity</summary>
     public bool IsReverseCharge { get; set; }
     public bool IsTaxFree { get; set; }
     public bool IsSmallBusinessExemption { get; set; }
     public bool IsTaxFreeExport { get; set; }
     public bool IsIntraEUSale { get; set; }
-    
+
     /// <summary>Requires UID validation via VIES?</summary>
     public bool RequiresUidValidation { get; set; }
 }
@@ -283,19 +283,19 @@ public enum TaxCase
 {
     /// <summary>Standard domestic supply with 20% VAT</summary>
     Inland,
-    
+
     /// <summary>Export to non-EU countries (0% VAT)</summary>
     Export,
-    
+
     /// <summary>Intra-EU supply of goods (0% VAT, reverse charge)</summary>
     InnergemeinschaftlicheLieferung,
-    
+
     /// <summary>Reverse charge for services within EU (0% VAT)</summary>
     ReverseCharge,
-    
+
     /// <summary>Small business exemption (0% VAT)</summary>
     Kleinunternehmer,
-    
+
     /// <summary>Triangular transaction between 3 EU countries</summary>
     Dreiecksgeschaeft
 }

@@ -11,13 +11,13 @@ public static class DependencyInjection
         services.AddScoped<IAiEncodingDetectionService, AiEncodingDetectionService>();
         services.AddScoped<IAiColumnMappingService, AiColumnMappingService>();
         services.AddScoped<IAiDuplicateDetectionService, AiDuplicateDetectionService>();
-        
+
         // TODO: Add more AI services as they are implemented
         // services.AddScoped<IAiOcrService, AiOcrService>();
         // services.AddScoped<IAiClassificationService, AiClassificationService>();
         // services.AddScoped<IAiMatchingService, AiMatchingService>();
         // services.AddScoped<IAiApprovalRouter, AiApprovalRouter>();
-        
+
         return services;
     }
 }

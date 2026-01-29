@@ -14,8 +14,8 @@
 - **Memory system:** `INDEX_AI_MEMORY_SYSTEM.md` (today), earlier files remain intact (`AI_CONTEXT.md`, `AI_MEMORY_QUICK_START.md`, `HOWTO_START.md`, etc.).
 
 ## Warnings / Next Actions Before Commit
-1) Run git status & review all new files above (many are new; ensure correct namespaces, DI registration, routing, auth). 
-2) Validate migrations: check if `AddCommentToAccount` applied/needed; ensure model snapshot updated. 
+1) Run git status & review all new files above (many are new; ensure correct namespaces, DI registration, routing, auth).
+2) Validate migrations: check if `AddCommentToAccount` applied/needed; ensure model snapshot updated.
 3) Build & smoke test:
    - `dotnet build`
    - `dotnet run --project src/QIMy.Web/QIMy.Web.csproj`

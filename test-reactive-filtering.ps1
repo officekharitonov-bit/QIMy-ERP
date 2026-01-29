@@ -9,7 +9,8 @@ if (Test-Path $appsettingsPath) {
     $appsettings = Get-Content $appsettingsPath | ConvertFrom-Json
     $connString = $appsettings.ConnectionStrings.DefaultConnection
     Write-Host "✅ Connection string found" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "❌ appsettings.json not found" -ForegroundColor Red
     exit 1
 }
@@ -19,7 +20,8 @@ Write-Host "`n=== APPLICATION STATUS ===" -ForegroundColor Cyan
 $process = Get-Process -Name "QIMy.Web" -ErrorAction SilentlyContinue
 if ($process) {
     Write-Host "✅ Application is running (PID: $($process.Id))" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "⚠️  Application is not running" -ForegroundColor Yellow
     Write-Host "   Run: dotnet run --project src/QIMy.Web/QIMy.Web.csproj --urls `"http://localhost:5204`"" -ForegroundColor Gray
 }
@@ -29,7 +31,8 @@ Write-Host "`n=== WEB SERVER CHECK ===" -ForegroundColor Cyan
 try {
     $response = Invoke-WebRequest -Uri "http://localhost:5204" -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
     Write-Host "✅ Web server responding (Status: $($response.StatusCode))" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "❌ Web server not responding" -ForegroundColor Red
     Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor Gray
 }

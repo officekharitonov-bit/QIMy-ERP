@@ -1,6 +1,6 @@
 # Отчет о тестировании реактивной фильтрации
-**Дата:** 24.01.2026 12:44  
-**Тестировщик:** GitHub Copilot  
+**Дата:** 24.01.2026 12:44
+**Тестировщик:** GitHub Copilot
 **Статус:** ✅ **ГОТОВО К РУЧНОМУ ТЕСТИРОВАНИЮ**
 
 ---
@@ -47,7 +47,7 @@ private async Task LoadInvoices()
 {
     var all = (await InvoiceService.GetAllInvoicesAsync()).ToList();
     var bizId = BusinessCtx.CurrentBusinessId;
-    invoices = bizId.HasValue 
+    invoices = bizId.HasValue
         ? all.Where(i => i.BusinessId == bizId.Value).ToList()  // Фильтрация
         : all;
 }
@@ -71,7 +71,7 @@ private async Task LoadQuotes()
 {
     var all = (await QuoteService.GetAllQuotesAsync()).ToList();
     var bizId = BusinessCtx.CurrentBusinessId;
-    quotes = bizId.HasValue 
+    quotes = bizId.HasValue
         ? all.Where(q => q.BusinessId == bizId.Value).ToList()  // Фильтрация
         : all;
 }
@@ -166,5 +166,5 @@ private async Task LoadQuotes()
 
 ---
 
-**Дата:** 24.01.2026 12:44  
+**Дата:** 24.01.2026 12:44
 **Готово к передаче пользователю для ручного тестирования** ✅

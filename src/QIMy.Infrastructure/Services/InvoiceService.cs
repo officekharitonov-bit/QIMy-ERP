@@ -27,6 +27,7 @@ public class InvoiceService : IInvoiceService
     public async Task<Invoice?> GetInvoiceByIdAsync(int id)
     {
         return await _context.Invoices
+            .AsNoTracking()
             .Include(i => i.Client)
             .Include(i => i.Items)
                 .ThenInclude(ii => ii.Product)
@@ -56,7 +57,8 @@ public class InvoiceService : IInvoiceService
         if (invoice.CurrencyId == 0)
         {
             var defaultCurrencyId = await _context.Currencies
-                .Where(c => c.IsDefault)
+                .IgnoreQueryFilters()
+                .Where(c => c.IsDefault && !c.IsDeleted)
                 .Select(c => c.Id)
                 .FirstOrDefaultAsync();
 
@@ -64,6 +66,8 @@ public class InvoiceService : IInvoiceService
             {
                 // Fallback to the first available currency
                 defaultCurrencyId = await _context.Currencies
+                    .IgnoreQueryFilters()
+                    .Where(c => !c.IsDeleted)
                     .Select(c => c.Id)
                     .FirstOrDefaultAsync();
             }
@@ -77,14 +81,32 @@ public class InvoiceService : IInvoiceService
             invoice.CurrencyId = defaultCurrencyId;
         }
 
-        // Derive TaxAmount if not explicitly set
+        // Ensure all items have proper audit fields
         if (invoice.Items != null && invoice.Items.Count > 0)
         {
+            foreach (var item in invoice.Items)
+            {
+                item.CreatedAt = DateTime.UtcNow;
+                item.UpdatedAt = DateTime.UtcNow;
+                item.IsDeleted = false;
+            }
+            
             invoice.TaxAmount = invoice.Items.Sum(ii => ii.TaxAmount);
         }
 
         _context.Invoices.Add(invoice);
         await _context.SaveChangesAsync();
+        
+        // Detach the invoice from context to prevent tracking conflicts
+        _context.Entry(invoice).State = EntityState.Detached;
+        if (invoice.Items != null)
+        {
+            foreach (var item in invoice.Items)
+            {
+                _context.Entry(item).State = EntityState.Detached;
+            }
+        }
+        
         return invoice;
     }
 

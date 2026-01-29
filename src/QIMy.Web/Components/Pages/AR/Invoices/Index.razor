@@ -3,8 +3,12 @@
 @using QIMy.Core.Interfaces
 @using QIMy.Infrastructure.Services
 @using QIMy.Web.Services
+@using Microsoft.AspNetCore.Components.Forms
 @inject IInvoiceService InvoiceService
 @inject PdfInvoiceGeneratorService PdfGenerator
+@inject FinalReportService FinalReportService
+@inject BmdInvoiceImportService BmdImportService
+@inject UniversalInvoiceImportService UniversalImportService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject BusinessContext BusinessCtx
@@ -17,11 +21,35 @@
         <div class="col">
             <h3>
                 <i class="bi bi-file-text-fill"></i> Ausgangsrechnungen
-                <span class="badge bg-secondary">@invoices.Count</span>
+                <span class="badge bg-secondary">@filteredInvoices.Count</span>
+                @if (filteredInvoices.Count != allInvoices.Count)
+                {
+                    <small class="text-muted">из @allInvoices.Count</small>
+                }
             </h3>
         </div>
         <div class="col-auto">
-            <a href="/ar/invoices/create" class="btn btn-primary">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-download"></i> Экспорт
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button class="dropdown-item" @onclick="ExportAllToCSV">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Экспорт в BMD CSV
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" @onclick="ShowExportDialog">
+                            <i class="bi bi-calendar-range"></i> Экспорт за период
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <button type="button" class="btn btn-outline-primary ms-2" @onclick="ShowImportDialog">
+                <i class="bi bi-upload"></i> Импорт BMD CSV
+            </button>
+            <a href="/ar/invoices/create" class="btn btn-primary ms-2">
                 <i class="bi bi-plus-circle"></i> Новый счёт
             </a>
         </div>
@@ -35,7 +63,7 @@
             </div>
         </div>
     }
-    else if (!invoices.Any())
+    else if (!allInvoices.Any())
     {
         <div class="alert alert-info">
             <i class="bi bi-info-circle"></i> Счета не найдены. Создайте первый счёт!
@@ -43,7 +71,57 @@
     }
     else
     {
-        <div class="table-responsive">
+        <!-- Панель поиска и фильтрации -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Поиск</label>
+                        <input type="text" class="form-control" placeholder="Номер, клиент..." 
+                               @bind="searchQuery" @bind:event="oninput" @onkeyup="ApplyFilters" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Дата от</label>
+                        <input type="date" class="form-control" @bind="filterDateFrom" @bind:after="ApplyFilters" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Дата до</label>
+                        <input type="date" class="form-control" @bind="filterDateTo" @bind:after="ApplyFilters" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Статус</label>
+                        <select class="form-select" @bind="filterStatus" @bind:after="ApplyFilters">
+                            <option value="">Все</option>
+                            <option value="Draft">Черновик</option>
+                            <option value="Sent">Отправлен</option>
+                            <option value="Paid">Оплачен</option>
+                            <option value="Cancelled">Отменён</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Сумма от</label>
+                        <input type="number" class="form-control" placeholder="0.00" step="0.01" 
+                               @bind="filterAmountFrom" @bind:event="oninput" @onkeyup="ApplyFilters" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                @if (filteredInvoices.Count != allInvoices.Count)
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Показано: @filteredInvoices.Count из @allInvoices.Count
+                        </small>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="table-responsive" style="overflow: visible;">
             <table class="table table-hover">
                 <thead>
                     <tr>
@@ -57,7 +135,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var invoice in invoices.Take(50))
+                    @foreach (var invoice in filteredInvoices.Take(100))
                     {
                         <tr>
                             <td><strong>@invoice.InvoiceNumber</strong></td>
@@ -92,11 +170,11 @@
                                 <strong>@invoice.TotalAmount.ToString("N2") €</strong>
                             </td>
                             <td>
-                                <div class="btn-group">
+                                <div class="btn-group" style="position: relative;">
                                     <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                         Actions
                                     </button>
-                                    <ul class="dropdown-menu">
+                                    <ul class="dropdown-menu dropdown-menu-end" style="position: absolute; z-index: 1050;">
                                         <li>
                                             <a class="dropdown-item" href="/ar/invoices/edit/@invoice.Id">
                                                 <i class="bi bi-eye"></i> Show
@@ -155,17 +233,319 @@
             </div>
         }
     }
+    
+    @* Export Dialog *@
+    @if (showExportDialog)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-calendar-range"></i> Экспорт счетов за период
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="CloseExportDialog"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">От даты:</label>
+                            <input type="date" class="form-control" @bind="exportFromDate" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">До даты:</label>
+                            <input type="date" class="form-control" @bind="exportToDate" />
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Будет создан CSV файл в формате BMD NTCS (29 полей) для импорта в бухгалтерскую систему.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseExportDialog">
+                            Отмена
+                        </button>
+                        <button type="button" class="btn btn-success" @onclick="ExportPeriodToCSV">
+                            <i class="bi bi-download"></i> Экспортировать
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    
+    @* Import Dialog *@
+    @if (showImportDialog)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-upload"></i> 
+                            @if (importStep == BmdImportStep.FileSelection)
+                            {
+                                <text>Шаг 1: Выбор файла</text>
+                            }
+                            else if (importStep == BmdImportStep.Preview)
+                            {
+                                <text>Шаг 2: Предпросмотр данных</text>
+                            }
+                            else
+                            {
+                                <text>Шаг 3: Результаты импорта</text>
+                            }
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="CloseImportDialog"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (importStep == BmdImportStep.FileSelection)
+                        {
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Выберите CSV файл (автоопределение формата):</label>
+                                        <InputFile OnChange="OnFileSelected" accept=".csv" class="form-control" />
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrEmpty(selectedFileName))
+                                    {
+                                        <div class="alert alert-success">
+                                            <i class="bi bi-file-earmark-check me-2"></i>
+                                            Выбран файл: <strong>@selectedFileName</strong>
+                                        </div>
+                                    }
+                                    
+                                    @if (!string.IsNullOrEmpty(importError))
+                                    {
+                                        <div class="alert alert-danger">
+                                            <i class="bi bi-exclamation-triangle me-2"></i>@importError
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Поддерживаемые форматы</h6>
+                                            <ul class="small mb-0">
+                                                <li><strong>BMD NTCS</strong> - Austrian accounting</li>
+                                                <li><strong>SevDesk</strong> - German invoicing</li>
+                                                <li><strong>Generic CSV</strong> - любой CSV</li>
+                                                <li class="mt-2">✓ Автоопределение по заголовкам</li>
+                                                <li>✓ Разные форматы дат/чисел</li>
+                                                <li>✓ Авто-создание клиентов</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (importStep == BmdImportStep.Preview)
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Обнаружено строк:</strong> @previewLines.Count
+                                <span class="ms-3"><strong>Кодировка:</strong> @detectedEncoding</span>
+                            </div>
+                            
+                            @if (previewLines.Any())
+                            {
+                                <div class="mb-3">
+                                    <h6>Первые 10 строк:</h6>
+                                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th style="width: 50px;">#</th>
+                                                    <th>Konto</th>
+                                                    <th>Belegnr</th>
+                                                    <th>Datum</th>
+                                                    <th>Betrag</th>
+                                                    <th>Steuer</th>
+                                                    <th>Text</th>
+                                                    <th>UIDNr</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var (line, index) in previewLines.Take(10).Select((l, i) => (l, i)))
+                                                {
+                                                    var parts = line.Split(';');
+                                                    <tr>
+                                                        <td>@(index + 1)</td>
+                                                        <td>@(parts.Length > 1 ? parts[1] : "-")</td>
+                                                        <td>@(parts.Length > 5 ? parts[5] : "-")</td>
+                                                        <td>@(parts.Length > 4 ? parts[4] : "-")</td>
+                                                        <td>@(parts.Length > 6 ? parts[6] : "-")</td>
+                                                        <td>@(parts.Length > 7 ? parts[7] : "-")</td>
+                                                        <td>@(parts.Length > 8 && parts[8].Length > 0 ? parts[8].Substring(0, Math.Min(30, parts[8].Length)) : "-")</td>
+                                                        <td>@(parts.Length > 27 ? parts[27] : "-")</td>
+                                                        <td><span class="badge bg-secondary">Новый</span></td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-circle me-2"></i>
+                                    <strong>Внимание:</strong> Для несуществующих клиентов будут созданы placeholder-записи с именем "Imported Client {код}".
+                                    После импорта проверьте и обновите информацию о клиентах.
+                                </div>
+                            }
+                        }
+                        else if (importStep == BmdImportStep.Completed)
+                        {
+                            @if (importInProgress)
+                            {
+                                <div class="text-center my-4">
+                                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                        <span class="visually-hidden">Импорт в процессе...</span>
+                                    </div>
+                                    <p class="mt-3">Импорт в процессе...</p>
+                                </div>
+                            }
+                            else if (importResult != null)
+                            {
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h2>@importResult.SuccessCount</h2>
+                                                <p class="mb-0">✅ Успешно импортировано</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-danger text-white">
+                                            <div class="card-body text-center">
+                                                <h2>@importResult.ErrorCount</h2>
+                                                <p class="mb-0">❌ Ошибок</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                @if (importResult.Errors.Any())
+                                {
+                                    <div class="alert alert-danger">
+                                        <h6>Детали ошибок:</h6>
+                                        <div style="max-height: 300px; overflow-y: auto;">
+                                            <ul class="small mb-0">
+                                                @foreach (var error in importResult.Errors.Take(20))
+                                                {
+                                                    <li>@error</li>
+                                                }
+                                                @if (importResult.Errors.Count > 20)
+                                                {
+                                                    <li><em>... и ещё @(importResult.Errors.Count - 20) ошибок</em></li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        Все счета успешно импортированы!
+                                    </div>
+                                }
+                            }
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        @if (importStep == BmdImportStep.FileSelection)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="CloseImportDialog">Отмена</button>
+                            <button type="button" class="btn btn-primary" @onclick="PreviewFile" 
+                                    disabled="@(selectedFile == null || importInProgress)">
+                                <i class="bi bi-eye me-2"></i>Предпросмотр
+                            </button>
+                        }
+                        else if (importStep == BmdImportStep.Preview)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="BackToFileSelection">
+                                <i class="bi bi-arrow-left me-2"></i>Назад
+                            </button>
+                            <button type="button" class="btn btn-primary" @onclick="ImportFromCSV" 
+                                    disabled="@(importInProgress)">
+                                @if (importInProgress)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-upload me-2"></i>
+                                }
+                                Импортировать
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="CloseImportDialog">Закрыть</button>
+                            @if (importResult != null && importResult.SuccessCount > 0)
+                            {
+                                <button type="button" class="btn btn-primary" @onclick="BackToFileSelection">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Импортировать ещё
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
+    private enum BmdImportStep
+    {
+        FileSelection,
+        Preview,
+        Completed
+    }
+
     private List<Invoice> invoices = new();
+    private List<Invoice> allInvoices = new();
+    private List<Invoice> filteredInvoices = new();
     private bool isLoading = true;
+    private bool showExportDialog = false;
+    private bool showImportDialog = false;
+    private DateTime exportFromDate = DateTime.Now.AddMonths(-1);
+    private DateTime exportToDate = DateTime.Now;
+    private BmdImportStep importStep = BmdImportStep.FileSelection;
+    private List<string> previewLines = new();
+    private string detectedEncoding = "";
+    private string importError = "";
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private byte[]? fileBytes; // Store file bytes in memory
+    private bool importInProgress = false;
+    private BmdImportResult? importResult;
+
+    // Filter fields
+    private string searchQuery = "";
+    private DateTime? filterDateFrom = null;
+    private DateTime? filterDateTo = null;
+    private string filterStatus = "";
+    private decimal? filterAmountFrom = null;
 
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        BusinessCtx.Changed += async () => 
+        BusinessCtx.Changed += async () =>
         {
+            // Reset import dialog state when business changes
+            showImportDialog = false;
+            showExportDialog = false;
+            importStep = BmdImportStep.FileSelection;
+            selectedFile = null;
+            selectedFileName = null;
+            fileBytes = null;
+            importResult = null;
+            importError = "";
+            previewLines.Clear();
+            
             await LoadInvoices();
             StateHasChanged();
         };
@@ -179,14 +559,68 @@
         {
             var all = (await InvoiceService.GetAllInvoicesAsync()).ToList();
             var bizId = BusinessCtx.CurrentBusinessId;
-            invoices = bizId.HasValue 
-                ? all.Where(i => i.BusinessId == bizId.Value).ToList() 
+            allInvoices = bizId.HasValue
+                ? all.Where(i => i.BusinessId == bizId.Value).ToList()
                 : all;
+            invoices = allInvoices; // Keep for backward compatibility
+            ApplyFilters();
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private void ApplyFilters()
+    {
+        var query = allInvoices.AsEnumerable();
+
+        // Search by invoice number or client name
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var search = searchQuery.ToLower();
+            query = query.Where(i => 
+                i.InvoiceNumber.ToLower().Contains(search) ||
+                (i.Client != null && i.Client.CompanyName != null && i.Client.CompanyName.ToLower().Contains(search))
+            );
+        }
+
+        // Filter by date from
+        if (filterDateFrom.HasValue)
+        {
+            query = query.Where(i => i.InvoiceDate >= filterDateFrom.Value);
+        }
+
+        // Filter by date to
+        if (filterDateTo.HasValue)
+        {
+            query = query.Where(i => i.InvoiceDate <= filterDateTo.Value);
+        }
+
+        // Filter by status
+        if (!string.IsNullOrWhiteSpace(filterStatus) && Enum.TryParse<InvoiceStatus>(filterStatus, out var status))
+        {
+            query = query.Where(i => i.Status == status);
+        }
+
+        // Filter by amount from
+        if (filterAmountFrom.HasValue)
+        {
+            query = query.Where(i => i.TotalAmount >= filterAmountFrom.Value);
+        }
+
+        filteredInvoices = query.OrderByDescending(i => i.InvoiceDate).ToList();
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = "";
+        filterDateFrom = null;
+        filterDateTo = null;
+        filterStatus = "";
+        filterAmountFrom = null;
+        ApplyFilters();
     }
 
     private async Task OpenPdf(Invoice invoice)
@@ -214,8 +648,15 @@
             if (fullInvoice == null) return;
 
             var pdfBytes = PdfGenerator.GeneratePdf(fullInvoice);
-            var fileName = $"Invoice_{invoice.InvoiceNumber.Replace("/", "-")}.pdf";
             
+            // BMD naming convention: INVOICE {Type}{Number} {ClientName} {VatNumber}.pdf
+            var invoiceType = GetInvoiceTypeSymbol(fullInvoice);
+            var clientName = SanitizeFileName(fullInvoice.Client?.CompanyName ?? "Unknown");
+            var vatNumber = fullInvoice.Client?.VatNumber ?? "";
+            var invoiceNumber = fullInvoice.InvoiceNumber?.Replace(invoiceType, "") ?? "UNKNOWN";
+            
+            var fileName = $"INVOICE {invoiceType}{invoiceNumber} {clientName} {vatNumber}.pdf";
+
             await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", Convert.ToBase64String(pdfBytes));
         }
         catch (Exception ex)
@@ -249,12 +690,12 @@
 
             var csv = new System.Text.StringBuilder();
             csv.AppendLine("Description,Quantity,Unit Price,Tax Amount,Total");
-            
+
             foreach (var item in fullInvoice.Items)
             {
                 csv.AppendLine($"\"{item.Description}\",{item.Quantity},{item.UnitPrice},{item.TaxAmount},{item.TotalAmount}");
             }
-            
+
             var fileName = $"Invoice_{invoice.InvoiceNumber.Replace("/", "-")}.csv";
             await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv.ToString())));
         }
@@ -271,17 +712,35 @@
             var fullInvoice = await InvoiceService.GetInvoiceByIdAsync(invoice.Id);
             if (fullInvoice == null) return;
 
+            // Generate new invoice number by incrementing the original number
+            string newInvoiceNumber = GenerateNextInvoiceNumber(fullInvoice.InvoiceNumber);
+            
+            // Ensure uniqueness
+            var allInvoiceNumbers = (await InvoiceService.GetAllInvoicesAsync())
+                .Select(i => i.InvoiceNumber)
+                .ToHashSet();
+            
+            while (allInvoiceNumbers.Contains(newInvoiceNumber))
+            {
+                newInvoiceNumber = GenerateNextInvoiceNumber(newInvoiceNumber);
+            }
+
             // Create a copy with new invoice number
             var copy = new Invoice
             {
+                BusinessId = fullInvoice.BusinessId,
                 ClientId = fullInvoice.ClientId,
+                CurrencyId = fullInvoice.CurrencyId,
                 InvoiceDate = DateTime.Now,
                 DueDate = DateTime.Now.AddDays(30),
                 Status = InvoiceStatus.Draft,
-                InvoiceNumber = $"INV-{DateTime.Now:yyyyMMdd-HHmmss}-{new Random().Next(100, 999)}",
+                InvoiceNumber = newInvoiceNumber,
                 Notes = fullInvoice.Notes,
+                TotalAmount = fullInvoice.TotalAmount,
+                TaxAmount = fullInvoice.TaxAmount,
                 Items = fullInvoice.Items.Select(i => new InvoiceItem
                 {
+                    ProductId = i.ProductId,
                     Description = i.Description,
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
@@ -291,13 +750,36 @@
                 }).ToList()
             };
 
-            var newId = await InvoiceService.CreateInvoiceAsync(copy);
-            Navigation.NavigateTo($"/ar/invoices/edit/{newId}");
+            var newInvoice = await InvoiceService.CreateInvoiceAsync(copy);
+            Navigation.NavigateTo($"/ar/invoices/edit/{newInvoice.Id}", forceLoad: true);
         }
         catch (Exception ex)
         {
             await JS.InvokeVoidAsync("alert", $"Error copying invoice: {ex.Message}");
         }
+    }
+
+    private string GenerateNextInvoiceNumber(string currentNumber)
+    {
+        // Try to extract the last group of digits from the invoice number
+        var match = System.Text.RegularExpressions.Regex.Match(currentNumber, @"(\d+)(?!.*\d)");
+        
+        if (match.Success)
+        {
+            var numberStr = match.Groups[1].Value;
+            var number = int.Parse(numberStr);
+            var nextNumber = number + 1;
+            
+            // Preserve leading zeros
+            var paddedNumber = nextNumber.ToString().PadLeft(numberStr.Length, '0');
+            
+            // Replace the number in the original string
+            return currentNumber.Substring(0, match.Index) + paddedNumber + 
+                   currentNumber.Substring(match.Index + numberStr.Length);
+        }
+        
+        // Fallback: if no number found, append "-1"
+        return currentNumber + "-1";
     }
 
     private async Task DeleteInvoice(Invoice invoice)
@@ -307,5 +789,311 @@
             await InvoiceService.DeleteInvoiceAsync(invoice.Id);
             await LoadInvoices();
         }
+    }
+    
+    /// <summary>
+    /// Export all invoices to BMD CSV format
+    /// </summary>
+    private async Task ExportAllToCSV()
+    {
+        try
+        {
+            var businessId = BusinessCtx.CurrentBusinessId;
+            if (!businessId.HasValue)
+            {
+                await JS.InvokeVoidAsync("alert", "Пожалуйста, выберите бизнес");
+                return;
+            }
+
+            // Export from the earliest invoice to now
+            var fromDate = invoices.Any() ? invoices.Min(i => i.InvoiceDate) : DateTime.Now.AddMonths(-1);
+            var toDate = DateTime.Now;
+
+            var csv = await FinalReportService.GenerateFinalReportCsvAsync(businessId.Value, fromDate, toDate);
+            var fileName = $"FinalReport_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            
+            // Convert to bytes for download
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            var base64 = Convert.ToBase64String(bytes);
+            
+            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка экспорта: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Show import dialog
+    /// </summary>
+    private void ShowImportDialog()
+    {
+        showImportDialog = true;
+        importStep = BmdImportStep.FileSelection;
+        selectedFile = null;
+        selectedFileName = null;
+        fileBytes = null;
+        importResult = null;
+        importError = "";
+        previewLines.Clear();
+    }
+    
+    /// <summary>
+    /// Close import dialog
+    /// </summary>
+    private void CloseImportDialog()
+    {
+        showImportDialog = false;
+        importStep = BmdImportStep.FileSelection;
+        selectedFile = null;
+        selectedFileName = null;
+        fileBytes = null;
+        importResult = null;
+        importError = "";
+        previewLines.Clear();
+    }
+    
+    /// <summary>
+    /// Back to file selection
+    /// </summary>
+    private void BackToFileSelection()
+    {
+        importStep = BmdImportStep.FileSelection;
+        selectedFile = null;
+        selectedFileName = null;
+        fileBytes = null;
+        importResult = null;
+        importError = "";
+    }
+    
+    /// <summary>
+    /// Handle file selection
+    /// </summary>
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        importResult = null;
+        importError = "";
+        StateHasChanged();
+    }
+    
+    /// <summary>
+    /// Preview file content
+    /// </summary>
+    private async Task PreviewFile()
+    {
+        if (selectedFile == null) return;
+        
+        if (!BusinessCtx.CurrentBusinessId.HasValue)
+        {
+            importError = "Сначала выберите бизнес";
+            return;
+        }
+        
+        try
+        {
+            importError = "";
+            
+            // Copy file to memory - store bytes for later use
+            using var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream);
+            fileBytes = memoryStream.ToArray(); // Store file bytes
+            
+            // Reset for reading
+            memoryStream.Position = 0;
+            
+            // Detect encoding
+            var encoding = DetectEncoding(memoryStream);
+            detectedEncoding = encoding.EncodingName;
+            memoryStream.Position = 0;
+            
+            // Read lines
+            using var reader = new StreamReader(memoryStream, encoding);
+            previewLines.Clear();
+            
+            string? line;
+            var lineCount = 0;
+            while ((line = await reader.ReadLineAsync()) != null && lineCount < 11) // Header + 10 lines
+            {
+                if (lineCount > 0) // Skip header
+                {
+                    previewLines.Add(line);
+                }
+                lineCount++;
+            }
+            
+            if (!previewLines.Any())
+            {
+                importError = "Файл пустой или содержит только заголовок";
+                return;
+            }
+            
+            importStep = BmdImportStep.Preview;
+        }
+        catch (Exception ex)
+        {
+            importError = $"Ошибка чтения файла: {ex.Message}";
+        }
+    }
+    
+    /// <summary>
+    /// Detect file encoding
+    /// </summary>
+    private System.Text.Encoding DetectEncoding(Stream stream)
+    {
+        var bom = new byte[4];
+        var bytesRead = stream.Read(bom, 0, 4);
+        stream.Position = 0;
+        
+        // Check for UTF-8 BOM
+        if (bytesRead >= 3 && bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+        {
+            return System.Text.Encoding.UTF8;
+        }
+        
+        // Check for UTF-16 LE BOM
+        if (bytesRead >= 2 && bom[0] == 0xFF && bom[1] == 0xFE)
+        {
+            return System.Text.Encoding.Unicode;
+        }
+        
+        // Check for UTF-16 BE BOM
+        if (bytesRead >= 2 && bom[0] == 0xFE && bom[1] == 0xFF)
+        {
+            return System.Text.Encoding.BigEndianUnicode;
+        }
+        
+        // Default to Windows-1252 for BMD
+        return System.Text.Encoding.GetEncoding("windows-1252");
+    }
+    
+    /// <summary>
+    /// Import invoices from CSV file
+    /// </summary>
+    private async Task ImportFromCSV()
+    {
+        if (fileBytes == null || fileBytes.Length == 0)
+        {
+            importError = "Файл не загружен. Пожалуйста, выберите файл заново.";
+            return;
+        }
+
+        var businessId = BusinessCtx.CurrentBusinessId;
+        if (!businessId.HasValue)
+        {
+            importError = "Пожалуйста, выберите бизнес";
+            return;
+        }
+
+        try
+        {
+            importInProgress = true;
+            importStep = BmdImportStep.Completed;
+            StateHasChanged();
+
+            // Use stored file bytes instead of trying to read from file again
+            using var memoryStream = new MemoryStream(fileBytes);
+            
+            // Import from CSV using universal importer
+            importResult = await UniversalImportService.ImportFromCsvAsync(memoryStream, businessId.Value);
+            
+            // Save imported invoices
+            if (importResult.ParsedInvoices.Any())
+            {
+                await UniversalImportService.SaveImportedInvoicesAsync(importResult.ParsedInvoices);
+                await LoadInvoices(); // Refresh the list
+            }
+        }
+        catch (Exception ex)
+        {
+            importError = $"Ошибка импорта: {ex.Message}";
+            importResult = new BmdImportResult
+            {
+                ErrorCount = 1,
+                Errors = new List<string> { ex.Message }
+            };
+        }
+        finally
+        {
+            importInProgress = false;
+            StateHasChanged();
+        }
+    }
+    
+    /// <summary>
+    /// Show export dialog for period selection
+    /// </summary>
+    private void ShowExportDialog()
+    {
+        showExportDialog = true;
+    }
+    
+    /// <summary>
+    /// Close export dialog
+    /// </summary>
+    private void CloseExportDialog()
+    {
+        showExportDialog = false;
+    }
+    
+    /// <summary>
+    /// Export invoices for selected period
+    /// </summary>
+    private async Task ExportPeriodToCSV()
+    {
+        try
+        {
+            var businessId = BusinessCtx.CurrentBusinessId;
+            if (!businessId.HasValue)
+            {
+                await JS.InvokeVoidAsync("alert", "Пожалуйста, выберите бизнес");
+                return;
+            }
+
+            var csv = await FinalReportService.GenerateFinalReportCsvAsync(businessId.Value, exportFromDate, exportToDate);
+            var fileName = $"FinalReport_{exportFromDate:yyyy-MM-dd}_to_{exportToDate:yyyy-MM-dd}.csv";
+            
+            // Convert to bytes for download
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            var base64 = Convert.ToBase64String(bytes);
+            
+            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
+            
+            showExportDialog = false;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ошибка экспорта: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Get invoice type symbol (AR, ER, etc.)
+    /// </summary>
+    private string GetInvoiceTypeSymbol(Invoice invoice)
+    {
+        // Extract type prefix from invoice number if it exists (e.g., "AR2026010001" -> "AR")
+        if (!string.IsNullOrEmpty(invoice.InvoiceNumber) && invoice.InvoiceNumber.Length > 2)
+        {
+            var prefix = new string(invoice.InvoiceNumber.TakeWhile(char.IsLetter).ToArray());
+            if (!string.IsNullOrEmpty(prefix))
+                return prefix;
+        }
+        
+        // Default to AR (Ausgangsrechnung)
+        return "AR";
+    }
+    
+    /// <summary>
+    /// Sanitize filename by removing invalid characters
+    /// </summary>
+    private string SanitizeFileName(string fileName)
+    {
+        var invalid = System.IO.Path.GetInvalidFileNameChars();
+        var sanitized = string.Join("", fileName.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
+        return sanitized.Trim();
     }
 }

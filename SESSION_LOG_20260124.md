@@ -121,25 +121,25 @@ dotnet run --project src/QIMy.Web/QIMy.Web.csproj
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         // Подписка с async lambda для поддержки await
-        BusinessCtx.Changed += async () => 
+        BusinessCtx.Changed += async () =>
         {
             await LoadData();  // Перезагрузить данные
             StateHasChanged(); // Обновить UI
         };
-        
+
         await LoadData();
     }
-    
+
     private async Task LoadData()
     {
         var bizId = BusinessCtx.CurrentBusinessId;
         var all = await Service.GetAllAsync();
-        
+
         // Фильтровать по бизнесу
-        items = bizId.HasValue 
-            ? all.Where(x => x.BusinessId == bizId).ToList() 
+        items = bizId.HasValue
+            ? all.Where(x => x.BusinessId == bizId).ToList()
             : all;
     }
 }
@@ -168,6 +168,6 @@ dotnet run --project src/QIMy.Web/QIMy.Web.csproj
 
 ---
 
-**Время сессии:** ~1 час  
-**Статус:** Готово к тестированию реактивной фильтрации  
+**Время сессии:** ~1 час
+**Статус:** Готово к тестированию реактивной фильтрации
 **Блокеров:** Нет

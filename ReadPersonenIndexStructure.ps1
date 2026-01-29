@@ -7,7 +7,7 @@ $excel.DisplayAlerts = $false
 
 try {
     $wb = $excel.Workbooks.Open($excelPath)
-    
+
     # EU-RATE sheet (Sheet 2)
     Write-Host "=== EU-RATE SHEET (Sheet 2) ===" -ForegroundColor Cyan
     $ws = $wb.Worksheets.Item(2)
@@ -16,7 +16,7 @@ try {
         $header = $ws.Cells.Item(1, $i).Text
         Write-Host "  Col $i - $header"
     }
-    
+
     Write-Host ""
     Write-Host "Sample rows (2-5):"
     for ($row = 2; $row -le 5; $row++) {
@@ -27,7 +27,7 @@ try {
         }
         Write-Host "  Row $row - $line"
     }
-    
+
     # Länder sheet (Sheet 6)
     Write-Host ""
     Write-Host ""
@@ -41,7 +41,7 @@ try {
             Write-Host "  Col $i - $header"
         }
     }
-    
+
     Write-Host ""
     Write-Host "Sample rows (2-5):"
     for ($row = 2; $row -le 5; $row++) {
@@ -56,7 +56,7 @@ try {
             Write-Host "  Row $row - $line"
         }
     }
-    
+
     $wb.Close($false)
 }
 finally {

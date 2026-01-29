@@ -20,13 +20,13 @@ public record ClientDto
     public string? PostalCode { get; init; }
     public string? Country { get; init; }
     public string? TaxNumber { get; init; }
-    
+
     // Bank account
     public string? IBAN { get; init; }
     public string? BIC { get; init; }
     public string? BankName { get; init; }
     public string? BankAccountNumber { get; init; }
-    
+
     // Payment terms
     public int PaymentTermsDays { get; init; }
     public decimal? CreditLimit { get; init; }
@@ -34,13 +34,13 @@ public record ClientDto
     public string? DefaultPaymentMethodName { get; init; }
     public int? CurrencyId { get; init; }
     public string? CurrencyCode { get; init; }
-    
+
     // References
     public int? ClientTypeId { get; init; }
     public string? ClientTypeName { get; init; }
     public int? ClientAreaId { get; init; }
     public string? ClientAreaName { get; init; }
-    
+
     // Additional
     public string? Notes { get; init; }
     public string? CustomField01 { get; init; }

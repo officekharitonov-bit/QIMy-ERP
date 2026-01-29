@@ -1,7 +1,7 @@
 # 📋 Отчет: Реализация архитектуры Personen Index ER/AR
 
-**Дата:** 24 января 2026  
-**Статус:** ✅ **ЗАВЕРШЕНО И ПРОТЕСТИРОВАНО**  
+**Дата:** 24 января 2026
+**Статус:** ✅ **ЗАВЕРШЕНО И ПРОТЕСТИРОВАНО**
 **Версия системы:** 1.0
 
 ---
@@ -96,7 +96,7 @@ Invoice    (AR)      (Налоги)
 
 3. **src/QIMy.Infrastructure/Data/ApplicationDbContext.cs**
    ```csharp
-   + public DbSet<PersonenIndexEntry> PersonenIndexEntries 
+   + public DbSet<PersonenIndexEntry> PersonenIndexEntries
      => Set<PersonenIndexEntry>();
    ```
 
@@ -188,13 +188,13 @@ public int? SuggestedIncomeAccountId { get; set; }   // Для AR (4001)
 ### ✅ 5. Классификация контрагентов
 
 ```csharp
-public enum ContractorType { 
+public enum ContractorType {
     Customer = 1,    // Только AR (код 2xxxxx)
     Supplier = 2,    // Только ER (код 3xxxxx)
     Both = 3         // AR + ER (код 4xxxxx)
 }
 
-public enum ContractorStatus { 
+public enum ContractorStatus {
     Active = 1,      // Активный
     Inactive = 2,    // Неактивный
     Pending = 3,     // На проверке
@@ -235,36 +235,36 @@ Migration успешно применена:
 ```sql
 CREATE TABLE PersonenIndexEntries (
     Id INTEGER PRIMARY KEY,
-    
+
     -- Идентификация
     KtoNr TEXT NOT NULL UNIQUE,
     TAG TEXT NOT NULL UNIQUE,
-    
+
     -- Данные
     CompanyName TEXT NOT NULL,
     ContactPerson TEXT,
     Email TEXT,
     Phone TEXT,
     Address TEXT,
-    
+
     -- Налоги
     CountryCode TEXT NOT NULL,
     UIDNumber TEXT,
-    
+
     -- Счета
     SuggestedExpenseAccountId INTEGER,
     SuggestedIncomeAccountId INTEGER,
-    
+
     -- Классификация
     ContractorType INTEGER NOT NULL,
     Status INTEGER NOT NULL,
-    
+
     -- BaseEntity fields
     BusinessId INTEGER NOT NULL,
     CreatedAt DATETIME,
     UpdatedAt DATETIME,
     IsDeleted BIT,
-    
+
     FOREIGN KEY (CountryId) REFERENCES Countries(Id),
     FOREIGN KEY (SuggestedExpenseAccountId) REFERENCES Accounts(Id),
     FOREIGN KEY (SuggestedIncomeAccountId) REFERENCES Accounts(Id)
@@ -335,25 +335,25 @@ Kto-Nr кодирует тип:
 
 ```
 1. Приходит счет от Monolith Ost GmbH (Германия)
-   
+
 2. Вводим TAG: "MonoOst"
-   
+
 3. Система запрашивает PersonenIndexEntry:
-   SELECT * FROM PersonenIndexEntries 
+   SELECT * FROM PersonenIndexEntries
    WHERE TAG = 'MonoOst'
-   
+
 4. Получает:
    - CompanyName: Monolith Ost GmbH
    - CountryCode: DE
    - UIDNumber: DE123456789
    - SuggestedExpenseAccountId: 5030
-   
+
 5. Запрашивает налог:
-   SELECT StandardRate FROM EuCountryData 
+   SELECT StandardRate FROM EuCountryData
    WHERE CountryCode = 'DE'
-   
+
 6. Получает: 19%
-   
+
 7. Создает счет:
    SubTotal: 1000€
    Tax (19%): 190€
@@ -364,25 +364,25 @@ Kto-Nr кодирует тип:
 
 ```
 1. Выставляем счет Acme Corp (Швейцария)
-   
+
 2. Вводим TAG: "AcmeCor"
-   
+
 3. Система запрашивает PersonenIndexEntry:
-   SELECT * FROM PersonenIndexEntries 
+   SELECT * FROM PersonenIndexEntries
    WHERE TAG = 'AcmeCor'
-   
+
 4. Получает:
    - CompanyName: Acme Corp Gmbh
    - CountryCode: CH
    - UIDNumber: CHE111222
    - SuggestedIncomeAccountId: 4001
-   
+
 5. Запрашивает налог:
-   SELECT StandardRate FROM EuCountryData 
+   SELECT StandardRate FROM EuCountryData
    WHERE CountryCode = 'CH'
-   
+
 6. Получает: 0% (вне ЕС)
-   
+
 7. Создает счет:
    SubTotal: 2000€
    Tax (0%): 0€  ← Реверс НДС!
@@ -405,7 +405,7 @@ Kto-Nr кодирует тип:
 # Маппинг полей:
 Excel Personen Index       → Entity PersonenIndexEntry
 ├─ Kto-Nr              → KtoNr
-├─ Nachname            → CompanyName  
+├─ Nachname            → CompanyName
 ├─ Vorname             → ContactPerson
 ├─ Freifeld 01         → CountryCode
 ├─ UID-Nummer          → UIDNumber
@@ -422,19 +422,19 @@ public class PersonenIndexController
 {
     [HttpGet("search/{tag}")]
     public async Task<PersonenIndexEntryDto> Search(string tag);
-    
+
     [HttpGet("{id}")]
     public async Task<PersonenIndexEntryDto> GetById(int id);
-    
+
     [HttpPost]
     public async Task<PersonenIndexEntryDto> Create(CreatePersonenIndexEntryDto dto);
-    
+
     [HttpPut("{id}")]
     public async Task<PersonenIndexEntryDto> Update(int id, UpdatePersonenIndexEntryDto dto);
-    
+
     [HttpDelete("{id}")]
     public async Task<bool> Delete(int id);
-    
+
     [HttpGet("by-country/{countryCode}")]
     public async Task<List<PersonenIndexEntryDto>> GetByCountry(string countryCode);
 }
@@ -453,13 +453,13 @@ onTagInputChange(tag: string) {
             address: entry.address,
             email: entry.email,
             phone: entry.phone,
-            
+
             // 3. Автоопределение налога
             taxRate: this.getTaxRate(entry.countryCode),
-            
+
             // 4. Автоопределение счета (ER или AR)
-            suggestedAccount: this.isSuppliersForm 
-                ? entry.suggestedExpenseAccountId 
+            suggestedAccount: this.isSuppliersForm
+                ? entry.suggestedExpenseAccountId
                 : entry.suggestedIncomeAccountId
         });
     });
@@ -518,7 +518,7 @@ onTagInputChange(tag: string) {
 
 ---
 
-**Дата завершения:** 24 января 2026  
-**Время реализации:** ~4 часа  
-**Версия:** 1.0  
+**Дата завершения:** 24 января 2026
+**Время реализации:** ~4 часа
+**Версия:** 1.0
 **Статус:** ✅ **ГОТОВО К ИСПОЛЬЗОВАНИЮ**

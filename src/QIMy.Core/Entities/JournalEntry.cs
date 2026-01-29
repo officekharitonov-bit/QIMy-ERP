@@ -1,3 +1,5 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace QIMy.Core.Entities;
 /// Представляет двойную запись бухучета (Debit-Credit)
 /// Каждая операция (Invoice, ExpenseInvoice, Payment, CashEntry) генерирует журналы
 /// </summary>
-public class JournalEntry : BaseEntity
+public class JournalEntry : BaseEntity, IMustHaveBusiness
 {
     /// <summary>
     /// Бизнес, к которому относится проводка

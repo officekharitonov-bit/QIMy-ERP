@@ -16,25 +16,25 @@ try {
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $workbook = $excel.Workbooks.Open($filePath)
-    
+
     Write-Host "File opened successfully`n" -ForegroundColor Green
-    
+
     # List all sheets
     Write-Host "SHEETS IN WORKBOOK:" -ForegroundColor Yellow
     Write-Host ("=" * 80)
-    
+
     $sheetCount = $workbook.Sheets.Count
     Write-Host "Total sheets: $sheetCount`n"
-    
+
     for ($i = 1; $i -le $sheetCount; $i++) {
         $sheet = $workbook.Sheets.Item($i)
         $usedRange = $sheet.UsedRange
         $lastRow = $usedRange.Rows.Count
         $lastCol = $usedRange.Columns.Count
-        
+
         Write-Host "Sheet $i : $($sheet.Name)" -ForegroundColor Cyan
         Write-Host "  Dimensions: $lastRow rows x $lastCol columns"
-        
+
         # Get header row
         if ($lastRow -gt 0) {
             $headers = @()
@@ -45,7 +45,7 @@ try {
             }
             Write-Host "  Headers: $($headers -join ' | ')"
         }
-        
+
         # Show first 2 data rows
         if ($lastRow -gt 1) {
             Write-Host "  Sample data:"
@@ -59,17 +59,18 @@ try {
                 Write-Host "    Row $row : $($rowData -join ' | ')"
             }
         }
-        
+
         Write-Host ""
     }
-    
+
     # Close workbook
     $workbook.Close($false)
     $excel.Quit()
-    
+
     Write-Host "Analysis complete!" -ForegroundColor Green
-    
-} catch {
+
+}
+catch {
     Write-Host "ERROR: $($_)" -ForegroundColor Red
     if ($excel) { $excel.Quit() }
     exit 1

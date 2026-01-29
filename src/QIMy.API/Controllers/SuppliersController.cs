@@ -35,8 +35,8 @@ public class SuppliersController : ControllerBase
     {
         try
         {
-            var query = new GetSuppliersQuery 
-            { 
+            var query = new GetSuppliersQuery
+            {
                 BusinessId = businessId,
                 SearchTerm = searchTerm
             };

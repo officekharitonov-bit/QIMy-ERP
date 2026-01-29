@@ -1,15 +1,17 @@
+using QIMy.Core.Interfaces;
+
 namespace QIMy.Core.Entities;
 
 /// <summary>
 /// Return/Credit Note entity (Storno - ST)
 /// </summary>
-public class Return : BaseEntity
+public class Return : BaseEntity, IMustHaveBusiness
 {
     public string ReturnNumber { get; set; } = string.Empty;
     public DateTime ReturnDate { get; set; } = DateTime.UtcNow;
     public int ClientId { get; set; }
     public int? OriginalInvoiceId { get; set; }
-    public int? BusinessId { get; set; }
+    public int BusinessId { get; set; }
     public int CurrencyId { get; set; }
 
     public decimal SubTotal { get; set; }

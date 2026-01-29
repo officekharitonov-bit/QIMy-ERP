@@ -1,5 +1,5 @@
 # ОТЧЕТ: Исправление реактивной фильтрации и локализации
-**Дата:** 24.01.2026 13:02  
+**Дата:** 24.01.2026 13:02
 **Статус:** ✅ **ЗАВЕРШЕНО И ПРОТЕСТИРОВАНО**
 
 ---
@@ -34,9 +34,9 @@ private async Task LoadClients()
 {
     var all = result.ToList();
     var bizId = BusinessCtx.CurrentBusinessId;
-    
+
     // TODO: раскомментировать когда Client будет иметь BusinessId
-    // clients = bizId.HasValue 
+    // clients = bizId.HasValue
     //     ? all.Where(c => c.BusinessId == bizId.Value).ToList()
     //     : all;
 }
@@ -154,24 +154,24 @@ private async Task LoadClients()
     protected override async Task OnInitializedAsync()
     {
         await BusinessCtx.InitializeAsync();
-        
+
         // Подписка на событие смены бизнеса
         BusinessCtx.Changed += async () =>
         {
             await LoadData();
             StateHasChanged();  // Обновить UI
         };
-        
+
         await LoadData();
     }
-    
+
     private async Task LoadData()
     {
         var all = await GetAllData();
         var bizId = BusinessCtx.CurrentBusinessId;
-        
+
         // Фильтрация по выбранному бизнесу
-        items = bizId.HasValue 
+        items = bizId.HasValue
             ? all.Where(x => x.BusinessId == bizId.Value).ToList()
             : all;
     }
@@ -193,12 +193,12 @@ public class AddBusinessIdToClientAndProduct : Migration
             name: "BusinessId",
             table: "Clients",
             nullable: true);
-            
+
         migrationBuilder.AddColumn<int?>(
             name: "BusinessId",
             table: "Products",
             nullable: true);
-            
+
         // После добавления раскомментировать фильтр в Clients/Index.razor
     }
 }
@@ -241,5 +241,5 @@ public class AddBusinessIdToClientAndProduct : Migration
 
 ---
 
-**Приложение запущено на http://localhost:5204**  
+**Приложение запущено на http://localhost:5204**
 **Готово к ручному тестированию!** 🚀

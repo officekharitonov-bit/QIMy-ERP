@@ -9,7 +9,7 @@ public interface IAiEncodingDetectionService
     /// Определяет кодировку файла с ML и confidence scoring
     /// </summary>
     Task<EncodingDetectionResult> DetectEncodingAsync(Stream stream, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Определяет кодировку из byte array
     /// </summary>
@@ -19,22 +19,22 @@ public interface IAiEncodingDetectionService
 public class EncodingDetectionResult
 {
     public System.Text.Encoding Encoding { get; set; } = System.Text.Encoding.UTF8;
-    
+
     /// <summary>
     /// Confidence score (0.0-1.0)
     /// </summary>
     public decimal Confidence { get; set; }
-    
+
     /// <summary>
     /// Метод определения: "BOM", "Statistical", "ML", "Fallback"
     /// </summary>
     public string DetectionMethod { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Дополнительная информация
     /// </summary>
     public string? Details { get; set; }
-    
+
     /// <summary>
     /// Альтернативные кодировки (если несколько подходят)
     /// </summary>

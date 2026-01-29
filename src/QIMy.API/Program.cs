@@ -8,6 +8,7 @@ using QIMy.Infrastructure.Repositories;
 using QIMy.Infrastructure.Services;
 using QIMy.Core.Interfaces;
 using QIMy.API.Filters;
+using QIMy.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(connectionString);
     }
 });
+
+// Multi-tenant accessor (used by EF Core global filters + SaveChanges guardrails)
+builder.Services.AddScoped<ICurrentBusinessIdAccessor, CurrentBusinessIdAccessor>();
 
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg =>
@@ -81,6 +85,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Resolve tenant (BusinessId) for each request (query string or header)
+app.UseMiddleware<BusinessIdAccessorMiddleware>();
+
 app.MapControllers();
 
 // Seed reference data on startup
@@ -89,6 +96,10 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var businessAccessor = scope.ServiceProvider.GetRequiredService<ICurrentBusinessIdAccessor>();
+
+        // Startup tasks must see all tenants.
+        businessAccessor.BypassTenantFilter = true;
         // Apply pending migrations (if present) and ensure schema is created (SQLite dev runs may have empty migrations)
         context.Database.Migrate();
         await context.Database.EnsureCreatedAsync();

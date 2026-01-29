@@ -55,33 +55,33 @@
                             <label class="form-label fw-bold">Тип импорта:</label>
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <div class="card @(entityType == EntityType.Client ? "border-primary" : "")" 
-                                         style="cursor: pointer;"
-                                         @onclick="() => SelectEntityType(EntityType.Client)">
+                                    <div class="card @(entityType == EntityType.Client ? "border-primary" : "")"
+                                        style="cursor: pointer;" @onclick="() => SelectEntityType(EntityType.Client)">
                                         <div class="card-body text-center">
-                                            <i class="bi bi-people fs-1 @(entityType == EntityType.Client ? "text-primary" : "text-muted")"></i>
+                                            <i
+                                                class="bi bi-people fs-1 @(entityType == EntityType.Client ? "text-primary" : "text-muted")"></i>
                                             <h5 class="mt-2">Клиенты (Kunden)</h5>
                                             <small class="text-muted">Получатели счетов AR</small>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="card @(entityType == EntityType.Supplier ? "border-info" : "")" 
-                                         style="cursor: pointer;"
-                                         @onclick="() => SelectEntityType(EntityType.Supplier)">
+                                    <div class="card @(entityType == EntityType.Supplier ? "border-info" : "")"
+                                        style="cursor: pointer;" @onclick="() => SelectEntityType(EntityType.Supplier)">
                                         <div class="card-body text-center">
-                                            <i class="bi bi-building fs-1 @(entityType == EntityType.Supplier ? "text-info" : "text-muted")"></i>
+                                            <i
+                                                class="bi bi-building fs-1 @(entityType == EntityType.Supplier ? "text-info" : "text-muted")"></i>
                                             <h5 class="mt-2">Поставщики (Lieferanten)</h5>
                                             <small class="text-muted">Отправители счетов ER</small>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="card @(entityType == EntityType.All ? "border-success" : "")" 
-                                         style="cursor: pointer;"
-                                         @onclick="() => SelectEntityType(EntityType.All)">
+                                    <div class="card @(entityType == EntityType.All ? "border-success" : "")"
+                                        style="cursor: pointer;" @onclick="() => SelectEntityType(EntityType.All)">
                                         <div class="card-body text-center">
-                                            <i class="bi bi-globe2 fs-1 @(entityType == EntityType.All ? "text-success" : "text-muted")"></i>
+                                            <i
+                                                class="bi bi-globe2 fs-1 @(entityType == EntityType.All ? "text-success" : "text-muted")"></i>
                                             <h5 class="mt-2">Все (Kunden + Lieferanten)</h5>
                                             <small class="text-muted">Импорт по коду: 200k-399k</small>
                                         </div>
@@ -97,11 +97,11 @@
                                 <label class="form-label fw-bold">Географическая область:</label>
                                 <div class="row g-3">
                                     <div class="col-md-4">
-                                        <div class="card @(selectedArea == AreaSelection.Inland ? "border-success" : "")" 
-                                             style="cursor: pointer;"
-                                             @onclick="() => SelectArea(AreaSelection.Inland)">
+                                        <div class="card @(selectedArea == AreaSelection.Inland ? "border-success" : "")"
+                                            style="cursor: pointer;" @onclick="() => SelectArea(AreaSelection.Inland)">
                                             <div class="card-body text-center">
-                                                <i class="bi bi-flag-fill fs-2 @(selectedArea == AreaSelection.Inland ? "text-success" : "text-muted")"></i>
+                                                <i
+                                                    class="bi bi-flag-fill fs-2 @(selectedArea == AreaSelection.Inland ? "text-success" : "text-muted")"></i>
                                                 <h6 class="mt-2">🇦🇹 Österreich</h6>
                                                 <small class="text-muted">
                                                     @if (entityType == EntityType.Client)
@@ -117,11 +117,11 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="card @(selectedArea == AreaSelection.EU ? "border-primary" : "")" 
-                                             style="cursor: pointer;"
-                                             @onclick="() => SelectArea(AreaSelection.EU)">
+                                        <div class="card @(selectedArea == AreaSelection.EU ? "border-primary" : "")"
+                                            style="cursor: pointer;" @onclick="() => SelectArea(AreaSelection.EU)">
                                             <div class="card-body text-center">
-                                                <i class="bi bi-stars fs-2 @(selectedArea == AreaSelection.EU ? "text-primary" : "text-muted")"></i>
+                                                <i
+                                                    class="bi bi-stars fs-2 @(selectedArea == AreaSelection.EU ? "text-primary" : "text-muted")"></i>
                                                 <h6 class="mt-2">🇪🇺 EU</h6>
                                                 <small class="text-muted">
                                                     @if (entityType == EntityType.Client)
@@ -137,11 +137,11 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="card @(selectedArea == AreaSelection.ThirdCountry ? "border-warning" : "")" 
-                                             style="cursor: pointer;"
-                                             @onclick="() => SelectArea(AreaSelection.ThirdCountry)">
+                                        <div class="card @(selectedArea == AreaSelection.ThirdCountry ? "border-warning" : "")"
+                                            style="cursor: pointer;" @onclick="() => SelectArea(AreaSelection.ThirdCountry)">
                                             <div class="card-body text-center">
-                                                <i class="bi bi-globe fs-2 @(selectedArea == AreaSelection.ThirdCountry ? "text-warning" : "text-muted")"></i>
+                                                <i
+                                                    class="bi bi-globe fs-2 @(selectedArea == AreaSelection.ThirdCountry ? "text-warning" : "text-muted")"></i>
                                                 <h6 class="mt-2">🌍 Drittland</h6>
                                                 <small class="text-muted">
                                                     @if (entityType == EntityType.Client)
@@ -164,8 +164,8 @@
                             {
                                 <div class="alert alert-success">
                                     <strong>📋 Выбрано:</strong>
-                                    @entityType.ToString() - @GetAreaName() 
-                                    <br/>
+                                    @entityType.ToString() - @GetAreaName()
+                                    <br />
                                     <strong>🔢 Диапазон номеров:</strong> @GetNumberRange()
                                 </div>
                             }
@@ -308,8 +308,8 @@
 
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle me-2"></i>
-                            <strong>Как QIMy определяет тип:</strong> 
-                            В режиме импорта <strong>@entityType.ToString()</strong> будут импортированы только записи 
+                            <strong>Как QIMy определяет тип:</strong>
+                            В режиме импорта <strong>@entityType.ToString()</strong> будут импортированы только записи
                             из диапазона <strong>@GetNumberRange()</strong>. Остальные записи будут пропущены.
                         </div>
 
@@ -329,7 +329,7 @@
                                     @foreach (var record in previewRecords.Take(20))
                                     {
                                         var willImport = (entityType == EntityType.Client && record.Type == "Client") ||
-                                                        (entityType == EntityType.Supplier && record.Type == "Supplier");
+                                        (entityType == EntityType.Supplier && record.Type == "Supplier");
                                         <tr class="@(willImport ? "table-success" : "table-warning")">
                                             <td><strong>@record.Code</strong></td>
                                             <td>@record.CompanyName</td>
@@ -395,8 +395,8 @@
                         <div class="alert alert-success">
                             <h5>✅ Импорт успешно завершён!</h5>
                             <p class="mb-0">
-                                <strong>Тип:</strong> @entityType.ToString() <br/>
-                                <strong>Область:</strong> @GetAreaName() <br/>
+                                <strong>Тип:</strong> @entityType.ToString() <br />
+                                <strong>Область:</strong> @GetAreaName() <br />
                                 <strong>Диапазон:</strong> @GetNumberRange()
                             </p>
                         </div>
@@ -425,7 +425,8 @@
                                         </tr>
                                         <tr>
                                             <td>⏱️ Время выполнения:</td>
-                                            <td class="text-end"><strong>@clientResult.Duration.TotalSeconds.ToString("F1")s</strong></td>
+                                            <td class="text-end">
+                                                <strong>@clientResult.Duration.TotalSeconds.ToString("F1")s</strong></td>
                                         </tr>
                                     </table>
                                 </div>
@@ -545,7 +546,7 @@
     private ImportStep currentStep = ImportStep.Configuration;
     private EntityType entityType = EntityType.None;
     private AreaSelection selectedArea = AreaSelection.None;
-    
+
     private IBrowserFile? selectedFile;
     private string? selectedFileName;
     private byte[]? fileContent; // Store file content in memory
@@ -554,7 +555,7 @@
 
     private ImportResult? clientResult;
     private Application.Suppliers.Commands.ImportSuppliers.ImportSuppliersResult? supplierResult;
-    
+
     // Preview data
     private List<PreviewRecord>? previewRecords;
     private int previewClientsCount;
@@ -649,7 +650,7 @@
         selectedFile = e.File;
         selectedFileName = e.File.Name;
         errorMessage = null;
-        
+
         // Read file into memory immediately
         try
         {
@@ -665,7 +666,7 @@
             errorMessage = $"Fehler beim Lesen der Datei: {ex.Message}";
             fileContent = null;
         }
-        
+
         StateHasChanged();
     }
 
@@ -707,23 +708,23 @@
             {
                 var line = lines[i];
                 var columns = line.Split(';');
-                
+
                 if (columns.Length < 2) continue;
 
                 // Try to parse code from SECOND column (Kto-Nr)
                 if (int.TryParse(columns[1].Trim(), out int code))
                 {
                     var companyName = columns.Length > 2 ? columns[2].Trim() : "N/A";
-                    
+
                     // Determine type based on code range
                     string type;
                     string area;
-                    
+
                     if (code >= 200000 && code <= 299999)
                     {
                         type = "Client";
                         previewClientsCount++;
-                        
+
                         if (code >= 200000 && code <= 229999) area = "🇦🇹 Inland";
                         else if (code >= 230000 && code <= 259999) area = "🇪🇺 EU";
                         else area = "🌍 Drittland";
@@ -732,7 +733,7 @@
                     {
                         type = "Supplier";
                         previewSuppliersCount++;
-                        
+
                         if (code >= 300000 && code <= 329999) area = "🇦🇹 Inland";
                         else if (code >= 330000 && code <= 359999) area = "🇪🇺 EU";
                         else area = "🌍 Drittland";
@@ -753,8 +754,8 @@
                 }
             }
 
-            Logger.LogInformation("📊 Preview stats: {Clients} clients, {Suppliers} suppliers", 
-                previewClientsCount, previewSuppliersCount);
+            Logger.LogInformation("📊 Preview stats: {Clients} clients, {Suppliers} suppliers",
+            previewClientsCount, previewSuppliersCount);
 
             currentStep = ImportStep.Preview;
         }
@@ -787,7 +788,7 @@
             {
                 // Import both Clients and Suppliers
                 Logger.LogInformation("🤖 Starting Smart Import: Type=All (Clients + Suppliers)");
-                
+
                 // Import Clients (200000-299999) - create NEW MemoryStream
                 using (var clientStream = new MemoryStream(fileContent))
                 {
@@ -801,7 +802,7 @@
 
                     clientResult = await Mediator.Send(clientCommand);
                     Logger.LogInformation("✅ Clients import completed: {Success} success, {Errors} errors, {Skipped} skipped",
-                        clientResult.SuccessCount, clientResult.ErrorCount, clientResult.SkippedCount);
+                    clientResult.SuccessCount, clientResult.ErrorCount, clientResult.SkippedCount);
                 }
 
                 // Import Suppliers (300000-399999) - create NEW MemoryStream
@@ -816,21 +817,21 @@
                     };
 
                     var supplierResultWrapper = await Mediator.Send(supplierCommand);
-                    
+
                     if (supplierResultWrapper.IsSuccess && supplierResultWrapper.Value != null)
                     {
                         supplierResult = supplierResultWrapper.Value;
                         Logger.LogInformation("✅ Suppliers import completed: {Success} success, {Errors} errors",
-                            supplierResult.SuccessCount, supplierResult.FailureCount);
+                        supplierResult.SuccessCount, supplierResult.FailureCount);
                     }
                 }
             }
             else
             {
                 var (startCode, endCode) = GetCodeRange();
-                
+
                 Logger.LogInformation("🤖 Starting Smart Import: Type={EntityType}, Area={Area}, Range={Start}-{End}",
-                    entityType, selectedArea, startCode, endCode);
+                entityType, selectedArea, startCode, endCode);
 
                 if (entityType == EntityType.Client)
                 {
@@ -846,9 +847,9 @@
                         };
 
                         clientResult = await Mediator.Send(command);
-                        
+
                         Logger.LogInformation("✅ Clients import completed: {Success} success, {Errors} errors, {Skipped} skipped",
-                            clientResult.SuccessCount, clientResult.ErrorCount, clientResult.SkippedCount);
+                        clientResult.SuccessCount, clientResult.ErrorCount, clientResult.SkippedCount);
                     }
                 }
                 else if (entityType == EntityType.Supplier)
@@ -865,12 +866,12 @@
                         };
 
                         var result = await Mediator.Send(command);
-                    
+
                         if (result.IsSuccess && result.Value != null)
                         {
                             supplierResult = result.Value;
                             Logger.LogInformation("✅ Suppliers import completed: {Success} success, {Errors} errors",
-                                supplierResult.SuccessCount, supplierResult.FailureCount);
+                            supplierResult.SuccessCount, supplierResult.FailureCount);
                         }
                         else
                         {
@@ -881,9 +882,9 @@
                                 SuccessCount = 0,
                                 FailureCount = 1,
                                 Errors = new List<Application.Suppliers.Commands.ImportSuppliers.ImportError>
-                                {
-                                    new() { ErrorMessage = result.Error ?? "Unknown error" }
-                                }
+{
+new() { ErrorMessage = result.Error ?? "Unknown error" }
+}
                             };
                         }
                     }

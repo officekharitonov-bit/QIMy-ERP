@@ -289,6 +289,12 @@
 
     private async Task HandleSubmit()
     {
+        if (!BusinessCtx.CurrentBusinessId.HasValue)
+        {
+            errorMessage = "Сначала выберите бизнес";
+            return;
+        }
+
         if (selectedClientId == 0)
         {
             errorMessage = "Выберите клиента";
@@ -313,7 +319,7 @@
                 QuoteNumber = quoteNumber,
                 QuoteDate = quoteDate,
                 ValidUntil = validUntil ?? quoteDate.AddDays(30),
-                BusinessId = BusinessCtx.CurrentBusinessId,
+                BusinessId = BusinessCtx.CurrentBusinessId.Value,
                 Status = (QuoteStatus)quoteStatus,
                 SubTotal = subTotal,
                 TaxAmount = totalTax,

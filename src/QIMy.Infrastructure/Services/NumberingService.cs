@@ -38,11 +38,11 @@ public class NumberingService
         }
 
         string number = GenerateNumberFromConfig(config);
-        
+
         // Increment for next time
         config.NextNumber++;
         config.ExampleNumber = number;
-        
+
         await _context.SaveChangesAsync();
 
         return number;

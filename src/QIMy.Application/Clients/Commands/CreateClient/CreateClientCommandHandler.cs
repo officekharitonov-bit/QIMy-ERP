@@ -75,6 +75,13 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
                 }
             }
 
+            if (!request.BusinessId.HasValue || request.BusinessId.Value <= 0)
+            {
+                return Result<ClientDto>.Failure("BusinessId is required.");
+            }
+
+            var businessId = request.BusinessId.Value;
+
             // 3. Создание entity из command
             var client = new Client
             {
@@ -89,7 +96,7 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, R
                 Country = request.Country ?? "Österreich",
                 ClientTypeId = request.ClientTypeId,
                 ClientAreaId = request.ClientAreaId,
-                BusinessId = request.BusinessId,
+                BusinessId = businessId,
                 CreatedAt = DateTime.UtcNow
             };
 

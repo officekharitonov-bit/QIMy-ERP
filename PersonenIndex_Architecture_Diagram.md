@@ -60,7 +60,7 @@ INPUT: Freifeld 01 = "DE" (Германия)
   │
   └─→ VLOOKUP(200001, Sorted list!Kto-Nr...) → Description = "Barverkaufe DEUTSCHLAND"
 
-OUTPUT: 
+OUTPUT:
   • VAT Rate: 19%
   • Currency: EUR
   • Thresholds: 125000 EUR (purchase), 100000 EUR (supply)
@@ -71,7 +71,7 @@ OUTPUT:
 ```
 INPUT: Kto-Nr = 4211 (Erlöse EU-HU-MOSS)
   │
-  └─→ VLOOKUP(4211, Steuercodes!Kto-Nr...) 
+  └─→ VLOOKUP(4211, Steuercodes!Kto-Nr...)
       ├─ Beschreibung = "Erlöse, steuerpflichtig in anderem EU-Land - HU - MOSS"
       ├─ Kontoart = "Ertrag" (Revenue)
       ├─ Code = 1
@@ -91,7 +91,7 @@ INPUT: Kunde = "Siemens Austria", Land = "AT"
 
 OUTPUT: Complete invoice context
   • VAT Rate: 20%
-  • Currency: EUR  
+  • Currency: EUR
   • Payment Terms: Thresholds 11000/35000
   • Account: 4000 (Erlöskonten)
   • Tax automation: A (automatic)
@@ -134,7 +134,7 @@ CREATE TABLE tblTaxCodes (
 
 Все 6 листов работают вместе через **VLOOKUP / INDEX-MATCH формулы**.
 
-Главный лист "Personen Index" содержит 22 столбца данных клиентов, каждое поле 
+Главный лист "Personen Index" содержит 22 столбца данных клиентов, каждое поле
 заполняется через поиск в справочниках:
 
 - Страна → EU-RATE (ставка, валюта, пороги)

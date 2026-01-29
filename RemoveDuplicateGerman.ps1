@@ -31,10 +31,12 @@ foreach ($lang in $list) {
                 $hasGerman = $true
                 Write-Host "✅ Сохранён: $($lang.LanguageTag)" -ForegroundColor Green
             }
-        } else {
+        }
+        else {
             Write-Host "❌ Удалён лишний: $($lang.LanguageTag)" -ForegroundColor Red
         }
-    } else {
+    }
+    else {
         # Keep all non-German languages
         $newList += $lang
     }
@@ -47,7 +49,8 @@ try {
     Write-Host "`nНовые языки:" -ForegroundColor Cyan
     Get-WinUserLanguageList | ForEach-Object { Write-Host "  - $($_.LanguageTag)" }
     Write-Host "`n⚠️  Необходима переавторизация для полного применения изменений." -ForegroundColor Yellow
-} catch {
+}
+catch {
     Write-Host "❌ Ошибка при применении изменений: $_" -ForegroundColor Red
     exit 1
 }

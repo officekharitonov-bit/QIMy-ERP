@@ -78,14 +78,16 @@ $correct = @()
 foreach ($code in $officialRates.Keys | Sort-Object) {
     $official = $officialRates[$code]
     $inExcel = $excelData[$code]
-    
+
     if ($inExcel -eq $null) {
         Write-Host "MISSING: $code (official $official%)" -ForegroundColor Yellow
         $errors += "Code $code missing"
-    } elseif ($inExcel -ne $official) {
+    }
+    elseif ($inExcel -ne $official) {
         Write-Host "ERROR: $code - Excel=$inExcel%, Official=$official%" -ForegroundColor Red
         $errors += "Code $code mismatch (Excel=$inExcel%, Official=$official%)"
-    } else {
+    }
+    else {
         $correct += $code
     }
 }
@@ -99,6 +101,7 @@ Write-Host ""
 if ($errors.Count -gt 0) {
     Write-Host "Found errors:" -ForegroundColor Red
     $errors | ForEach-Object { Write-Host "  * $_" }
-} else {
+}
+else {
     Write-Host "All VAT rates are correct!" -ForegroundColor Green
 }

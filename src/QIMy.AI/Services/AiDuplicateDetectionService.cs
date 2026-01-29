@@ -22,7 +22,7 @@ public class AiDuplicateDetectionService : IAiDuplicateDetectionService
     {
         options ??= new DuplicateDetectionOptions();
         var result = new DuplicateDetectionResult();
-        
+
         var entityProperties = typeof(TEntity).GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var fieldsToCheck = options.FieldsToCheck ?? entityProperties.Select(p => p.Name).ToList();
 
@@ -96,8 +96,8 @@ public class AiDuplicateDetectionService : IAiDuplicateDetectionService
         }
 
         result.HasDuplicates = result.Duplicates.Any();
-        result.OverallConfidence = result.Duplicates.Any() 
-            ? result.Duplicates.Max(d => d.MatchScore) 
+        result.OverallConfidence = result.Duplicates.Any()
+            ? result.Duplicates.Max(d => d.MatchScore)
             : 0m;
 
         result.RecommendedAction = result.OverallConfidence switch
@@ -187,7 +187,7 @@ public class AiDuplicateDetectionService : IAiDuplicateDetectionService
     private string GetEntityDescription<TEntity>(TEntity entity)
     {
         var properties = typeof(TEntity).GetProperties();
-        
+
         // Try common description fields
         var nameProperty = properties.FirstOrDefault(p => p.Name.Contains("Name") || p.Name.Contains("Title"));
         if (nameProperty != null)

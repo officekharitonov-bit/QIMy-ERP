@@ -30,7 +30,7 @@ public class GetAllVatRatesQueryHandler : IRequestHandler<GetAllVatRatesQuery, R
             _logger.LogInformation("Getting all VAT rates (IncludeHistorical: {Include})", request.IncludeHistorical);
 
             var allRates = await _unitOfWork.TaxRates.GetAllAsync();
-            
+
             var query = allRates.AsEnumerable();
 
             // Filter by country if specified

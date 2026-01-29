@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QIMy.Core.Entities;
+using QIMy.Core.Interfaces;
 using QIMy.Infrastructure.Data;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ public class BusinessContext
     private readonly UserManager<AppUser> _userManager;
     private readonly ProtectedSessionStorage _sessionStorage;
     private readonly ILogger<BusinessContext> _logger;
+    private readonly ICurrentBusinessIdAccessor _businessIdAccessor;
     private const string SESSION_KEY = "CurrentBusinessId";
 
     public int? CurrentBusinessId { get; private set; }
@@ -28,17 +30,19 @@ public class BusinessContext
     public event Action? Changed;
 
     public BusinessContext(
-        ApplicationDbContext db, 
-        AuthenticationStateProvider auth, 
+        ApplicationDbContext db,
+        AuthenticationStateProvider auth,
         UserManager<AppUser> userManager,
         ProtectedSessionStorage sessionStorage,
-        ILogger<BusinessContext> logger)
+        ILogger<BusinessContext> logger,
+        ICurrentBusinessIdAccessor businessIdAccessor)
     {
         _db = db;
         _auth = auth;
         _userManager = userManager;
         _sessionStorage = sessionStorage;
         _logger = logger;
+        _businessIdAccessor = businessIdAccessor;
     }
 
     private async Task<AppUser?> GetCurrentUserAsync()
@@ -55,13 +59,13 @@ public class BusinessContext
     public async Task InitializeAsync()
     {
         _logger.LogInformation("🔍 InitializeAsync called");
-        
+
         // 1. Try to load from session (priority #1 - user's current choice)
         try
         {
             var result = await _sessionStorage.GetAsync<int>(SESSION_KEY);
             _logger.LogInformation("📦 Session storage result: Success={Success}, Value={Value}", result.Success, result.Value);
-            
+
             if (result.Success && result.Value > 0)
             {
                 var business = await _db.Businesses.FirstOrDefaultAsync(b => b.Id == result.Value);
@@ -69,6 +73,7 @@ public class BusinessContext
                 {
                     CurrentBusinessId = business.Id;
                     CurrentBusinessName = business.Name;
+                    _businessIdAccessor.CurrentBusinessId = business.Id;
                     _logger.LogInformation("✅ Loaded from SESSION: BusinessId={Id}, Name={Name}", CurrentBusinessId, CurrentBusinessName);
                     return;
                 }
@@ -81,17 +86,17 @@ public class BusinessContext
 
         // 2. Load from user's saved default
         var user = await GetCurrentUserAsync();
-        if (user == null) 
+        if (user == null)
         {
             _logger.LogWarning("⚠️ No authenticated user found");
             return;
         }
-        
+
         _logger.LogInformation("👤 User BusinessId={BusinessId}", user.BusinessId);
-        
+
         if (user.BusinessId.HasValue)
         {
-            await SetBusinessAsync(user.BusinessId.Value, saveDefault:false);
+            await SetBusinessAsync(user.BusinessId.Value, saveDefault: false);
         }
         else
         {
@@ -103,7 +108,7 @@ public class BusinessContext
                 .OrderBy(b => b!.Name)
                 .FirstOrDefaultAsync();
             if (first != null)
-                await SetBusinessAsync(first.Id, saveDefault:false);
+                await SetBusinessAsync(first.Id, saveDefault: false);
         }
     }
 
@@ -124,9 +129,9 @@ public class BusinessContext
     public async Task SetBusinessAsync(int businessId, bool saveDefault = true)
     {
         _logger.LogInformation("🔄 SetBusinessAsync called: BusinessId={BusinessId}, SaveDefault={SaveDefault}", businessId, saveDefault);
-        
+
         var b = await _db.Businesses.FirstOrDefaultAsync(x => x.Id == businessId);
-        if (b == null) 
+        if (b == null)
         {
             _logger.LogWarning("⚠️ Business {BusinessId} not found", businessId);
             return;
@@ -134,6 +139,12 @@ public class BusinessContext
 
         CurrentBusinessId = b.Id;
         CurrentBusinessName = b.Name;
+
+        // Ensure EF Core query filters / guards see the new tenant immediately.
+        _businessIdAccessor.CurrentBusinessId = b.Id;
+
+        // Avoid accidental cross-business writes from previously tracked entities.
+        _db.ChangeTracker.Clear();
 
         // CRITICAL: Save to session for isolation between businesses
         try
@@ -156,7 +167,7 @@ public class BusinessContext
                 await _db.SaveChangesAsync();
             }
         }
-        
+
         Changed?.Invoke();
     }
 }

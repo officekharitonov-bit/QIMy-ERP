@@ -105,9 +105,10 @@ public class UpdateClientCommandHandler : IRequestHandler<UpdateClientCommand, R
             client.Country = request.Country ?? "Österreich";
             client.ClientTypeId = request.ClientTypeId;
             client.ClientAreaId = request.ClientAreaId;
-            if (request.BusinessId.HasValue)
+
+            if (request.BusinessId.HasValue && request.BusinessId.Value != client.BusinessId)
             {
-                client.BusinessId = request.BusinessId;
+                return Result<ClientDto>.Failure("Changing BusinessId is not allowed.");
             }
 
             // 5. Сохраняем

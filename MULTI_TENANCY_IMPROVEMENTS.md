@@ -117,9 +117,9 @@ if (request.BusinessId.HasValue)
 private async Task LoadClients()
 {
     // Фильтрация на уровне Query (оптимизация)
-    var query = new GetAllClientsQuery 
-    { 
-        BusinessId = BusinessCtx.CurrentBusinessId 
+    var query = new GetAllClientsQuery
+    {
+        BusinessId = BusinessCtx.CurrentBusinessId
     };
     var result = await Mediator.Send(query);
     clients = result.ToList();
@@ -136,9 +136,9 @@ private async Task LoadClients()
 private async Task LoadData()
 {
     // Фильтрация на уровне Query (оптимизация)
-    var query = new GetAllProductsQuery 
-    { 
-        BusinessId = BusinessCtx.CurrentBusinessId 
+    var query = new GetAllProductsQuery
+    {
+        BusinessId = BusinessCtx.CurrentBusinessId
     };
     var result = await Mediator.Send(query);
     products = result.OrderBy(x => x.Name).ToList();

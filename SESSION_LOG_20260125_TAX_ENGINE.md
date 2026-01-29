@@ -1,7 +1,7 @@
 # 🚀 Tax Logic Engine - Implementation Complete
 
-**Дата:** 25 января 2026  
-**Проект:** QIMy ERP - Austrian Billing System  
+**Дата:** 25 января 2026
+**Проект:** QIMy ERP - Austrian Billing System
 **Модуль:** Tax Logic Engine для автоматического определения налоговых случаев
 
 ---
@@ -39,7 +39,7 @@
 **Методы:**
 ```csharp
 // Применить налоговую логику к счёту
-void ApplyTaxLogic(Invoice invoice, Client client, 
+void ApplyTaxLogic(Invoice invoice, Client client,
                    bool sellerIsSmallBusiness, bool isGoodsSupply)
 
 // Получить текст для PDF
@@ -68,7 +68,7 @@ public string? Konto { get; set; }     // Счёт доходов (4000, 4062)
 public decimal? Proz { get; set; }     // Процентная ставка НДС
 ```
 
-**Миграция:** `20260125134133_AddSteuercodeKontoProz`  
+**Миграция:** `20260125134133_AddSteuercodeKontoProz`
 **Статус:** ✅ Применена к базе данных
 
 ---
@@ -120,9 +120,9 @@ var client = await _context.Clients.FindAsync(clientId);
 // 3. Применяем налоговую логику
 var taxService = new InvoiceTaxService();
 taxService.ApplyTaxLogic(
-    invoice, 
-    client, 
-    sellerIsSmallBusiness: false, 
+    invoice,
+    client,
+    sellerIsSmallBusiness: false,
     isGoodsSupply: true
 );
 
@@ -152,7 +152,7 @@ await _context.SaveChangesAsync();
 var invoice = new Invoice { SubTotal = 500m };
 var client = new Client { Country = "AT" };
 
-taxService.ApplyTaxLogic(invoice, client, 
+taxService.ApplyTaxLogic(invoice, client,
     sellerIsSmallBusiness: true, // ВАЖНО!
     isGoodsSupply: true);
 
@@ -219,7 +219,7 @@ public class CreateInvoiceHandler : IRequestHandler<CreateInvoiceCommand, int>
     {
         // 1. Получить клиента
         var client = await _context.Clients.FindAsync(request.ClientId);
-        
+
         // 2. Создать счёт
         var invoice = new Invoice
         {
@@ -227,26 +227,26 @@ public class CreateInvoiceHandler : IRequestHandler<CreateInvoiceCommand, int>
             ClientId = request.ClientId,
             SubTotal = request.Items.Sum(i => i.Amount)
         };
-        
+
         // 3. ПРИМЕНИТЬ НАЛОГОВУЮ ЛОГИКУ ⭐
         _taxService.ApplyTaxLogic(
-            invoice, 
-            client, 
+            invoice,
+            client,
             sellerIsSmallBusiness: false, // TODO: from company settings
             isGoodsSupply: request.IsGoodsInvoice
         );
-        
+
         // 4. Валидация
         var (isValid, errors) = _taxService.ValidateInvoice(invoice, client);
         if (!isValid)
         {
             throw new ValidationException(string.Join("; ", errors));
         }
-        
+
         // 5. Сохранить
         _context.Invoices.Add(invoice);
         await _context.SaveChangesAsync(ct);
-        
+
         return invoice.Id;
     }
 }
@@ -427,7 +427,7 @@ QIMy/
 
 ---
 
-**Создано:** 25 января 2026  
-**Автор:** GitHub Copilot  
-**Версия:** 1.0.0  
+**Создано:** 25 января 2026
+**Автор:** GitHub Copilot
+**Версия:** 1.0.0
 **Статус:** ✅ Завершено, готово к интеграции
